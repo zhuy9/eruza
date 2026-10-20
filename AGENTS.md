@@ -8,15 +8,15 @@ cache. Do not implement hosting, Entra sign-in, or multi-user support.
 
 ## Start here
 
-1. Read `docs/milestones.md` for the current checkpoint and next work.
+1. Read `docs/handoff.md` and `docs/milestones.md` for the checkpoint and next work.
 2. Read `docs/requirements.md`, `docs/architecture.md`, and `docs/api.md`.
 3. Check Git status and preserve existing changes.
 4. State the milestone, assumptions, and checks before coding.
 5. Work on the requested milestone. If none is named, start with the first open
    milestone whose dependencies are complete.
 
-The repo currently contains docs and empty source folders. Do not assume that
-the planned npm commands or features exist.
+Read the handoff before running commands or claiming that a feature or check
+is complete. If the system drive is low on space, use the `tmp/` paths it lists.
 
 ## Project conventions
 
@@ -47,10 +47,7 @@ the planned npm commands or features exist.
 
 ## Commands and checks
 
-At M0, check doc links, Git whitespace, ignored private paths, and the symlink.
-No app test, build, or live API result exists yet.
-
-M1 must add and document these commands:
+These commands exist and passed at the end of M1:
 
 - `npm run dev`
 - `npm run lint`

@@ -1,0 +1,3 @@
+# Prettier also reads .gitignore.
+package-lock.json
+CLAUDE.md

@@ -8,12 +8,12 @@ Azure DevOps remains the source of truth.
 
 ## Current status
 
-This repo contains the folder layout and implementation plan. The app is not
-implemented yet. There is no `package.json`, and the npm commands below are
-planned commands, not commands that work today.
+M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
+complete. Mock mode runs a read-only app shell with sample data.
+The board, meeting grid, editing, and real ADO integration are not complete.
 
-Start with [milestones and acceptance checks](docs/milestones.md).
-M0 covers this handoff. M1 is the first implementation milestone.
+Start with the [current handoff](docs/handoff.md), then read
+[milestones and acceptance checks](docs/milestones.md).
 
 ## Stage 1
 
@@ -27,16 +27,16 @@ M0 covers this handoff. M1 is the first implementation milestone.
 
 The grid includes all work item types, with no type filter:
 
-| Meeting view | Grouping |
-| --- | --- |
+| Meeting view  | Grouping                |
+| ------------- | ----------------------- |
 | Sprint update | Person > Story > Ticket |
-| Sprint retro | Story > Person > Ticket |
+| Sprint retro  | Story > Person > Ticket |
 
 Both views default to the current sprint and allow selecting previous sprints.
 The board has a separate work item type selector because its columns use that
 type's states.
 
-## Planned stack
+## Stack
 
 - React, TypeScript, and Vite.
 - TanStack Query, Router, Table, and Virtual.
@@ -44,16 +44,15 @@ type's states.
 - dnd-kit, TipTap, and cmdk.
 - Node.js with Hono and native `fetch`.
 - `@azure/identity` with `AzureCliCredential`.
-- Vitest and browser tests, with ESLint and Prettier.
+- Vitest and Playwright, with ESLint and Prettier.
 
-Use one npm package and one lockfile. M1 will pin the Node version and dependency
-versions.
+One npm package and one lockfile. Node and dependency versions are pinned.
 
-## Planned local setup
+## Local setup
 
-These steps become usable after the relevant implementation milestones.
+Mock mode works now. Real ADO mode (steps 4-7) needs M2.
 
-1. Install the Node version selected in M1 and install Azure CLI.
+1. Install Node.js `24.14.1` (see `.node-version`) and Azure CLI.
 2. Run `npm ci`.
 3. Copy `.env.example` to `.env`.
 4. Set `MOCK=0` for real ADO access. Set `ADO_ORG` to the organization name,
@@ -77,32 +76,45 @@ These steps become usable after the relevant implementation milestones.
    az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query expiresOn --output tsv
    ```
 
-8. Run `npm run dev` and open the localhost URL printed by Vite.
+8. Run `npm run dev` and open <http://127.0.0.1:5173>.
+   The local API listens on `127.0.0.1` at `PORT` (default `3001`).
+   Press Ctrl+C to stop both servers.
 
 Azure CLI must remain installed. The credential uses it to acquire tokens.
 Eruza will not run `az boards` commands. Access still depends on the signed-in
 user's Azure DevOps permissions.
 
-For mock mode, set `MOCK=1` in `.env` and run `npm run dev`. Leave organization
-settings blank. Mock edits stay in memory and reset when the server restarts.
+For mock mode, set `MOCK=1` in `.env` (or skip `.env`; mock is the default) and
+run `npm run dev`. Leave organization settings blank. Mock mode does not need
+Azure CLI. Mock edits stay in memory and reset when the server restarts.
+
+## Checks
+
+| Command            | What it does                                                  |
+| ------------------ | ------------------------------------------------------------- |
+| `npm run check`    | Lint, format check, type check, unit/integration tests, build |
+| `npm run test:e2e` | Browser tests against mock mode                               |
+| `npm run format`   | Format all files with Prettier                                |
+
+Before the first browser test, run `npx playwright install chromium`.
 
 Do not put tokens, passwords, or private keys in `.env`. The file is ignored
 because even organization and project names can be private.
 
 ## Repo guide
 
-| Path | Purpose |
-| --- | --- |
-| [AGENTS.md](AGENTS.md) | Project rules and how to resume work |
-| [CLAUDE.md](CLAUDE.md) | Relative symlink to `AGENTS.md` |
-| [docs/requirements.md](docs/requirements.md) | Stage 1 behavior and scope |
-| [docs/architecture.md](docs/architecture.md) | Folder layout and data flow |
-| [docs/api.md](docs/api.md) | API contracts and ADO operations |
-| [docs/milestones.md](docs/milestones.md) | Work order, acceptance checks, and handoff |
-| [docs/privacy.md](docs/privacy.md) | Rules for a repo intended to be public |
+| Path                                         | Purpose                                    |
+| -------------------------------------------- | ------------------------------------------ |
+| [AGENTS.md](AGENTS.md)                       | Project rules and how to resume work       |
+| [CLAUDE.md](CLAUDE.md)                       | Relative symlink to `AGENTS.md`            |
+| [docs/requirements.md](docs/requirements.md) | Stage 1 behavior and scope                 |
+| [docs/architecture.md](docs/architecture.md) | Folder layout and data flow                |
+| [docs/api.md](docs/api.md)                   | API contracts and ADO operations           |
+| [docs/milestones.md](docs/milestones.md)     | Work order, acceptance checks, and handoff |
+| [docs/privacy.md](docs/privacy.md)           | Rules for a repo intended to be public     |
 
-The source folders contain placeholders only. Do not treat them as working
-features.
+The current board and meeting pages are a read-only preview, not the finished
+board or meeting grid.
 
 ## Repository visibility
 

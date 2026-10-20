@@ -37,10 +37,10 @@ selector is separate from these shared filters.
 
 Use one grid with two grouping presets:
 
-| Preset | Group order | Meeting purpose |
-| --- | --- | --- |
-| Sprint update | Person > Story > Ticket | Review each person's work |
-| Sprint retro | Story > Person > Ticket | Review each story across people |
+| Preset        | Group order             | Meeting purpose                 |
+| ------------- | ----------------------- | ------------------------------- |
+| Sprint update | Person > Story > Ticket | Review each person's work       |
+| Sprint retro  | Story > Person > Ticket | Review each story across people |
 
 Person means the ticket's assignee. It does not mean the parent story's owner.
 A story shared by several people appears under each person in Sprint update.
