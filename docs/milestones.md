@@ -5,7 +5,7 @@
 M0 and M1 are complete. M2, M3, and M4 are implemented; their live checks
 (M2.8, M3.9, M4.7) are open. M5 is complete in mock mode. M6 is implemented; its live
 checks (M6.3, M6.6) are open. M7's local checks are done; its live parts are open.
-M0-M6 are on GitHub (`2c27ce6`); M7 work is committed locally only.
+M0-M6 and the M7 local work are on GitHub (`8b513e9`).
 Read [the handoff](handoff.md) before continuing.
 
 The GitHub repository was private when checked in the M7 session. Do not assume
@@ -303,7 +303,7 @@ Update this section at the end of each work session.
 - M5: complete in mock mode. M6: implemented; M6.3 and M6.6 need live checks. Both are
   on GitHub (`2c27ce6`).
 - M7: local parts done (clean clone, audit, accessibility and keyboard checks, limit
-  tests, build inspection, publication review), committed locally. Details are in
+  tests, build inspection, publication review), on GitHub. Details are in
   [handoff.md](handoff.md).
 - Latest checks: `npm run check` passed (113 unit/integration tests and build);
   `npm run test:e2e` passed (44 browser tests) in three full runs.

@@ -20,14 +20,13 @@ The user chose mock-mode work first. Build and test the ADO layer with mocked
 responses, but leave live acceptance checks open. Do not use the user's Azure
 CLI session or real work items yet.
 
-Each push needs explicit approval. The user approved pushing through M6 (`2c27ce6`).
+Each push needs explicit approval. The user approved pushing through `8b513e9` (M7 local work).
 Do not push later commits, deploy, or change repository visibility without new approval.
 
 ## Git checkpoint
 
-- Branch: `main`. M0-M6 are on GitHub at `2c27ce6`; the user approved pushing the
-  shortcut fix, M5, and M6 in the M7 session.
-- M7 work is committed locally only. Do not push it without approval.
+- Branch: `main`. M0-M6 and the M7 local work are on GitHub at `8b513e9`. The user
+  approved each push.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -512,4 +511,4 @@ the dev-server and Ctrl+C checks.
    approval. Then live startup (M7.2), the live parts of M7.5, and M7.1.
 2. After the live checks, rerun M7.3, M7.4, M7.6, and M7.7 if code changed, then write
    the final M7.8 handoff.
-3. Pushing the M7 commit, and any visibility change, needs explicit approval.
+3. Pushing later commits, and any visibility change, needs explicit approval.
