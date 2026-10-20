@@ -16,9 +16,11 @@ For each milestone:
 
 Do not make product assumptions. Ask if a decision is not covered by the docs.
 
-The user chose mock-mode work first. Build and test the ADO layer with mocked
-responses, but leave live acceptance checks open. Do not use the user's Azure
-CLI session or real work items yet.
+The user chose mock-mode work first, then explicitly approved live checks in a
+private test project, creation of sprints and disposable items, and mentioning the
+signed-in user. Those live checks passed on 2026-10-20. Stage 1 is complete.
+The milestone sections below retain the earlier mock-only evidence; the final
+live verification section records what was checked afterward.
 
 Each push needs explicit approval. The user approved pushing through `8b513e9` (M7 local work).
 Do not push later commits, deploy, or change repository visibility without new approval.
@@ -477,6 +479,123 @@ Limits:
   have not been tried. The focus check counts any visible change in outline, shadow, fill,
   or border; it does not measure the ring's contrast.
 
+## Final Stage 1 verification (2026-10-20)
+
+Stage 1 is complete. No application code changed during live verification.
+The earlier mock evidence and the live evidence below have different scopes.
+
+### Live evidence
+
+The user approved Azure CLI access to the configured private test project,
+creating sprints and disposable items, and mentioning only the signed-in user.
+
+- M2.8: the CLI-backed session connected. `connectionData` accepted
+  `api-version=7.1-preview`; `authenticatedUser.properties.Account.$value` matched
+  the signed-in CLI account. The configured project was private. Its default team,
+  members, area/default settings, backlog levels, types, fields, and states loaded.
+  Three dated iterations were created and enrolled in the team. Their live
+  `timeFrame` values were `past`, `current`, and `future`; the app chose the single
+  current sprint. WIQL and a summary batch accepted `System.Parent` and fetched a
+  story outside the sprint as a supporting ancestor, without counting it as a
+  matching ticket. This team had one person and no groups; `isContainer` was absent.
+  Group filtering remains covered by synthetic tests, not this live sample.
+- M3.9: disposable story/task creation, field editing, Assign to me, Unassign,
+  clearing populated fields, and clearing already-empty fields passed. A stale
+  `/rev` write was rejected and surfaced as local `CONFLICT` (HTTP 409), without
+  overwriting the saved title. Add child created the relation in one request.
+  The revisions endpoint accepted `$expand=relations`; changing and removing a
+  parent preserved both items and a separate Related link. Opening the editor
+  left the item revision unchanged.
+- M4.7: the selected type's actual state metadata supplied the columns. ADO
+  rejected a create in a later state under its initial-state rule; creation in
+  the initial state succeeded. A later state move succeeded. Inspection of the
+  outbound patch confirmed exactly a `/rev` test and `System.State`, with no rank
+  field. Both grid presets also loaded the live sprint; the grid had no type filter.
+- M6.3: the production HTML comment path sent the approved self-mention from the
+  selected team's identity. ADO's comment response preserved the HTML but omitted
+  `mentions`, including with all expansion options. That echo was not counted as
+  proof. After the user signed in to the collaborative browser, ADO rendered the
+  comment as a person mention, marked it as the current user, and opened a contact
+  card whose name and account matched the signed-in identity. No other person was
+  mentioned. Email delivery was not checked.
+- M6.6: HTML comment creation and reads, rendered Markdown, descending order, and
+  a real continuation token passed. A three-comment thread was read with a
+  two-comment upstream page, then the cursor was passed through Eruza for the
+  remaining comment, with no repeat. The generated ADO web link returned the item
+  page and opened it in the signed-in browser. All nine disposable work items were
+  deleted with `destroy=false`, using the project-free delete path, and each was
+  confirmed in the project's Recycle Bin. Nothing was permanently destroyed.
+  The three created sprints remain available. Existing work items, sprint dates,
+  and team defaults were preserved.
+- M7.2: a clean local clone of `main` at `965e71d` ran `npm ci` (0 vulnerabilities)
+  and `npm run check` (113 tests and build). Ignored local settings supplied the
+  README steps 4-7 values; the user had already completed sign-in. The README token
+  expiry command succeeded with its output suppressed. Mock and live `npm run dev`
+  startup each passed. Both listeners bound to `127.0.0.1`; the live session
+  connected through the Vite proxy without a token in its response. Wrong Host and
+  missing write Origin returned 403. Ctrl+C stopped both listeners.
+- M7.5: the live board refreshed after about 45.3 seconds. A real concurrent title
+  edit caused the detail editor's stale draft to conflict; the draft stayed
+  visible, and Save again saved it against the refreshed revision. Session Retry
+  reacquired CLI credentials without a restart. With real CLI-backed tokens and
+  simulated near-expiry timestamps, a subsequent concurrent read shared one
+  refresh (two total acquisitions). Natural token expiration and a real 429 were
+  not induced. Expiry timing, query limits, and rate-limit delays/recovery retain
+  their unit and mock browser evidence; this run does not claim those upstream
+  events occurred.
+
+All assumptions listed under the earlier milestones were checked as described
+above. The membership flag assumption could not be exercised with a real group;
+the API omitted it for the only person. No production fix was needed.
+
+### Local evidence and privacy
+
+- `npm run check` passed three full runs: twice in the working checkout and once
+  in the clean clone (113 unit/integration tests each, plus lint, formatting,
+  types, and build).
+- `npm run test:e2e` passed three valid full runs (44 browser tests each):
+  57.5, 57.3, and 56.5 seconds. One separate attempt had 43 passes and a grid
+  drag failure. Its trace showed a document reload before mouse release and no
+  second parent write; Vite and React restarted during concurrent file edits.
+  The replacement run used a frozen workspace and passed the same drag test.
+  No application or test change was needed.
+- The required `ponytail-review` on the docs diff found no remaining findings.
+  A separate correctness/security/privacy review caught an accidentally changed
+  generic milestone-status instruction; its original wording was restored.
+  That review found no remaining blocker or private values in the evidence.
+- `npm audit` and `npm audit --omit=dev` each found 0 vulnerabilities.
+- M7.6: four generated JavaScript assets were inspected. No credential module,
+  token scope/header, server setting, unique-name, fixture, axe, private-path, or
+  JWT markers were present. The only ADO URL was the public prefix used to check
+  the Open link. Main chunk: 225.04 KB gzipped; editor: 159.26 KB. The existing
+  chunk-size warning remains.
+- M7.7: all 221 blobs reachable from 30 commits across all local refs were scanned
+  before the acceptance docs change. No secret, private account identifier, or
+  personal-path match was found. No screenshots, recordings, traces, or raw live
+  responses are tracked. Account values in `.env.example` are blank; `CLAUDE.md`
+  remains mode `120000`, targeting `AGENTS.md`. The global Git identity is used.
+  GitHub was private, with one branch, no tags, pull requests, issues, releases,
+  workflow runs, artifacts, or deployments, and the wiki disabled. No `refs/t3/`
+  refs were remote. Repeat the publication review before changing visibility.
+- The staged file/content review, secret and private-value scans, and
+  `git diff --cached --check` passed. Only the README and acceptance docs were
+  staged; ignored account settings and live helpers were not added.
+
+### Handoff (M7.8)
+
+The README states the remaining Stage 1 limits, including rich-text restrictions,
+the 5,000-item cap, detail-panel select behavior, and browser/accessibility scope.
+A screen reader and a Windows browser remain untried; no Stage 2 work was added.
+
+The original `.env` was preserved. Live verification helpers and identifiers were
+kept in ignored temporary storage, and no private values were added to evidence.
+The disposable work items are recoverable in ADO's Recycle Bin. The three dated
+sprints remain available for future local use.
+
+The next action is user-directed use or separately scoped work. Pushing any
+unpushed commits, deploying, or publishing/changing repository visibility still
+requires explicit approval. No push or visibility change was performed.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -506,9 +625,6 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-1. The live checks: M2.8, M3.9, M4.7, M6.3, and M6.6. They need Azure CLI, an approved
-   private test organization, an explicitly chosen test identity for the mention, and
-   approval. Then live startup (M7.2), the live parts of M7.5, and M7.1.
-2. After the live checks, rerun M7.3, M7.4, M7.6, and M7.7 if code changed, then write
-   the final M7.8 handoff.
-3. Pushing later commits, and any visibility change, needs explicit approval.
+Stage 1 is complete. Use the app locally or choose a separate follow-up task.
+Pushing the unpushed docs commits and any publication or visibility change need
+explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.

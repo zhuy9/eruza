@@ -8,15 +8,12 @@ Azure DevOps remains the source of truth.
 
 ## Current status
 
-M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
-complete. M2 (Azure CLI sign-in and ADO reads), M3 (create, detail, and
-parent actions), and M4 (board and shared filters) are implemented in mock mode; they
-have not been checked against a live organization. M5 (meeting grid) is complete in
-mock mode. It has no live check of its own, but it uses the M2-M4 ADO paths. M6
-(comments, copy and open actions, and deletion) is implemented in mock mode; its live
-checks are still open.
+Stage 1 (M0-M7) is complete. Local automated checks and live checks against a
+private test project cover Azure CLI sign-in, metadata and sprint reads, item
+creation and editing, parent actions, state changes, comments, mentions, and
+recoverable deletion.
 
-Mock mode lets you pick a project, team, and sprint, open items in a side panel
+You can pick a project, team, and sprint, open items in a side panel
 or full page, edit fields and descriptions, create items, and change parents.
 The board has metadata-driven state columns, drag moves, and column creation.
 Shared filters and the `C` and Cmd/Ctrl+K creation shortcuts work across views.
@@ -32,8 +29,6 @@ Start with the [current handoff](docs/handoff.md), then read
 
 ## Known limitations
 
-- Real mode has not been checked against a live Azure DevOps organization. It is tested
-  only with mocked responses. The live checks (M2.8, M3.9, M4.7, M6.3, and M6.6) are open.
 - Only Azure DevOps Services at `dev.azure.com` is supported.
 - A sprint view loads at most 5,000 items. A larger result is labeled incomplete.
 - The board uses work item states as columns. It does not copy ADO board columns,
@@ -86,8 +81,8 @@ One npm package and one lockfile. Node and dependency versions are pinned.
 
 ## Local setup
 
-Mock mode works now. Real ADO mode (steps 4-7) is implemented but has not been
-verified against a live organization.
+Mock and real ADO startup have been verified from a clean checkout on macOS.
+Mock mode does not need Azure CLI or account settings.
 
 1. Install Node.js `24.14.1` (see `.node-version`) and Azure CLI.
 2. Run `npm ci`.
