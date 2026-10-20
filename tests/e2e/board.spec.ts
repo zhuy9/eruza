@@ -82,8 +82,8 @@ test('drag moves optimistically and the detail panel offers a keyboard state mov
   await page.keyboard.press('Enter');
   const state = page.getByLabel('State', { exact: true });
   await state.focus();
-  await state.press('ArrowDown');
-  await state.press('Enter');
+  // Type-ahead changes a closed select on every platform; arrow keys open it on macOS.
+  await state.press('r');
   await expect(column(page, 'Ready for review').getByText(item.title)).toBeVisible();
 });
 

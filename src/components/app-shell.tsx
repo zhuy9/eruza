@@ -20,7 +20,14 @@ export function AppShell() {
   const session = useQuery(sessionQuery);
   const { project, team } = useScope();
   const { item } = useSearch({ from: '__root__' });
-  const [createRequest, setCreateRequest] = useState<CreateRequest | null>(null);
+  // Each open gets a new key, so a C pressed while the last dialog is still closing
+  // starts a fresh dialog instead of reusing the one whose close event is pending.
+  const [create, setCreate] = useState<{ request: CreateRequest; key: number } | null>(null);
+  const setCreateRequest = useCallback(
+    (request: CreateRequest | null) =>
+      setCreate((old) => request && { request, key: (old?.key ?? 0) + 1 }),
+    [],
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const toast = useCallback((message: string) => {
@@ -46,7 +53,7 @@ export function AppShell() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [setCreateRequest]);
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   function toggleTheme() {
     const next = !dark;
@@ -150,8 +157,12 @@ export function AppShell() {
             </main>
             {item && <DetailPanel id={item} />}
           </div>
-          {createRequest && (
-            <CreateDialog request={createRequest} onClose={() => setCreateRequest(null)} />
+          {create && (
+            <CreateDialog
+              key={create.key}
+              request={create.request}
+              onClose={() => setCreateRequest(null)}
+            />
           )}
           <CommandPalette
             open={paletteOpen}
