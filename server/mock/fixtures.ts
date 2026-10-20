@@ -259,12 +259,69 @@ export const items: WorkItemSummary[] = [
     areaPath: 'Sample project\\Platform',
     remainingWork: 6,
   }),
+  ...largeSprint(),
 ];
+
+/**
+ * A large past sprint (Sprint 1) for grid and speed checks: 60 stories with 17 tickets each,
+ * plus the 50 stories inside the sprint. Every sixth story is outside the sprint. In each
+ * story, one ticket has an intermediate parent and one has no parent or an unreadable one.
+ */
+function largeSprint(): WorkItemSummary[] {
+  const crowd = [a, b, c, d, null];
+  const out: WorkItemSummary[] = [];
+  for (let s = 0; s < 60; s++) {
+    const storyId = 2000 + s * 20;
+    const spike = s % 10 === 9;
+    out.push(
+      item(
+        storyId,
+        spike ? 'Spike' : 'Story',
+        `Bulk sample story ${s + 1}`,
+        spike ? 'Exploring' : 'In progress',
+        crowd[s % 5],
+        null,
+        {
+          iterationPath: s % 6 === 5 ? 'Sample project' : sprint(1),
+          estimate: points((s % 5) + 1),
+        },
+      ),
+    );
+    for (let t = 1; t <= 17; t++) {
+      const id = storyId + t;
+      const bug = t % 4 === 0;
+      const parent = t === 17 ? (s % 2 ? null : 99998) : t === 16 ? storyId + 1 : storyId;
+      out.push(
+        item(
+          id,
+          bug ? 'Bug' : 'Task',
+          `Bulk sample ticket ${id}`,
+          (bug ? ['New', 'Active', 'Closed'] : ['Queued', 'In progress', 'Done'])[t % 3],
+          crowd[(s + t) % 5],
+          parent,
+          {
+            iterationPath: sprint(1),
+            areaPath: t % 7 === 0 ? `${web}\\Checkout` : web,
+            tags: t % 6 === 0 ? ['bulk'] : [],
+            priority: (t % 4) + 1,
+            remainingWork: t % 3 ? t % 5 : null,
+          },
+        ),
+      );
+    }
+  }
+  return out;
+}
 
 /** Field values not in the summary, by item ID. */
 export const extraFields: Record<number, Record<string, string>> = {
   1004: { 'Custom.FoundIn': 'Release 2' },
   1040: { 'Custom.FoundIn': 'Release 1' },
+  ...Object.fromEntries(
+    items
+      .filter((i) => i.id >= 2000 && i.type === 'Bug')
+      .map((i) => [i.id, { 'Custom.FoundIn': 'Release 1' }]),
+  ),
 };
 
 export const IMAGE_ID = '0b5c3a52-1d43-4c4e-9a43-6a2c1f1e7d10';

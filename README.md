@@ -3,7 +3,7 @@
 **Eruza: Azure DevOps Boards, reimagined.**
 
 Eruza is a local web app in development for Azure DevOps (ADO) Boards. It provides
-a state-based board and work item editing. A grid for sprint meetings is planned.
+a state-based board, a grid for sprint meetings, and work item editing.
 Azure DevOps remains the source of truth.
 
 ## Current status
@@ -11,13 +11,16 @@ Azure DevOps remains the source of truth.
 M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
 complete. M2 (Azure CLI sign-in and ADO reads), M3 (create, detail, and
 parent actions), and M4 (board and shared filters) are implemented in mock mode; they
-have not been checked against a live organization.
+have not been checked against a live organization. M5 (meeting grid) is complete in
+mock mode. It has no live check of its own, but it uses the M2-M4 ADO paths.
 
 Mock mode lets you pick a project, team, and sprint, open items in a side panel
 or full page, edit fields and descriptions, create items, and change parents.
 The board has metadata-driven state columns, drag moves, and column creation.
 Shared filters and the `C` and Cmd/Ctrl+K creation shortcuts work across views.
-The meeting grid, comments, and deletion are not built yet.
+The meeting grid groups the sprint by person and story in either order, with counts,
+remaining work, sortable and resizable columns, inline edits, and drag-to-parent.
+It stays responsive with more than 1,000 tickets. Comments and deletion are not built yet.
 
 Start with the [current handoff](docs/handoff.md), then read
 [milestones and acceptance checks](docs/milestones.md).
@@ -120,8 +123,6 @@ because even organization and project names can be private.
 | [docs/api.md](docs/api.md)                   | API contracts and ADO operations           |
 | [docs/milestones.md](docs/milestones.md)     | Work order, acceptance checks, and handoff |
 | [docs/privacy.md](docs/privacy.md)           | Rules for a repo intended to be public     |
-
-The meeting pages are still a list preview. M5 adds grouping and inline editing.
 
 ## Repository visibility
 

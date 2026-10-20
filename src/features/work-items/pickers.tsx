@@ -30,6 +30,8 @@ function Picker(props: {
 
 /** Team members, plus the current assignee even when they are not on the team. */
 export function AssigneePicker(props: {
+  /** Accessible name for the trigger. Defaults to the current assignee. */
+  label?: string;
   assignee: Identity | null;
   me?: Identity;
   members: Identity[];
@@ -45,7 +47,7 @@ export function AssigneePicker(props: {
   };
   return (
     <Picker
-      label={`Assignee: ${props.assignee?.displayName ?? 'Unassigned'}`}
+      label={props.label ?? `Assignee: ${props.assignee?.displayName ?? 'Unassigned'}`}
       open={open}
       onOpenChange={setOpen}
       trigger={

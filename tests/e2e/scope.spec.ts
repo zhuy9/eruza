@@ -5,7 +5,7 @@ test('defaults project, team, and sprint, and keeps valid choices', async ({ pag
   await expect(page.getByLabel('Project', { exact: true })).toHaveValue('sample-project');
   await expect(page.getByLabel('Team', { exact: true })).toHaveValue('web-team');
   await expect(page.getByLabel('Sprint')).toHaveValue('Sample project\\Sprint 3');
-  await expect(page.getByText('Keep the selected delivery option')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Make checkout easier', exact: true })).toBeVisible();
   await expect(page.getByText('1 linked item could not be read.')).toBeVisible();
 
   await page.getByLabel('Sprint').selectOption({ label: 'Sprint 2' });
@@ -17,7 +17,7 @@ test('defaults project, team, and sprint, and keeps valid choices', async ({ pag
   await expect(page.getByLabel('Sprint')).toHaveValue('Sample project\\Sprint 2');
 
   await page.getByLabel('Team', { exact: true }).selectOption({ label: 'Platform team' });
-  await expect(page.getByText('Speed up search')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Speed up search', exact: true })).toBeVisible();
   await expect(page.getByLabel('Sprint')).toHaveValue('Sample project\\Sprint 3');
 
   await page.getByLabel('Project', { exact: true }).selectOption({ label: 'Practice project' });

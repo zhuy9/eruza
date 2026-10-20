@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import type { TeamSettings, WorkItemSummary } from '../../shared/contracts';
 import { areasQuery, membersQuery, teamSettingsQuery } from './queries';
@@ -40,11 +41,12 @@ export function useFilters() {
   const areaOptions = settings.data && areas.data ? teamAreas(areas.data, settings.data) : [];
   const assigneeValid =
     search.assignee === UNASSIGNED || members.data?.some((m) => m.id === search.assignee);
-  const values: Filters = {
-    assignee: assigneeValid ? search.assignee : undefined,
-    area: search.area && areaOptions.includes(search.area) ? search.area : undefined,
-    tags: search.tags,
-    text: search.text,
-  };
+  const assignee = assigneeValid ? search.assignee : undefined;
+  const area = search.area && areaOptions.includes(search.area) ? search.area : undefined;
+  // Stable between renders, so views can memoize work that depends on the filters.
+  const values = useMemo<Filters>(
+    () => ({ assignee, area, tags: search.tags, text: search.text }),
+    [assignee, area, search.tags, search.text],
+  );
   return { values, members: members.data ?? [], areaOptions };
 }

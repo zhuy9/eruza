@@ -9,6 +9,7 @@ import {
   workItemDetailSchema,
   workItemSchema,
   type FieldValue,
+  type Identity,
   type WorkItemDetail,
   type WorkItemList,
   type WorkItemSummary,
@@ -16,6 +17,7 @@ import {
 } from '../../shared/contracts';
 import { apiError, sendJson } from './api';
 import { workItemQuery } from './queries';
+import { useToast } from './toast';
 
 export type FieldChanges = Record<string, FieldValue>;
 /** A field save. `baseRev` is the revision the user was looking at when the edit began. */
@@ -139,25 +141,84 @@ export function useSaveFields(id: number, onFailure?: (error: unknown, save: Sav
   });
 }
 
-/** The state each item is moving to while its save is pending. */
-export function useMovingStates() {
-  const moves = useMutationState({
-    filters: { mutationKey: ['save'], status: 'pending' },
-    select: (mutation) => ({
-      id: mutation.options.mutationKey?.[1] as number,
-      state: (mutation.state.variables as Save | undefined)?.fields['System.State'],
-    }),
+/**
+ * A one-step save from a list view, such as a board drag or a grid select. A failure rolls
+ * back with a toast, except when ADO needs other fields: that draft stays for "Save together"
+ * in the item's panel.
+ */
+export function useQuickSave(id: number) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return useSaveFields(id, (error, failed) => {
+    const problem = apiError(error);
+    if (Object.keys(problem.fieldErrors ?? {}).some((ref) => !(ref in failed.fields))) {
+      toast(`#${id} needs more fields for this change. Open it to finish.`);
+      return;
+    }
+    dropSave(queryClient, id, failed);
+    const state = failed.fields['System.State'];
+    toast(
+      problem.code === 'CONFLICT'
+        ? `#${id} changed elsewhere, so the view was refreshed. Check it and try again.`
+        : `Could not ${state === undefined ? `change #${id}` : `move #${id} to ${state}`}. ${problem.message}`,
+    );
   });
-  return new Map(
-    moves.filter((m) => typeof m.state === 'string').map((m) => [m.id, m.state as string]),
-  );
 }
 
 /** `parent` is only for showing the choice before the save finishes. */
-type ParentChange = { parentId: number | null; baseRev: number; parent?: WorkItemSummary };
+export type ParentChange = { parentId: number | null; baseRev: number; parent?: WorkItemSummary };
+/** A field or parent change that is still saving. */
+export type PendingChange = { id: number } & (Save | ParentChange);
+
+/** Field and parent changes still saving, in the order they were made. */
+export function usePendingChanges() {
+  return useMutationState({
+    filters: {
+      status: 'pending',
+      predicate: (m) => ['save', 'parent'].includes(String(m.options.mutationKey?.[0])),
+    },
+    select: (m): PendingChange => ({
+      id: m.options.mutationKey?.[1] as number,
+      ...(m.state.variables as Save | ParentChange),
+    }),
+  });
+}
+
+const PRIORITY = 'Microsoft.VSTS.Common.Priority';
+
+/** The item as it will be once its in-flight saves finish. `people` resolves new assignees. */
+export function withPending(
+  item: WorkItemSummary,
+  changes: PendingChange[],
+  people: Identity[],
+): WorkItemSummary {
+  let next = item;
+  for (const change of changes) {
+    if (change.id !== item.id) continue;
+    if ('parentId' in change) {
+      next = { ...next, parentId: change.parentId };
+      continue;
+    }
+    const { fields } = change;
+    if ('System.State' in fields) next = { ...next, state: String(fields['System.State']) };
+    if ('System.IterationPath' in fields) {
+      next = { ...next, iterationPath: String(fields['System.IterationPath']) };
+    }
+    if (PRIORITY in fields) {
+      const priority = fields[PRIORITY];
+      next = { ...next, priority: typeof priority === 'number' ? priority : null };
+    }
+    if ('System.AssignedTo' in fields) {
+      const id = fields['System.AssignedTo'];
+      const person = id ? people.find((p) => p.id === id) : null;
+      next = { ...next, assignee: id ? (person ?? { id: String(id), displayName: '…' }) : null };
+    }
+  }
+  return next;
+}
 
 /** Sets, changes, or removes the parent. Shares the item's save queue. */
-export function useSetParent(id: number) {
+export function useSetParent(id: number, onFailure?: (error: unknown) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['parent', id],
@@ -168,7 +229,10 @@ export function useSetParent(id: number) {
       applySaved(queryClient, item);
       void queryClient.invalidateQueries({ queryKey: ['work-item'] });
     },
-    onError: (error) => recheck(queryClient, id, error),
+    onError: (error) => {
+      recheck(queryClient, id, error);
+      onFailure?.(error);
+    },
   });
 }
 

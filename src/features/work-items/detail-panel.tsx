@@ -17,7 +17,8 @@ export function DetailPanel({ id }: { id: number }) {
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    return () => opener?.focus();
+    // The opener can be gone, such as a grid row that moved; fall back to the main content.
+    return () => (opener?.isConnected ? opener : document.getElementById('content'))?.focus();
   }, []);
   useEffect(() => panel.current?.focus(), [id]);
 

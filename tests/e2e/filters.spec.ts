@@ -13,7 +13,7 @@ test('shared filters survive view changes and scope changes clear invalid select
   await page.getByRole('link', { name: 'Sprint retro', exact: true }).click();
   await expect(page.getByRole('searchbox')).toHaveValue('1004');
   await expect(page.getByRole('combobox', { name: 'Assignee', exact: true })).toHaveValue('@none');
-  await expect(page.locator('.preview-row')).toHaveCount(1);
+  await expect(page.locator('tr.ticket-row')).toHaveCount(1);
   await page.getByRole('button', { name: 'Clear filters' }).click();
   await page.getByRole('combobox', { name: 'Assignee', exact: true }).selectOption('person-a');
   await page
@@ -22,7 +22,7 @@ test('shared filters survive view changes and scope changes clear invalid select
   await page.getByLabel('Team', { exact: true }).selectOption('platform-team');
   await expect(page.getByRole('combobox', { name: 'Assignee', exact: true })).toHaveValue('');
   await expect(page.getByRole('combobox', { name: 'Area', exact: true })).toHaveValue('');
-  await expect(page.getByText('Speed up search')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Speed up search', exact: true })).toBeVisible();
   await expect(page.getByText('Keep the selected delivery option')).toBeHidden();
   await expect(
     page.getByRole('combobox', { name: 'Area', exact: true }).locator('option'),
@@ -87,7 +87,7 @@ test('area subpaths and every selected tag filter the current sprint', async ({ 
   await page.getByRole('checkbox', { name: 'One', exact: true }).check();
   await page.getByRole('checkbox', { name: 'Two', exact: true }).check();
   await page.keyboard.press('Escape');
-  await expect(page.locator('.preview-row')).toHaveCount(1);
+  await expect(page.locator('tr.ticket-row')).toHaveCount(1);
   await expect(page.getByText('Both tags', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Board', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Tags: One, Two' })).toBeVisible();

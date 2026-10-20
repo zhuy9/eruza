@@ -5,13 +5,14 @@
   --background: #ffffff;
   --foreground: #202a3d;
   --muted: #f1f3f8;
-  --muted-foreground: #758097;
+  --muted-foreground: #636d84;
   --primary: #4b5ed5;
   --primary-foreground: #ffffff;
   --border: #e7eaf1;
   --sidebar: #f8f9fc;
 }
 .dark {
+  color-scheme: dark;
   --background: #141923;
   --foreground: #e4e8f1;
   --muted: #242b3b;
@@ -222,13 +223,6 @@ h1 {
   font-size: 13px;
   color: var(--muted-foreground);
 }
-.preview-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted-foreground);
-  font-size: 11px;
-}
 .list-toolbar {
   display: flex;
   justify-content: space-between;
@@ -252,25 +246,6 @@ h1 {
   font-weight: 400;
   font-size: 11px;
 }
-.preview-row {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 20px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.preview-row:hover {
-  background: color-mix(in srgb, var(--muted) 40%, transparent);
-}
-.type-icon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: #eef0fe;
-  color: #6475ca;
-}
 .type-story {
   background: #e8f4ef;
   color: #5e9a82;
@@ -283,35 +258,6 @@ h1 {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--muted-foreground);
-}
-.item-title {
-  flex: 1;
-}
-.item-title h2 {
-  font-size: 13px;
-  font-weight: 500;
-  margin: 0 0 4px;
-}
-.item-title > span {
-  font-size: 10px;
-  color: var(--muted-foreground);
-}
-.state-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--muted-foreground);
-  min-width: 100px;
-}
-.assignee-label {
-  min-width: 80px;
-  font-size: 11px;
-  color: var(--muted-foreground);
-}
-.row-decoration {
-  color: var(--muted-foreground);
-  opacity: 0.5;
 }
 .workspace-note {
   color: var(--muted-foreground);
@@ -714,10 +660,6 @@ h1 {
   gap: 8px;
   margin-top: 20px;
 }
-a.preview-row:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -2px;
-}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -931,11 +873,6 @@ a.preview-row:focus-visible {
   .topbar {
     padding: 0 20px;
   }
-  .preview-label,
-  .row-decoration,
-  .assignee-label {
-    display: none;
-  }
 }
 @media (max-width: 600px) {
   .app-layout {
@@ -964,12 +901,172 @@ a.preview-row:focus-visible {
   .nav-link {
     padding: 8px;
   }
-  .preview-row {
-    gap: 9px;
-    padding: 15px 0;
-  }
-  .state-label {
-    min-width: 0;
-    font-size: 10px;
-  }
+}
+.grid-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.grid-actions .picker-trigger {
+  width: auto;
+  min-height: 30px;
+}
+.grid-scroll {
+  height: max(360px, calc(100vh - 330px));
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  /* Keeps focused rows clear of the sticky header. */
+  scroll-padding-top: 36px;
+}
+.meeting-grid {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+.meeting-grid th,
+.meeting-grid td {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.meeting-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 36px;
+  padding: 0 8px;
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
+.column-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.column-sort:focus-visible,
+.group-toggle:focus-visible,
+.cell-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.column-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+.column-resizer:hover,
+.column-resizer:focus-visible,
+.column-resizer.active {
+  /* A fill, because an outline would be clipped by the header cell. */
+  outline: none;
+  background: var(--primary);
+}
+.meeting-grid tbody tr {
+  height: 40px;
+}
+.meeting-grid td {
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+.group-row th {
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 70%, var(--background));
+  font-weight: 600;
+}
+.group-row[data-depth='1'] th {
+  background: color-mix(in srgb, var(--muted) 30%, var(--background));
+  font-weight: 500;
+}
+.group-row th > * + * {
+  margin-left: 10px;
+}
+.group-row.over th {
+  background: color-mix(in srgb, var(--primary) 14%, var(--background));
+  outline: 2px dashed var(--primary);
+  outline-offset: -2px;
+}
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 55%;
+  overflow: hidden;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.drop-hint {
+  color: var(--primary);
+  font-size: 11px;
+}
+.ticket-row:hover td {
+  background: color-mix(in srgb, var(--muted) 40%, var(--background));
+}
+.ticket-row .cell-id {
+  padding-left: 30px;
+}
+.drag-handle {
+  display: inline-flex;
+  margin-right: 4px;
+  color: var(--muted-foreground);
+  vertical-align: middle;
+  cursor: grab;
+  touch-action: none;
+}
+.cell-link:hover {
+  text-decoration: underline;
+}
+.cell-select {
+  max-width: 100%;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.cell-select:hover {
+  border-color: var(--border);
+}
+.ticket-row .picker-trigger {
+  min-height: 28px;
+  padding: 2px 6px;
+  border-color: transparent;
+  background: transparent;
+}
+.ticket-row .picker-trigger:hover {
+  border-color: var(--border);
+}
+.drag-preview {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+  padding: 10px 12px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--background);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 0.16);
+  font-size: 12px;
 }

@@ -2,8 +2,8 @@ import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/
 import { AppShell } from './components/app-shell';
 import { ItemPage } from './routes/item-page';
 import { BoardView } from './features/board/board';
+import { MeetingGrid } from './features/grid/grid';
 import type { ViewSearch } from './lib/scope';
-import { MeetingView } from './routes/workspace';
 
 // Search values arrive JSON-parsed, so a numeric text search comes back as a number.
 const text = (value: unknown) =>
@@ -55,7 +55,7 @@ const gridRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { grouping: 'person' | 'story' } => ({
     grouping: search.grouping === 'story' ? 'story' : 'person',
   }),
-  component: MeetingView,
+  component: MeetingGrid,
 });
 const itemRoute = createRoute({
   getParentRoute: () => rootRoute,

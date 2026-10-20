@@ -2,14 +2,13 @@
 
 ## Current checkpoint
 
-M0 is committed and pushed as `34392a6`. M1 is complete and committed locally.
-M2, M3, and M4 are implemented and committed locally; their live checks
-(M2.8, M3.9, M4.7) are open.
+M0 and M1 are complete. M2, M3, and M4 are implemented; their live checks
+(M2.8, M3.9, M4.7) are open. M5 is complete in mock mode. M0-M4 are on GitHub;
+the shortcut fix (`bf845b0`) and M5 are committed locally only.
 Read [the handoff](handoff.md) before continuing.
 
-The GitHub repository was private when the plan was pushed. Its `main` branch
-contains the plan commit only. Do not assume visibility is unchanged in a later
-session; check it before publication work.
+The GitHub repository was private when checked in the M5 session. Do not assume
+visibility is unchanged in a later session; check it before publication work.
 
 | Milestone                                          | Status                            | Depends on |
 | -------------------------------------------------- | --------------------------------- | ---------- |
@@ -18,7 +17,7 @@ session; check it before publication work.
 | M2: Azure CLI auth and ADO reads                   | Implemented; verification pending | M1         |
 | M3: Create, detail, and parent actions             | Implemented; verification pending | M2         |
 | M4: Board and shared filters                       | Implemented; verification pending | M3         |
-| M5: Meeting grid                                   | Not started                       | M3, M4     |
+| M5: Meeting grid                                   | Complete                          | M3, M4     |
 | M6: Comments and remaining actions                 | Not started                       | M3         |
 | M7: Stage 1 acceptance and public-readiness review | Not started                       | M1-M6      |
 
@@ -208,34 +207,35 @@ Build:
 
 Acceptance:
 
-- [ ] M5.1: The same sprint fixture yields the correct hierarchy in both
+- [x] M5.1: The same sprint fixture yields the correct hierarchy in both
       presets. Two people sharing a story are split by person in update and
       combined under one story in retro.
-- [ ] M5.2: Every matching ticket appears once as a leaf, including types other
+- [x] M5.2: Every matching ticket appears once as a leaf, including types other
       than Tasks and Bugs. A matching story's own row is counted only once.
-- [ ] M5.3: Tests cover parent stories outside the sprint, intermediate parents,
+- [x] M5.3: Tests cover parent stories outside the sprint, intermediate parents,
       custom story types, unassigned tickets, no story, and unreadable ancestors.
-- [ ] M5.4: Counts and remaining-work totals use filtered rows only. Story
+- [x] M5.4: Counts and remaining-work totals use filtered rows only. Story
       estimates are not duplicated across people or mixed with other units.
-- [ ] M5.5: Groups collapse/expand. Columns sort, resize, and hide.
+- [x] M5.5: Groups collapse/expand. Columns sort, resize, and hide.
       The view toggle preserves the sprint, filters, and column choices.
-- [ ] M5.6: Inline state, assignee, priority, and iteration edits work, including
+- [x] M5.6: Inline state, assignee, priority, and iteration edits work, including
       moving rows between groups or out of the current sprint. Failures roll back
       correctly across grid, board, and detail.
-- [ ] M5.7: Dropping onto a story changes only the parent. The assignee stays
+- [x] M5.7: Dropping onto a story changes only the parent. The assignee stays
       unchanged, and the row appears in the correct nested group. The parent picker
       provides a keyboard alternative.
-- [ ] M5.8: With at least 1,000 matching tickets in a 900-pixel-tall viewport,
+- [x] M5.8: With at least 1,000 matching tickets in a 900-pixel-tall viewport,
       fewer than 150 ticket row elements are mounted at once. Scrolling reaches
       the final row without blank or duplicate rows.
-- [ ] M5.9: On that fixture, test group switching, expand/collapse, filtering,
+- [x] M5.9: On that fixture, test group switching, expand/collapse, filtering,
       and inline editing. Record browser/viewport, fixture size, and measured UI
       response times. Do not claim live ADO speed from a mock test.
-- [ ] M5.10: A request-count check shows no per-ticket parent or member fetches.
+- [x] M5.10: A request-count check shows no per-ticket parent or member fetches.
       Polling pauses while hidden and resumes when the page becomes active.
 
 Evidence: grouping fixtures, request-count tests, browser results, and actual
-local performance measurements.
+local performance measurements. M5 has no live check of its own; it uses the M2-M4
+ADO paths, whose live checks stay open.
 
 ## M6: Comments and remaining actions
 
@@ -292,12 +292,12 @@ separate user-approved action, not a required side effect of finishing M7.
 
 Update this section at the end of each work session.
 
-- M0: complete, committed, and pushed as `34392a6`.
-- M1: complete and committed locally (not pushed).
-- M2, M3, and M4: implemented and committed locally. Their mock-mode checks pass.
-  M2.8, M3.9, and M4.7 are open: they need Azure CLI, an approved test organization,
-  and approval for live checks. Details are in [handoff.md](handoff.md).
-- Latest checks: `npm run check` passed (92 unit/integration tests and build);
-  `npm run test:e2e` passed (21 browser tests). See the handoff for review fixes.
-- Next step: M5 (meeting grid) in mock-first mode.
-- Only the initial plan push was approved. Keep implementation commits local.
+- M0 and M1: complete. M0-M4 are on GitHub (`26b9bca`).
+- M2, M3, and M4: implemented. M2.8, M3.9, and M4.7 are open: they need Azure CLI,
+  an approved test organization, and approval for live checks.
+- M5: complete in mock mode, committed locally. A shortcut race fix (`bf845b0`) is
+  also local only. Details and measurements are in [handoff.md](handoff.md).
+- Latest checks: `npm run check` passed (101 unit/integration tests and build);
+  `npm run test:e2e` passed (33 browser tests) in three full runs.
+- Next step: M6 (comments and remaining actions) in mock-first mode.
+- Pushing implementation commits needs explicit approval.

@@ -25,8 +25,11 @@ deploy, or change repository visibility without explicit approval.
 
 ## Git checkpoint
 
-- Branch: `main`. M0 (`34392a6`) is pushed. M1-M4 are committed locally only.
-- GitHub was verified private at the M0 push. Keep it private.
+- Branch: `main`. At the start of the M5 session, `origin/main` already matched M4
+  (`26b9bca`), so M0-M4 are on GitHub. That push happened outside the M5 session.
+- The shortcut fix (`bf845b0`) and M5 are committed locally only. Do not push them
+  without approval.
+- GitHub was checked as private during the M5 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
 ## M1 result: complete
@@ -199,7 +202,119 @@ Limits and next work:
   server result stays labeled incomplete after filtering.
 - Meeting views remain a list preview until M5. Comments and deletion remain M6.
 
+## Shortcut fix before M5: `bf845b0`
+
+On macOS, the board shortcut test failed in full runs. The cause was a real race:
+Cancel closes the native dialog first, and React clears the request only when the
+async `close` event fires. A `C` pressed in that gap reused the closing dialog, and the
+late event then closed it. Each open now gets its own dialog key. The board keyboard
+state-move test now uses select type-ahead, because arrow keys open a closed select on
+macOS instead of changing it.
+
+## M5 result: complete (mock mode)
+
+What was built:
+
+- `src/features/grid/grouping.ts`: pure grouping. Each ticket's story is itself when
+  it is story-level, else its nearest story-level ancestor (from backlog metadata).
+  Rows sort by person then story (update) or story then person (retro), with
+  Unassigned, No parent story, and Unavailable story last. Filters apply to tickets
+  first; filtered-out tickets and ancestors only label groups.
+- `src/features/grid/grid.tsx`: one TanStack Table (v9 grouping and sorting, column
+  sizing, resizing, and visibility) and TanStack Virtual rows in a native table with
+  spacer rows, `aria-rowcount`, and `aria-rowindex`. Group headings show ticket counts,
+  remaining work from tickets that have it, and, in retro only, the story's estimate
+  with its own label. Collapse and expand work per group and for all groups.
+- Column choices (sort, width, hidden columns) are UI preferences in local storage,
+  checked with a schema when loaded. Columns resize by mouse, touch, or the keyboard
+  (focus the separator and use the arrow keys).
+- Inline state, assignee, priority, and iteration edits use each row's type metadata
+  and the shared per-item save queue. Pending values move rows between groups at once;
+  an iteration edit removes the row from the sprint view. Failures roll back with a
+  toast (shared `useQuickSave`, now also used by the board), except when ADO needs
+  other fields: that draft stays for "Save together" in the panel.
+- Grid selects save a pick from the open list (pointer or keyboard) at once. Stepping
+  through a closed select with arrow keys or type-ahead keeps a draft that saves on
+  Enter or blur, so each step is not its own save. A draft keeps the revision it started
+  from, so a change made elsewhere meanwhile still conflicts. After a keyboard edit
+  moves or removes a row, focus returns to the same control in that row, or to the row
+  or group heading now in its place.
+- Story headings are dnd-kit drop targets. The drag preview and heading show the
+  action before the drop. A drop changes only the parent through the same revision
+  check and rollback as the parent picker; self-parenting is rejected without a
+  request. The parent picker in the detail panel is the keyboard path.
+- Mock fixtures add a synthetic Sprint 1 with 1,070 matching tickets (60 stories,
+  some outside the sprint, intermediate parents, no parent, unreadable parents, and
+  unassigned tickets).
+- The old list preview (`src/routes/workspace.tsx`) and its CSS were removed.
+
+Review fixes (`ponytail-review` plus separate correctness, concurrency, security, and
+accessibility reviews, each checked by an adversarial verifier):
+
+- Let the table own sort, size, and visibility state; removed hand-written state
+  wrappers, a duplicate number sort, and three ways of hiding the grouping columns.
+- A story moved out of the sprint no longer turns its children into "Unavailable story".
+- The grid waits for backlog metadata before grouping.
+- The priority select no longer shows a second blank option that saved priority 0.
+- Added keyboard resizing, keyboard select drafts, focus restore, ticket IDs in
+  assignee button names, readable drag announcements, `scroll-padding-top` under the
+  sticky header, `color-scheme: dark` for native popups, and a darker muted text color
+  (light theme) to meet 4.5:1 contrast.
+- `useFilters` returns stable values, so column resizing and scrolling do not rebuild
+  the 1,000-ticket rows (checked: 0 rebuilds while resizing and scrolling).
+- A second review pass on these fixes found six more issues, now fixed: keyboard picks
+  from an open select only drafted, long drafts used a newer revision, a failed
+  background backlog refresh hid the grid, focus restore missed group headings and ran
+  after pointer edits, the resize handle's name leaked into column header names, and
+  the priority cell hid its value while metadata loaded.
+
+Evidence (mock mode, macOS, Node `24.14.1`, npm `11.11.0`, no live calls):
+
+- `npm run check` passed: lint, format, typecheck, 101 tests, build.
+- `npm run test:e2e` passed: 33 tests (12 grid tests), in three full runs.
+- Grouping unit tests cover both orders, shared stories, parents outside the sprint,
+  intermediate parents, custom story types, unassigned, no story, unreadable parents,
+  loops, filters before grouping, totals, and pending changes (M5.1-M5.4).
+- Browser checks cover both presets on one fixture, totals, collapse and expand, sort,
+  resize (mouse and keyboard), hide, the view toggle and reload keeping choices,
+  inline edits and rollback across grid, panel, and board, iteration moves, parent
+  drops, the keyboard parent path, and self-drop rejection (M5.1-M5.7).
+- M5.8: on the 1,070-ticket sprint at 1440x900 (1,385 rows with group headings), at
+  most 29 ticket rows were mounted at once (limit 150). A step-by-step scroll reached
+  the final row with contiguous, unique row indexes and no uncovered space.
+- M5.9: Chromium 156 (Playwright headless shell), 1440x900, 1,070 tickets, measured
+  in the page from action to updated DOM, over six runs: switch to retro 45-60 ms, back
+  to update 26-29 ms, collapse all 4-11 ms, expand all 13-16 ms, filter by ID 6-12 ms,
+  clear filter 14-15 ms, iteration edit removing a row 20-21 ms. These are mock numbers;
+  they say nothing about live ADO speed.
+- M5.10: loading and scrolling the large grid made 1 list request, 1 member request,
+  and 0 per-item requests. With a fake clock, the list refreshed after 45 seconds,
+  made no requests during 140 hidden seconds, and refreshed when the page became
+  visible again.
+- Mutation checks: each new keyboard, draft-revision, and story-move test failed when
+  its fix was reverted.
+- Headless Chromium on macOS cannot drive a native select menu, so the open-list pick
+  is checked with a late `change` after a key press. A live keyboard check on Windows
+  and macOS is still worth doing in M7.4.
+- Built JavaScript has no ADO URL, credential module, token scope, server setting, or
+  fixture strings. Main chunk 223 KB gzipped (was 197 KB; TanStack Table and Virtual).
+
+Limits and next work:
+
+- No live check is listed for M5. The grid uses the M2-M4 read and write paths, whose
+  live checks (M2.8, M3.9, M4.7) are still open.
+- The detail panel's selects (from M3) still save on every change, including keyboard
+  arrow changes on Windows. The grid's `CellSelect` pattern can be reused there.
+- In retro, a story heading shows the story's own estimate even when the story is
+  outside the sprint or filtered out. It is a label, not a total; there is no
+  estimate total.
+- Vite still reports the non-blocking chunk-size warning.
+
 ## Machine notes
+
+- The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
+  `nvm install 24.14.1`; Playwright used its default browser cache. The Windows notes
+  below still apply to the Windows machine.
 
 - The system drive was nearly full (about 10 MB free) and committed memory
   was close to its limit. Vite's dependency bundler once failed with "memory
@@ -224,7 +339,8 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-1. M5 in mock-first mode: meeting grid, both group orders, inline edits,
-   parent drops, virtualization, and the 1,000-ticket checks.
-2. Leave M2.8, M3.9, M4.7, and later live checks open. They need Azure CLI
-   installed, an approved private test organization, and user approval.
+1. M6 in mock-first mode: paged comments, rich-text comments with mentions, copy
+   link/ID, Open in Azure DevOps, and recoverable deletion.
+2. Leave M2.8, M3.9, M4.7, and later live checks open. They need Azure CLI,
+   an approved private test organization, and user approval.
+3. Pushing the local commits (`bf845b0` and M5) needs explicit approval.

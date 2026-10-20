@@ -8,7 +8,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useSearch } from '@tanstack/react-router';
 import { Layers3, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -17,12 +17,10 @@ import { FilterBar } from '../../components/filter-bar';
 import { ListNotices } from '../../components/list-notices';
 import { Avatar } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
-import { apiError } from '../../lib/api';
 import { matchesFilters, useFilters } from '../../lib/filters';
 import { backlogsQuery, statesQuery, typesQuery, workItemsQuery } from '../../lib/queries';
-import { dropSave, useMovingStates, useSaveFields } from '../../lib/saves';
+import { usePendingChanges, useQuickSave, withPending } from '../../lib/saves';
 import { useScope, useSetSearch } from '../../lib/scope';
-import { useToast } from '../../lib/toast';
 import { useCreate } from '../work-items/create';
 
 /** Stable card order: priority first (missing last), then ID. */
@@ -31,7 +29,7 @@ const byPriority = (a: WorkItemSummary, b: WorkItemSummary) =>
 
 export function BoardView() {
   const { project, team, sprint, projects, teams, iterations } = useScope();
-  const { values: filters } = useFilters();
+  const { values: filters, members } = useFilters();
   const search = useSearch({ from: '/board' });
   const setSearch = useSetSearch();
   const types = useQuery(typesQuery(project?.id));
@@ -50,14 +48,14 @@ export function BoardView() {
         : undefined,
     ),
   );
-  const moving = useMovingStates();
+  const pending = usePendingChanges();
   const [dragging, setDragging] = useState<WorkItemSummary | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const all = list.data?.items ?? [];
   const items = all
+    .map((item) => withPending(item, pending, members))
     .filter((item) => matchesFilters(item, filters))
-    .map((item) => (moving.has(item.id) ? { ...item, state: moving.get(item.id)! } : item))
     .toSorted(byPriority);
   const known = new Set(states.data?.map((s) => s.name));
   const elsewhere = items.filter((item) => !known.has(item.state)).length;
@@ -164,24 +162,8 @@ function Column(props: { state: State; type: string; color: string; items: WorkI
 }
 
 function Card({ item, color }: { item: WorkItemSummary; color: string }) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
   const { setNodeRef, listeners, isDragging } = useDraggable({ id: item.id });
-  const save = useSaveFields(item.id, (error, failed) => {
-    const problem = apiError(error);
-    const target = failed.fields['System.State'];
-    if (problem.code === 'VALIDATION' && problem.fieldErrors) {
-      // Keep the draft: the item's panel offers "Save together" with the missing fields.
-      toast(`#${item.id} needs more fields to move to ${target}. Open it to finish the move.`);
-      return;
-    }
-    dropSave(queryClient, item.id, failed);
-    toast(
-      problem.code === 'CONFLICT'
-        ? `#${item.id} changed elsewhere, so the board was refreshed. Check it and move it again.`
-        : `Could not move #${item.id} to ${target}. ${problem.message}`,
-    );
-  });
+  const save = useQuickSave(item.id);
   useDndMonitor({
     onDragEnd: ({ active, over }) => {
       if (active.id !== item.id || !over || over.id === item.state) return;
