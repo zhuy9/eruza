@@ -27,8 +27,8 @@ deploy, or change repository visibility without explicit approval.
 
 - Branch: `main`. At the start of the M5 session, `origin/main` already matched M4
   (`26b9bca`), so M0-M4 are on GitHub. That push happened outside the M5 session.
-- The shortcut fix (`bf845b0`) and M5 are committed locally only. Do not push them
-  without approval.
+- The shortcut fix (`bf845b0`), M5 (`3cfe471`), and M6 are committed locally only. Do not
+  push them without approval.
 - GitHub was checked as private during the M5 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -310,6 +310,100 @@ Limits and next work:
   estimate total.
 - Vite still reports the non-blocking chunk-size warning.
 
+## M6 result: implemented; live checks open
+
+What was built:
+
+- `server/ado/comments.ts` reads comments with the comments API `7.1-preview.4`: 50 per
+  page, newest first, `$expand=renderedText`, and ADO's continuation token passed through
+  as the cursor. ADO's rendered HTML is used when present, so Markdown comments arrive as
+  HTML. Authors map to ID and display name; unique names stay on the server. Attachment
+  images become local image URLs.
+- Add comment posts once as HTML (`format=html`). A lost or unreadable response is
+  `UNKNOWN_OUTCOME` and is never repeated automatically.
+- The image route also serves a comment attachment after a comment read showed it for that
+  item (an in-memory list, no extra ADO reads). Image URL helpers moved to
+  `server/ado/images.ts`.
+- Delete sends `DELETE _apis/wit/workitems/{id}?destroy=false`. The local route needs the
+  usual local origin, JSON, and an empty `{}` body. Success is shown only after ADO answers.
+- Item views include `webUrl`, built on the server from the organization, the encoded
+  project, and the ID. The schema requires the `https://dev.azure.com/` prefix. Mock mode
+  returns null and hides the link.
+- Mock mode adds synthetic comments (23 on #1001, three pages of 10; a mention, Markdown,
+  and hostile markup on #1003), add comment, and delete.
+- The Comments section loads lazily (2.4 KB gzipped). It shows the newest page and "Show
+  older comments", drops repeated comment IDs across pages, and sanitizes each comment with
+  the existing DOMPurify setup. It polls every 45 seconds only while one page is loaded;
+  longer threads refresh on focus and after a new comment.
+- The comment box uses the description editor's extensions plus
+  `@tiptap/extension-mention`. Typing `@` lists the selected team's members (arrow keys,
+  Enter or Tab, Escape); `aria-activedescendant` follows the highlight. Mentions are saved
+  as ADO markup. The box is read-only while sending. A failure keeps the draft and says
+  whether the comment may already exist.
+- Item actions in the panel and full page: Copy ID (the number), Copy link (the Eruza
+  full-page URL), Open in Azure DevOps (new tab, `noopener noreferrer`), and Delete.
+  Clipboard results and failures show as toasts.
+- The delete dialog names the item, explains the Recycle Bin, starts on Cancel, and cannot
+  close while the request runs. It waits for the item's queued saves. Success closes the
+  panel, or returns from the full page to the board with the view kept, and refreshes lists.
+- Found while checking: Escape inside a dialog also closed the detail panel (fixed).
+  Native dialogs sat in the top-left corner since M3 because Tailwind's reset removed the
+  browser's `margin: auto` (fixed for create and delete). Links with their unsafe `href`
+  removed no longer look like links.
+
+Review fixes:
+
+- `ponytail-review`: no direct `@tiptap/suggestion` dependency (the lockfile pins it as
+  the mention extension's peer), no Markdown escaping fallback, `toLocaleString` instead of
+  a formatter and guard, shared list CSS, and no extra clones in the mock.
+- Correctness review: the dialog stays open while deleting, so late errors show; a
+  comment saved after the user switched items no longer touches the destroyed editor;
+  comment images no longer re-read up to 10 comment pages per image; long threads stop
+  polling every page; full-page delete keeps the view. Not changed: mentions use the
+  selected team (like the assignee picker), and delete refreshes all item details (like
+  parent changes).
+- Security review (separate pass): no findings at the reporting bar. Applied its hardening
+  note: the comment image list matches only this item's local image URLs. Low notes on the
+  shared sanitizer (existing code): `srcset`, `video poster`, and `input type=image` can
+  load outside images, and SVG links skip the link hook. DOMPurify still blocks script URLs.
+
+Evidence (mock mode, macOS, Node `24.14.1`, npm `11.11.0`, no live calls):
+
+- `npm run check` passed: lint, format, typecheck, 113 tests, build.
+- `npm run test:e2e` passed: 38 tests (5 new), in three full runs.
+- Unit tests: comment paging parameters and cursor, rendered Markdown, image rewriting,
+  authors without unique names, HTML post with mention markup, lost and unreadable post
+  responses (one call, unknown outcome), the comment image list, delete with
+  `destroy=false`, refused and lost deletes, web link encoding, mention round trip and
+  sanitizing, and the mock comment and delete routes.
+- Browser tests: pages in order with a repeated comment dropped (M6.1); safe Markdown,
+  mention, and hostile markup with no script dialogs (M6.1); a keyboard mention, and a
+  server error and a lost connection that keep the draft with one request per click (M6.2);
+  copy ID and link and a blocked clipboard, and the ADO link attributes (M6.4); delete
+  Cancel and Escape send nothing, the dialog stays open while deleting, a refusal shows its
+  error, success closes the panel, and full-page delete returns to the board (M6.5).
+- Mutation checks: removing the repeat filter, adding an automatic retry, clearing the
+  draft on error, letting Escape close the panel from a dialog, and letting the dialog close
+  while deleting each made a test fail.
+- Built JavaScript has no credential module, token scope, server setting, unique names, or
+  fixture strings. Its only ADO string is the `https://dev.azure.com/` prefix used to check
+  the Open link. Main chunk 225 KB gzipped (was 223); lazy editor chunk 159 KB (was 154).
+
+Assumptions to confirm in the live checks (M6.3, M6.6):
+
+- The comments API accepts `order=desc`, `$expand=renderedText`, and the continuation
+  token, and returns `renderedText` for Markdown comments.
+- Posting `<a href="#" data-vss-mention="version:2.0,{id}">@Name</a>` with
+  `format=html` mentions the person whose ID came from the team members API.
+- Delete works without the project in the path, and the item appears in the Recycle Bin.
+- `https://dev.azure.com/{org}/{project}/_workitems/edit/{id}` opens the item.
+
+Limits:
+
+- Comments can be added, not edited or deleted. The draft lives in the open editor.
+- Mention suggestions come from the selected team, like the assignee picker.
+- A description that already contains a mention stays read-only in Eruza (nothing is lost).
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -339,8 +433,9 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-1. M6 in mock-first mode: paged comments, rich-text comments with mentions, copy
-   link/ID, Open in Azure DevOps, and recoverable deletion.
-2. Leave M2.8, M3.9, M4.7, and later live checks open. They need Azure CLI,
-   an approved private test organization, and user approval.
-3. Pushing the local commits (`bf845b0` and M5) needs explicit approval.
+1. M7 mock-mode parts: clean-checkout install and README walk-through (M7.2), checks and
+   dependency audit (M7.3), keyboard and dark-mode sweep (M7.4), and build inspection
+   (M7.6). M7 cannot close until the live checks pass.
+2. Leave M2.8, M3.9, M4.7, M6.3, and M6.6 open. They need Azure CLI, an approved private
+   test organization, an explicitly chosen test identity for the mention, and approval.
+3. Pushing the local commits (`bf845b0`, M5, and M6) needs explicit approval.

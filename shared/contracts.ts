@@ -108,7 +108,33 @@ export const workItemViewSchema = z.object({
   item: workItemDetailSchema,
   related: z.array(workItemSchema),
   missingIds: z.array(z.number()),
+  /** The item's Azure DevOps page. Null in mock mode, which has no organization. */
+  webUrl: z.string().startsWith('https://dev.azure.com/').nullable(),
 });
+
+/** A comment with HTML to sanitize before display. Markdown arrives already rendered. */
+export const commentSchema = z.object({
+  id: z.number().int(),
+  author: identitySchema.nullable(),
+  createdDate: z.string(),
+  html: z.string(),
+});
+
+/** Newest comments first. `cursor` loads the next, older page. */
+export const commentPageSchema = z.object({
+  comments: z.array(commentSchema),
+  cursor: z.string().nullable(),
+});
+
+export const commentQuerySchema = z.object({
+  projectId: z.string().min(1),
+  cursor: z.string().min(1).max(1000).optional(),
+});
+
+/** Editor HTML. Mentions use the ADO markup `<a data-vss-mention="version:2.0,{id}">`. */
+export const addCommentSchema = z
+  .object({ projectId: z.string().min(1), html: z.string().trim().min(1) })
+  .strict();
 
 const fieldChanges = z.record(z.string().min(1), fieldValueSchema);
 
@@ -173,6 +199,9 @@ export type CreateWorkItemInput = z.infer<typeof createWorkItemSchema>;
 export type UpdateWorkItemInput = z.infer<typeof updateWorkItemSchema>;
 export type SetParentInput = z.infer<typeof setParentSchema>;
 export type SearchResult = z.infer<typeof searchResultSchema>;
+export type Comment = z.infer<typeof commentSchema>;
+export type CommentPage = z.infer<typeof commentPageSchema>;
+export type AddCommentInput = z.infer<typeof addCommentSchema>;
 export type Binary = { bytes: ArrayBuffer; contentType: string };
 export type TeamScope = { projectId: string; teamId: string };
 
@@ -196,6 +225,10 @@ export interface BoardsApi {
   createWorkItem(input: CreateWorkItemInput): Promise<WorkItemDetail>;
   updateWorkItem(id: number, input: UpdateWorkItemInput): Promise<WorkItemDetail>;
   setParent(id: number, input: SetParentInput): Promise<WorkItemDetail>;
+  getComments(id: number, projectId: string, cursor?: string): Promise<CommentPage>;
+  addComment(id: number, input: AddCommentInput): Promise<Comment>;
+  /** Moves the item to the ADO recycle bin. Never destroys it. */
+  deleteWorkItem(id: number): Promise<void>;
   getAvatar(identityId: string): Promise<Binary>;
   getImage(id: number, resourceId: string): Promise<Binary>;
 }

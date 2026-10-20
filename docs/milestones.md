@@ -3,8 +3,9 @@
 ## Current checkpoint
 
 M0 and M1 are complete. M2, M3, and M4 are implemented; their live checks
-(M2.8, M3.9, M4.7) are open. M5 is complete in mock mode. M0-M4 are on GitHub;
-the shortcut fix (`bf845b0`) and M5 are committed locally only.
+(M2.8, M3.9, M4.7) are open. M5 is complete in mock mode. M6 is implemented; its live
+checks (M6.3, M6.6) are open. M0-M4 are on GitHub; the shortcut fix (`bf845b0`), M5,
+and M6 are committed locally only.
 Read [the handoff](handoff.md) before continuing.
 
 The GitHub repository was private when checked in the M5 session. Do not assume
@@ -18,7 +19,7 @@ visibility is unchanged in a later session; check it before publication work.
 | M3: Create, detail, and parent actions             | Implemented; verification pending | M2         |
 | M4: Board and shared filters                       | Implemented; verification pending | M3         |
 | M5: Meeting grid                                   | Complete                          | M3, M4     |
-| M6: Comments and remaining actions                 | Not started                       | M3         |
+| M6: Comments and remaining actions                 | Implemented; verification pending | M3         |
 | M7: Stage 1 acceptance and public-readiness review | Not started                       | M1-M6      |
 
 ## How to use this plan
@@ -247,15 +248,15 @@ Build:
 
 Acceptance:
 
-- [ ] M6.1: Multiple comment pages load in order without duplicates.
+- [x] M6.1: Multiple comment pages load in order without duplicates.
       HTML and Markdown comments display safely.
-- [ ] M6.2: Comment failure keeps the draft. An ambiguous write failure does
+- [x] M6.2: Comment failure keeps the draft. An ambiguous write failure does
       not automatically repeat the comment.
 - [ ] M6.3: A live mention check confirms ADO resolves the intended identity.
       Use only an explicitly selected test identity, not an arbitrary team member.
-- [ ] M6.4: Clipboard actions work and failures are visible. Opening the ADO
+- [x] M6.4: Clipboard actions work and failures are visible. Opening the ADO
       item uses a safe URL with no token.
-- [ ] M6.5: Deletion requires confirmation, explains the recycle bin, and never
+- [x] M6.5: Deletion requires confirmation, explains the recycle bin, and never
       requests permanent destruction. Cancel sends no delete request.
 - [ ] M6.6: Live checks confirm comment creation and recoverable deletion of a
       disposable item.
@@ -295,9 +296,11 @@ Update this section at the end of each work session.
 - M0 and M1: complete. M0-M4 are on GitHub (`26b9bca`).
 - M2, M3, and M4: implemented. M2.8, M3.9, and M4.7 are open: they need Azure CLI,
   an approved test organization, and approval for live checks.
-- M5: complete in mock mode, committed locally. A shortcut race fix (`bf845b0`) is
-  also local only. Details and measurements are in [handoff.md](handoff.md).
-- Latest checks: `npm run check` passed (101 unit/integration tests and build);
-  `npm run test:e2e` passed (33 browser tests) in three full runs.
-- Next step: M6 (comments and remaining actions) in mock-first mode.
+- M5: complete in mock mode. M6: implemented in mock mode; M6.3 and M6.6 need live
+  checks. Both are committed locally, with the shortcut fix (`bf845b0`). Details are in
+  [handoff.md](handoff.md).
+- Latest checks: `npm run check` passed (113 unit/integration tests and build);
+  `npm run test:e2e` passed (38 browser tests) in three full runs.
+- Next step: the M7 parts that do not need live access (M7.2, M7.3, M7.4, M7.6).
+  Live checks M2.8, M3.9, M4.7, M6.3, and M6.6 need access and approval.
 - Pushing implementation commits needs explicit approval.

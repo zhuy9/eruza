@@ -9,8 +9,8 @@ The server offers the same application operations in real and mock mode.
 Real operations use small ADO helper functions. Mock operations use synthetic
 in-memory records; they do not need to parse WIQL.
 
-This document includes the implemented read, create, edit, and parent operations,
-plus the planned comment and delete operations for M6.
+This document covers the implemented read, create, edit, parent, comment, and
+delete operations.
 
 The current `getWorkItems(query: WorkItemQuery)` takes project, team, iteration,
 and optional board type. The server applies the team's area rules. Shared
@@ -27,14 +27,15 @@ these filters do not expand that partial result.
 | `Identity`            | ADO identity ID, display name, and local avatar URL                                                            |
 | `WorkItemSummary`     | ID, revision, type, title, state, assignee, tags, paths, available numeric fields, and parent ID               |
 | `WorkItemDetail`      | Summary plus project, description, scalar field values, and child IDs                                          |
-| `WorkItemView`        | Detail plus parent and child summaries from one batch, and unreadable IDs                                      |
+| `WorkItemView`        | Detail, parent and child summaries from one batch, unreadable IDs, and the ADO web link (null in mock mode)    |
 | `WorkItemList`        | Matching items, supporting ancestors, missing IDs, and an `incomplete` flag                                    |
 | `FieldDefinition`     | Reference name, label, value type, allowed values, default, required flag, and read-only/system-managed status |
 | `BacklogLevel`        | Backlog category and its work item types, including the requirement/story level                                |
 | `CreateWorkItemInput` | Project ID, type, fields, and optional parent ID                                                               |
 | `UpdateWorkItemInput` | `expectedRev` and changed fields                                                                               |
-| `AddCommentInput`     | Editor content with supported identity mentions                                                                |
-| `CommentPage`         | Comments and an optional continuation cursor                                                                   |
+| `AddCommentInput`     | Project ID and editor HTML; mentions use `<a href="#" data-vss-mention="version:2.0,{id}">@Name</a>`           |
+| `Comment`             | ID, author identity, created date, and HTML to sanitize (Markdown arrives as ADO's rendered HTML)              |
+| `CommentPage`         | Comments, newest first, and an optional cursor for the next older page                                         |
 | `SessionInfo`         | Mock/real mode, connection status, current user when known, and a safe login instruction when needed           |
 
 Use metadata-validated field reference names. Field values can be strings,
@@ -48,8 +49,8 @@ write needs them internally on the server.
 
 ## Application operations
 
-The interface below describes the intended feature contract, including planned
-operations. See `shared/contracts.ts` for the current signatures and runtime schemas.
+The interface below describes the feature contract. See `shared/contracts.ts` for the
+current signatures and runtime schemas.
 
 ```ts
 interface BoardsApi {
@@ -78,7 +79,7 @@ interface BoardsApi {
     input: { parentId: number | null; expectedRev: number },
   ): Promise<WorkItemDetail>;
 
-  getComments(id: number, cursor?: string): Promise<CommentPage>;
+  getComments(id: number, projectId: string, cursor?: string): Promise<CommentPage>;
   addComment(id: number, input: AddCommentInput): Promise<Comment>;
   deleteWorkItem(id: number): Promise<void>;
 }
@@ -89,7 +90,8 @@ Search returns matching summaries and an incomplete/next-page indication if
 there are more results. It must allow direct lookup by item ID.
 
 Project, team, member, and metadata operations handle their upstream pages
-inside the server. Comments expose a cursor so the thread can load more.
+inside the server. Comments expose a cursor so the thread can load more. The
+comments API needs the item's project, so comment calls include `projectId`.
 
 ## Local HTTP routes
 
@@ -116,13 +118,14 @@ Encode names and paths; never insert raw user input into a URL or WIQL string.
 | `POST /api/work-items`                                  | Create, optionally with a parent            |
 | `PATCH /api/work-items/:id`                             | Update fields with `expectedRev`            |
 | `PUT /api/work-items/:id/parent`                        | Set/change/remove parent with `expectedRev` |
-| `GET /api/work-items/:id/comments`                      | Comment page                                |
-| `POST /api/work-items/:id/comments`                     | Add a comment                               |
-| `DELETE /api/work-items/:id`                            | Recoverable deletion only                   |
+| `GET /api/work-items/:id/comments`                      | Comment page (`projectId`, optional cursor) |
+| `POST /api/work-items/:id/comments`                     | Add one HTML comment                        |
+| `DELETE /api/work-items/:id`                            | Recoverable deletion only; body `{}`        |
 | `GET /api/avatars/:identityId`                          | Controlled avatar fetch                     |
 | `GET /api/work-items/:id/images/:resourceId`            | Controlled existing image fetch             |
 
-Image resource IDs must be resolved by the server from known item content.
+Image resource IDs must be resolved by the server from known item content: the
+item's description, or a comment attachment that an earlier comment read showed.
 Do not accept an arbitrary remote URL from the browser.
 
 ## Server-only ADO helpers
@@ -151,22 +154,24 @@ Pin versions per endpoint and verify any special endpoint, including
 
 ## Important ADO mappings
 
-| Operation          | ADO mechanism                                                               |
-| ------------------ | --------------------------------------------------------------------------- |
-| Current user       | Organization `_apis/connectionData`, then `authenticatedUser`               |
-| Search/list IDs    | Project/team WIQL endpoint                                                  |
-| Details            | Work items batch endpoint with selected fields and relations                |
-| Create             | Work item type create endpoint with JSON Patch                              |
-| Update             | Work item patch with `test /rev` first                                      |
-| Parent             | `System.LinkTypes.Hierarchy-Reverse` relation                               |
-| Children           | `System.LinkTypes.Hierarchy-Forward` relations                              |
-| Field rules        | Project work item type fields with expanded properties, plus field metadata |
-| Team area defaults | Team settings and team field values endpoints                               |
-| Sprints            | Team iterations endpoint, including current timeframe                       |
-| Story types        | Team backlog metadata for the requirement category                          |
-| Members            | Teams members API, including all pages                                      |
-| Comments           | Comments API with format and continuation handling                          |
-| Delete             | Work item delete without permanent destruction                              |
+| Operation          | ADO mechanism                                                                 |
+| ------------------ | ----------------------------------------------------------------------------- |
+| Current user       | Organization `_apis/connectionData`, then `authenticatedUser`                 |
+| Search/list IDs    | Project/team WIQL endpoint                                                    |
+| Details            | Work items batch endpoint with selected fields and relations                  |
+| Create             | Work item type create endpoint with JSON Patch                                |
+| Update             | Work item patch with `test /rev` first                                        |
+| Parent             | `System.LinkTypes.Hierarchy-Reverse` relation                                 |
+| Children           | `System.LinkTypes.Hierarchy-Forward` relations                                |
+| Field rules        | Project work item type fields with expanded properties, plus field metadata   |
+| Team area defaults | Team settings and team field values endpoints                                 |
+| Sprints            | Team iterations endpoint, including current timeframe                         |
+| Story types        | Team backlog metadata for the requirement category                            |
+| Members            | Teams members API, including all pages                                        |
+| Comments           | Comments API `7.1-preview.4`, newest first, rendered text, continuation       |
+| Add comment        | Comments API with `format=html`; one attempt, never repeated automatically    |
+| Delete             | Work item delete with `destroy=false`, so it goes to the recycle bin          |
+| Web link           | `https://dev.azure.com/{org}/{project}/_workitems/edit/{id}`, built by server |
 
 For parent writes, the server finds relation indexes at `expectedRev`.
 The client never supplies an array index. Set, change, and remove parent use

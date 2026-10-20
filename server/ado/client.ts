@@ -84,6 +84,8 @@ export function createAdoClient(organization: string, auth: Auth) {
   let notBefore = 0;
   /** Identity ID to unique name. Kept on the server so emails never reach the browser. */
   const identities = new Map<string, string>();
+  /** `itemId/guid` of attachments shown in comments, which the image route may serve. */
+  const commentImages = new Set<string>();
 
   async function request(path: string, init: Init = {}): Promise<Response> {
     // Built on a fixed origin, so a path can never send the token to another host.
@@ -122,6 +124,7 @@ export function createAdoClient(organization: string, auth: Auth) {
   return {
     organization,
     identities,
+    commentImages,
     request,
     json: async <T>(path: string, init?: Init): Promise<T> =>
       (await request(path, init)).json() as Promise<T>,

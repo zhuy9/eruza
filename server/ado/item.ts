@@ -9,6 +9,7 @@ import type {
 } from '../../shared/contracts';
 import { AppError } from '../errors';
 import { adoError, segment as e, type Ado } from './client';
+import { toAdoImages, toLocalImages } from './images';
 import { getOrgFields } from './metadata';
 import { batchGet, toSummary, wiqlString } from './work-items';
 
@@ -35,24 +36,6 @@ type PatchOp = { op: 'test' | 'add' | 'remove'; path: string; value?: unknown };
 
 const fieldError = (field: string, message: string) =>
   new AppError({ code: 'VALIDATION', message, fieldErrors: { [field]: message } });
-
-/** Shows existing ADO attachment images through the local image route. */
-export const toLocalImages = (html: string, organization: string, id: number) =>
-  html.replace(
-    new RegExp(
-      `https://dev\\.azure\\.com/${organization}/(?:[^/"'\\s]+/)?_apis/wit/attachments/([0-9a-f-]{36})(\\?[^"'\\s<>]*)?`,
-      'gi',
-    ),
-    (_, guid: string, query = '') => `/api/work-items/${id}/images/${guid}${query}`,
-  );
-
-/** Restores ADO attachment URLs before HTML is saved. */
-export const toAdoImages = (html: string, organization: string) =>
-  html.replace(
-    /\/api\/work-items\/\d+\/images\/([0-9a-f-]{36})(\?[^"'\s<>]*)?/gi,
-    (_, guid: string, query = '') =>
-      `https://dev.azure.com/${organization}/_apis/wit/attachments/${guid}${query}`,
-  );
 
 const idFromUrl = (url: string) => Number(url.slice(url.lastIndexOf('/') + 1));
 const isScalar = (value: unknown) =>
@@ -91,8 +74,12 @@ export async function getWorkItem(ado: Ado, id: number): Promise<WorkItemView> {
   const item = toDetail(raw, ado.identities, ado.organization);
   const ids = [...(item.parentId ? [item.parentId] : []), ...item.childIds];
   const { items: related, missingIds } = await batchGet(ado, item.project, ids);
-  return { item, related, missingIds };
+  return { item, related, missingIds, webUrl: webUrl(ado.organization, item.project, id) };
 }
+
+/** The item's page in Azure DevOps. Built from settings and IDs only; it never holds a token. */
+export const webUrl = (organization: string, project: string, id: number) =>
+  `https://dev.azure.com/${encodeURIComponent(organization)}/${encodeURIComponent(project)}/_workitems/edit/${id}`;
 
 export async function searchWorkItems(
   ado: Ado,
@@ -221,15 +208,25 @@ export async function setParent(ado: Ado, id: number, { parentId, expectedRev }:
   return patchItem(ado, id, expectedRev, ops);
 }
 
-/** An image embedded in the item's description. Unknown resource IDs are refused. */
+/** Moves the item to the recycle bin. `destroy=false` keeps it recoverable. */
+export async function deleteWorkItem(ado: Ado, id: number) {
+  await ado.request(`_apis/wit/workitems/${id}?destroy=false&api-version=7.1`, {
+    method: 'DELETE',
+    write: true,
+  });
+}
+
+/** An image in the item's description or in comments already read. Others are refused. */
 export async function getImage(ado: Ado, id: number, resourceId: string) {
   if (!GUID.test(resourceId)) throw adoError('NOT_FOUND');
-  const raw = await ado.json<RawItem>(
-    `_apis/wit/workitems/${id}?fields=System.Description&api-version=7.1`,
-  );
-  const html = String(raw.fields['System.Description'] ?? '').toLowerCase();
-  if (!html.includes(`/_apis/wit/attachments/${resourceId.toLowerCase()}`))
-    throw adoError('NOT_FOUND');
+  const guid = resourceId.toLowerCase();
+  if (!ado.commentImages.has(`${id}/${guid}`)) {
+    const raw = await ado.json<RawItem>(
+      `_apis/wit/workitems/${id}?fields=System.Description&api-version=7.1`,
+    );
+    const html = String(raw.fields['System.Description'] ?? '').toLowerCase();
+    if (!html.includes(`/_apis/wit/attachments/${guid}`)) throw adoError('NOT_FOUND');
+  }
   const response = await ado.request(`_apis/wit/attachments/${resourceId}?api-version=7.1`);
   return {
     bytes: await response.arrayBuffer(),

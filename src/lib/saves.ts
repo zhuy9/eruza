@@ -91,7 +91,8 @@ export function applySaved(queryClient: QueryClient, item: WorkItemDetail) {
   void queryClient.invalidateQueries({ queryKey: ['work-items'] });
 }
 
-const scope = (id: number) => ({ id: `item-${id}` });
+/** Writes to one item share this scope, so they run one at a time, in order. */
+export const itemScope = (id: number) => ({ id: `item-${id}` });
 
 /** Sends a write for an edit that began at `baseRev`, and records the revision it produced. */
 async function writeAtRev(id: number, baseRev: number, method: string, path: string, body: object) {
@@ -126,7 +127,7 @@ export function useSaveFields(id: number, onFailure?: (error: unknown, save: Sav
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['save', id],
-    scope: scope(id),
+    scope: itemScope(id),
     // Failed saves hold the user's draft, so keep them until retried or discarded.
     // ponytail: successful saves also stay until reload; prune them if sessions get long.
     gcTime: Infinity,
@@ -222,7 +223,7 @@ export function useSetParent(id: number, onFailure?: (error: unknown) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['parent', id],
-    scope: scope(id),
+    scope: itemScope(id),
     mutationFn: ({ parentId, baseRev }: ParentChange) =>
       writeAtRev(id, baseRev, 'PUT', `/work-items/${id}/parent`, { parentId }),
     onSuccess: (item) => {

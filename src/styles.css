@@ -523,7 +523,7 @@ h1 {
   padding: 4px;
   font-size: 12px;
 }
-.command-list [cmdk-item] {
+.command-list :is([cmdk-item], [role='option']) {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -531,7 +531,7 @@ h1 {
   border-radius: 5px;
   cursor: pointer;
 }
-.command-list [cmdk-item][data-selected='true'] {
+.command-list :is([cmdk-item][data-selected='true'], [aria-selected='true']) {
   background: var(--muted);
 }
 .command-list [cmdk-group-heading] {
@@ -605,17 +605,16 @@ h1 {
 .rich-text-readonly {
   background: var(--muted);
 }
-.rich-text table {
+:is(.rich-text, .comment-body) table {
   border-collapse: collapse;
   margin: 8px 0;
 }
-.rich-text th,
-.rich-text td {
+:is(.rich-text, .comment-body) :is(th, td) {
   border: 1px solid var(--border);
   padding: 4px 8px;
   text-align: left;
 }
-.rich-text img {
+:is(.rich-text, .comment-body) img {
   max-width: 100%;
   height: auto;
 }
@@ -623,14 +622,75 @@ h1 {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.rich-text a {
+:is(.rich-text, .comment-body) a[href] {
   color: var(--primary);
   text-decoration: underline;
 }
-.rich-text p {
+:is(.rich-text, .comment-body) p {
   margin: 0 0 8px;
 }
+:is(.rich-text, .comment-body) a[data-vss-mention] {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.comment-box > .muted-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.comment-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+.comment {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.comment-meta time {
+  color: var(--muted-foreground);
+}
+.comment-body {
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.mention-popup {
+  z-index: 60;
+}
+.mention-list {
+  margin: 0;
+  list-style: none;
+}
+.item-actions {
+  display: flex;
+  gap: 2px;
+}
+.icon-link {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+}
+.icon-link:hover {
+  background: var(--muted);
+}
+.icon-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .dialog {
+  /* Tailwind's reset removes the browser's centering margin for modal dialogs. */
+  margin: auto;
   width: min(640px, calc(100vw - 32px));
   padding: 24px 26px;
   border: 1px solid var(--border);
@@ -645,6 +705,14 @@ h1 {
 .dialog h2 {
   margin: 0 0 18px;
   font-size: 18px;
+}
+.dialog-narrow {
+  width: min(460px, calc(100vw - 32px));
+}
+.dialog-narrow p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 .form-grid {
   display: grid;

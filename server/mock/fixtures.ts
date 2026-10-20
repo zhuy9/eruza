@@ -10,6 +10,7 @@ import type {
   WorkItemSummary,
   WorkItemType,
 } from '../../shared/contracts';
+import type { RawComment } from '../ado/comments';
 
 // Synthetic data only. Never copy real records here.
 export const people: Identity[] = [
@@ -341,4 +342,44 @@ export const descriptions: Record<number, string> = {
     '<img src="x" onerror="alert(1)"><script>alert(2)</script>',
     '<p><a href="javascript:alert(3)">Run</a> or read the <a href="https://example.com/test-plan">test plan</a>.</p>',
   ].join(''),
+};
+
+const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+
+/**
+ * Comments by item ID, newest first, in ADO's raw shape. 1001 spans several pages and mixes
+ * HTML with rendered Markdown. 1003 covers a mention, unrendered Markdown, and hostile markup.
+ */
+export const comments: Record<number, RawComment[]> = {
+  1001: Array.from({ length: 23 }, (_, k) => {
+    const n = 23 - k;
+    const base = { id: 500 + n, createdBy: people[n % 3], createdDate: minutesAgo((24 - n) * 90) };
+    return n % 5
+      ? { ...base, text: `<p>Sample comment ${n}.</p>` }
+      : {
+          ...base,
+          text: `**Sample comment ${n}** in Markdown.`,
+          renderedText: `<p><strong>Sample comment ${n}</strong> in Markdown.</p>`,
+        };
+  }),
+  1003: [
+    {
+      id: 603,
+      createdBy: people[0],
+      createdDate: minutesAgo(30),
+      text: '<p>Thanks <a href="#" data-vss-mention="version:2.0,person-b">@Person B</a>, the steps work.</p>',
+    },
+    {
+      id: 602,
+      createdBy: people[2],
+      createdDate: minutesAgo(60),
+      text: 'Plain *Markdown* note<script>alert(4)</script>',
+    },
+    {
+      id: 601,
+      createdBy: people[1],
+      createdDate: minutesAgo(90),
+      text: '<p>Try <a href="javascript:alert(5)">this</a><img src="x" onerror="alert(6)"><script>alert(7)</script> or the <a href="https://example.com/notes">notes</a>.</p>',
+    },
+  ],
 };

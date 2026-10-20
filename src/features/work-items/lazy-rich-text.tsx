@@ -12,3 +12,19 @@ export function LazyRichTextField(props: ComponentProps<typeof RichTextField>) {
     </Suspense>
   );
 }
+
+const Comments = lazy(() => import('./comments').then((module) => ({ default: module.Comments })));
+
+export function LazyComments(props: ComponentProps<typeof Comments>) {
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="muted-text">
+          Loading comments…
+        </p>
+      }
+    >
+      <Comments {...props} />
+    </Suspense>
+  );
+}

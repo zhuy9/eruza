@@ -4,6 +4,7 @@ import { createAuth, LOGIN_COMMAND } from '../auth';
 import type { Config } from '../config';
 import { AppError } from '../errors';
 import { createAdoClient } from './client';
+import * as comments from './comments';
 import * as item from './item';
 import * as metadata from './metadata';
 import { getWorkItems } from './work-items';
@@ -53,6 +54,9 @@ export function createAdoApi(config: Config, credential?: TokenCredential): Boar
     createWorkItem: (input) => item.createWorkItem(ado, input),
     updateWorkItem: (id, input) => item.updateWorkItem(ado, id, input),
     setParent: (id, input) => item.setParent(ado, id, input),
+    getComments: (id, projectId, cursor) => comments.getComments(ado, id, projectId, cursor),
+    addComment: (id, input) => comments.addComment(ado, id, input),
+    deleteWorkItem: (id) => item.deleteWorkItem(ado, id),
     getAvatar: (identityId) => metadata.getAvatar(ado, identityId),
     getImage: (id, resourceId) => item.getImage(ado, id, resourceId),
   };

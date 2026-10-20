@@ -4,6 +4,7 @@ import { DOMParser as SchemaParser } from '@tiptap/pm/model';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
 import Image from '@tiptap/extension-image';
+import Mention from '@tiptap/extension-mention';
 
 const SAFE_LINK = /^(https?:|mailto:)/i;
 /** Existing images load through Eruza's image route; other HTTPS images are allowed as-is. */
@@ -17,6 +18,28 @@ export const extensions: Extensions = [
   // Inline, like ADO's own markup, so images stay inside their paragraphs.
   Image.configure({ inline: true }),
 ];
+
+const MENTION = /^version:2\.0,(.+)$/;
+
+/** A person mention in ADO's markup: `<a href="#" data-vss-mention="version:2.0,{id}">@Name</a>`. */
+export const AdoMention = Mention.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      id: {
+        default: null,
+        parseHTML: (el) => MENTION.exec(el.getAttribute('data-vss-mention') ?? '')?.[1] ?? null,
+      },
+      label: { default: null, parseHTML: (el) => el.textContent?.replace(/^@/, '') ?? null },
+    };
+  },
+  parseHTML: () => [{ tag: 'a[data-vss-mention]' }],
+  renderHTML: ({ node }) => [
+    'a',
+    { href: '#', 'data-vss-mention': `version:2.0,${node.attrs.id}` },
+    `@${node.attrs.label}`,
+  ],
+});
 
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {

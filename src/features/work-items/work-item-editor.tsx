@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import type {
   FieldDefinition,
@@ -27,11 +27,12 @@ import {
   type FieldChanges,
   type Pending,
 } from '../../lib/saves';
-import { useScope } from '../../lib/scope';
+import { keepView, useScope } from '../../lib/scope';
 import { useCreate } from './create';
 import { DraftInput, FieldInput, FormField } from './field-inputs';
+import { ItemActions } from './item-actions';
 import { AssigneePicker, ParentPicker } from './pickers';
-import { LazyRichTextField as RichTextField } from './lazy-rich-text';
+import { LazyComments, LazyRichTextField as RichTextField } from './lazy-rich-text';
 
 const ESTIMATES = [
   'Microsoft.VSTS.Scheduling.StoryPoints',
@@ -101,6 +102,7 @@ function ItemLink({ item, variant }: { item: WorkItemSummary; variant: Variant }
 function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant }) {
   const { item, related, missingIds } = view;
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const save = useSaveFields(item.id);
   const parent = useSetParent(item.id);
   const pending = usePendingFields(item.id);
@@ -222,6 +224,18 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
             Open full page
           </Link>
         )}
+        <ItemActions
+          item={item}
+          webUrl={view.webUrl}
+          onDeleted={() =>
+            variant === 'panel'
+              ? navigate({
+                  to: '.',
+                  search: (prev: Record<string, unknown>) => ({ ...prev, item: undefined }),
+                })
+              : navigate({ to: '/board', search: keepView })
+          }
+        />
       </div>
       <DraftInput
         id="field-System.Title"
@@ -354,6 +368,11 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         <Button variant="outline" size="sm" onClick={() => openCreate({ parentId: item.id })}>
           Add child
         </Button>
+      </section>
+
+      <section className="item-section" aria-label="Comments">
+        <h3>Comments</h3>
+        <LazyComments id={item.id} projectId={item.project} />
       </section>
     </article>
   );

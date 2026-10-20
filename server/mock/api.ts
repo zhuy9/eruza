@@ -1,9 +1,13 @@
 import type { BoardsApi, FieldValue, TeamScope, WorkItemSummary } from '../../shared/contracts';
 import { adoError } from '../ado/client';
+import { toComment } from '../ado/comments';
 import { BLOCKED_FIELDS, CHILD_LINK, toDetail, type RawItem } from '../ado/item';
 import { collectAncestors, toSummary } from '../ado/work-items';
 import { AppError } from '../errors';
 import * as data from './fixtures';
+
+/** Smaller than the real page size, so sample threads span several pages. */
+const COMMENT_PAGE_SIZE = 10;
 
 const notFound = () =>
   new AppError({ code: 'NOT_FOUND', message: 'This sample record was not found.' });
@@ -97,6 +101,10 @@ const svg = (body: string) => ({
 export function createMockApi(): BoardsApi {
   const items = new Map(data.items.map((item) => [item.id, toRaw(item)]));
   let nextId = Math.max(...items.keys()) + 1;
+  const comments = new Map(
+    Object.entries(structuredClone(data.comments)).map(([id, list]) => [Number(id), list]),
+  );
+  let nextCommentId = Math.max(...[...comments.values()].flat().map((c) => c.id)) + 1;
   const identities = new Map<string, string>();
   const get = (id: number) => {
     const raw = items.get(id);
@@ -112,6 +120,10 @@ export function createMockApi(): BoardsApi {
   const save = (raw: RawItem) => {
     items.set(raw.id, raw);
     return detail(raw);
+  };
+  /** Like ADO, comment routes need the item's own project. */
+  const inProject = (id: number, projectId: string) => {
+    if (get(id).fields['System.TeamProject'] !== project(projectId).name) throw notFound();
   };
   const team = (scope: TeamScope) => {
     if (!lookup(data.teams, project(scope.projectId).id).some((t) => t.id === scope.teamId)) {
@@ -169,6 +181,7 @@ export function createMockApi(): BoardsApi {
         item,
         related: ids.filter((i) => items.has(i)).map((i) => summary(items.get(i)!)),
         missingIds: ids.filter((i) => !items.has(i)),
+        webUrl: null,
       };
     },
 
@@ -233,6 +246,36 @@ export function createMockApi(): BoardsApi {
         fields['System.Parent'] = parentId;
       }
       return save({ ...raw, rev: raw.rev + 1, fields });
+    },
+
+    async getComments(id, projectId, cursor) {
+      inProject(id, projectId);
+      const start = cursor === undefined ? 0 : Number(cursor);
+      if (!Number.isInteger(start) || start < 0) throw invalid('Check the request parameters.');
+      const end = start + COMMENT_PAGE_SIZE;
+      const list = comments.get(id) ?? [];
+      return {
+        comments: list.slice(start, end).map((c) => toComment(c, identities, '', id)),
+        cursor: end < list.length ? String(end) : null,
+      };
+    },
+
+    async addComment(id, { projectId, html }) {
+      inProject(id, projectId);
+      const raw = {
+        id: nextCommentId++,
+        createdBy: data.people[0],
+        createdDate: new Date().toISOString(),
+        text: html,
+      };
+      comments.set(id, [raw, ...(comments.get(id) ?? [])]);
+      return toComment(raw, identities, '', id);
+    },
+
+    async deleteWorkItem(id) {
+      get(id);
+      items.delete(id);
+      comments.delete(id);
     },
 
     async getAvatar(identityId) {

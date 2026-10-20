@@ -1,7 +1,8 @@
-import { queryOptions, skipToken } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions, skipToken } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   backlogLevelSchema,
+  commentPageSchema,
   fieldDefinitionSchema,
   identitySchema,
   iterationSchema,
@@ -111,6 +112,21 @@ export const workItemQuery = (id: number) =>
     queryKey: ['work-item', id],
     queryFn: () => getJson(`/work-items/${id}`, workItemViewSchema),
     refetchInterval: REFRESH_MS,
+  });
+
+/** Newest comments first; each next page is older. Polls only while one page is loaded. */
+export const commentsQuery = (id: number, projectId: string) =>
+  infiniteQueryOptions({
+    queryKey: ['comments', id],
+    queryFn: ({ pageParam }) =>
+      getJson(
+        `/work-items/${id}/comments?${new URLSearchParams(pageParam ? { projectId, cursor: pageParam } : { projectId })}`,
+        commentPageSchema,
+      ),
+    initialPageParam: '',
+    getNextPageParam: (page) => page.cursor ?? undefined,
+    // A refetch reloads every loaded page, so long threads refresh on focus instead.
+    refetchInterval: (query) => ((query.state.data?.pages.length ?? 1) > 1 ? false : REFRESH_MS),
   });
 
 export const searchQuery = (projectId?: string, text = '') =>

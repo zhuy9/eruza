@@ -2,6 +2,8 @@ import { Hono, type Context } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { z } from 'zod';
 import {
+  addCommentSchema,
+  commentQuerySchema,
   createWorkItemSchema,
   searchQuerySchema,
   setParentSchema,
@@ -127,6 +129,18 @@ export function createApp(
   );
   app.put('/api/work-items/:id/parent', async (c) =>
     c.json(await api.setParent(itemId(c), await body(c, setParentSchema))),
+  );
+  app.delete('/api/work-items/:id', async (c) => {
+    await body(c, z.object({}).strict());
+    await api.deleteWorkItem(itemId(c));
+    return c.body(null, 204);
+  });
+  app.get('/api/work-items/:id/comments', async (c) => {
+    const { projectId, cursor } = parse(commentQuerySchema, c.req.query());
+    return c.json(await api.getComments(itemId(c), projectId, cursor));
+  });
+  app.post('/api/work-items/:id/comments', async (c) =>
+    c.json(await api.addComment(itemId(c), await body(c, addCommentSchema)), 201),
   );
   app.get('/api/work-items/:id/images/:resourceId', async (c) =>
     image(c, await api.getImage(itemId(c), c.req.param('resourceId'))),

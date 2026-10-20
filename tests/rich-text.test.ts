@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { descriptions } from '../server/mock/fixtures';
-import { editableWithoutLoss, roundTrip, sanitizeHtml } from '../src/lib/rich-text';
+import { DOMParser as SchemaParser } from '@tiptap/pm/model';
+import { getHTMLFromFragment, getSchema } from '@tiptap/react';
+import {
+  AdoMention,
+  editableWithoutLoss,
+  extensions,
+  roundTrip,
+  sanitizeHtml,
+} from '../src/lib/rich-text';
 
 const parse = (html: string) => new DOMParser().parseFromString(html, 'text/html').body;
 
@@ -68,5 +76,23 @@ describe('editing without loss', () => {
     ['highlight', '<p><mark>note</mark></p>'],
   ])('keeps %s read-only instead of dropping it', (_, html) => {
     expect(editableWithoutLoss(html)).toBe(false);
+  });
+});
+
+describe('mentions', () => {
+  const mention = '<a href="#" data-vss-mention="version:2.0,person-b">@Person B</a>';
+
+  it('keeps ADO mention markup through the comment editor', () => {
+    const schema = getSchema([...extensions, AdoMention]);
+    const html = `<p>Thanks ${mention}, done.</p>`;
+    const doc = SchemaParser.fromSchema(schema).parse(parse(html));
+    expect(getHTMLFromFragment(doc.content, schema)).toBe(html);
+  });
+
+  it('keeps the mention attribute and text when sanitizing for display', () => {
+    const link = parse(sanitizeHtml(`<p>${mention}</p>`)).querySelector('a')!;
+    expect(link.getAttribute('data-vss-mention')).toBe('version:2.0,person-b');
+    expect(link.textContent).toBe('@Person B');
+    expect(link.hasAttribute('href')).toBe(false);
   });
 });

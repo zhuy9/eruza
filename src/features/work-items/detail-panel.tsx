@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { X } from 'lucide-react';
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { Button } from '../../components/ui/button';
-import { isTyping } from '../../lib/keys';
+import { inDialog, isTyping } from '../../lib/keys';
 import { WorkItemEditor } from './work-item-editor';
 
 /** Side panel for the item in the `item` search parameter. Escape or Close returns focus. */
@@ -24,7 +24,14 @@ export function DetailPanel({ id }: { id: number }) {
 
   const onKeyDown = (event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
-    if (event.key === 'Escape' && !isTyping(target) && !target.closest('.popover')) close();
+    // Escape inside a dialog or popover closes only that layer.
+    if (
+      event.key === 'Escape' &&
+      !isTyping(target) &&
+      !inDialog(target) &&
+      !target.closest('.popover')
+    )
+      close();
   };
 
   return (

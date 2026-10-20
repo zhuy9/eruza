@@ -12,7 +12,9 @@ M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
 complete. M2 (Azure CLI sign-in and ADO reads), M3 (create, detail, and
 parent actions), and M4 (board and shared filters) are implemented in mock mode; they
 have not been checked against a live organization. M5 (meeting grid) is complete in
-mock mode. It has no live check of its own, but it uses the M2-M4 ADO paths.
+mock mode. It has no live check of its own, but it uses the M2-M4 ADO paths. M6
+(comments, copy and open actions, and deletion) is implemented in mock mode; its live
+checks are still open.
 
 Mock mode lets you pick a project, team, and sprint, open items in a side panel
 or full page, edit fields and descriptions, create items, and change parents.
@@ -20,7 +22,10 @@ The board has metadata-driven state columns, drag moves, and column creation.
 Shared filters and the `C` and Cmd/Ctrl+K creation shortcuts work across views.
 The meeting grid groups the sprint by person and story in either order, with counts,
 remaining work, sortable and resizable columns, inline edits, and drag-to-parent.
-It stays responsive with more than 1,000 tickets. Comments and deletion are not built yet.
+It stays responsive with more than 1,000 tickets. Items show a paged comment thread
+with rich-text comments and `@` mentions of team members. Items can be copied by ID or
+link, opened in Azure DevOps (real mode only), and moved to the ADO Recycle Bin after a
+confirmation.
 
 Start with the [current handoff](docs/handoff.md), then read
 [milestones and acceptance checks](docs/milestones.md).

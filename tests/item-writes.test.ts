@@ -1,14 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAdoClient } from '../server/ado/client';
+import { addComment, getComments } from '../server/ado/comments';
 import {
   createWorkItem,
+  deleteWorkItem,
   getImage,
   getWorkItem,
   setParent,
-  toAdoImages,
-  toLocalImages,
   updateWorkItem,
+  webUrl,
 } from '../server/ado/item';
+import { toAdoImages, toLocalImages } from '../server/ado/images';
 
 type Call = { method: string; path: string; search: string; body: unknown; type: string | null };
 
@@ -239,6 +241,13 @@ describe('detail and images', () => {
     expect(view.related.map((i) => i.id)).toEqual([7, 20]);
     expect(view.missingIds).toEqual([21]);
     expect(calls.filter((c) => c.path.endsWith('/workitemsbatch'))).toHaveLength(1);
+    expect(view.webUrl).toBe('https://dev.azure.com/sample-org/Sample/_workitems/edit/9');
+  });
+
+  it('builds the Azure DevOps link from settings and IDs only', () => {
+    expect(webUrl('sample-org', 'Sample project/#?', 9)).toBe(
+      'https://dev.azure.com/sample-org/Sample%20project%2F%23%3F/_workitems/edit/9',
+    );
   });
 
   it('maps ADO attachment images to the local route and back', () => {
@@ -269,5 +278,161 @@ describe('detail and images', () => {
       body: { code: 'NOT_FOUND' },
     });
     expect(calls.some((c) => c.path.includes('/attachments/'))).toBe(false);
+  });
+});
+
+const GUID = '0b5c3a52-1d43-4c4e-9a43-6a2c1f1e7d10';
+const author = {
+  id: 'person-1',
+  displayName: 'Person One',
+  uniqueName: 'person.one@example.invalid',
+};
+const MENTION = '<a href="#" data-vss-mention="version:2.0,person-1">@Person One</a>';
+
+describe('comments', () => {
+  it('reads newest first, renders Markdown, and passes the cursor on', async () => {
+    const { ado, calls } = fakeAdo({
+      'GET /workItems/9/comments': () => ({
+        comments: [
+          {
+            id: 3,
+            format: 'html',
+            text: `<p>Hi ${MENTION}<img src="https://dev.azure.com/sample-org/p1/_apis/wit/attachments/${GUID}?fileName=a.png"></p>`,
+            createdBy: author,
+            createdDate: '2026-01-03T00:00:00Z',
+          },
+          {
+            id: 2,
+            format: 'markdown',
+            text: '**bold**',
+            renderedText: '<p><strong>bold</strong></p>',
+            createdBy: author,
+            createdDate: '2026-01-02T00:00:00Z',
+          },
+          { id: 1, text: '<p>Plain</p>', createdDate: '2026-01-01T00:00:00Z' },
+        ],
+        continuationToken: 'next+page/1',
+      }),
+    });
+    const page = await getComments(ado, 9, 'Sample project', 'older token/=');
+    expect(calls[0].path).toBe('/sample-org/Sample%20project/_apis/wit/workItems/9/comments');
+    expect(Object.fromEntries(new URLSearchParams(calls[0].search))).toEqual({
+      $top: '50',
+      order: 'desc',
+      $expand: 'renderedText',
+      continuationToken: 'older token/=',
+      'api-version': '7.1-preview.4',
+    });
+    expect(page.cursor).toBe('next+page/1');
+    expect(page.comments.map((c) => c.html)).toEqual([
+      `<p>Hi ${MENTION}<img src="/api/work-items/9/images/${GUID}?fileName=a.png"></p>`,
+      '<p><strong>bold</strong></p>',
+      '<p>Plain</p>',
+    ]);
+    expect(page.comments.map((c) => c.author)).toEqual([
+      { id: 'person-1', displayName: 'Person One' },
+      { id: 'person-1', displayName: 'Person One' },
+      null,
+    ]);
+    expect(JSON.stringify(page)).not.toContain('example.invalid');
+
+    const last = fakeAdo({ 'GET /workItems/9/comments': () => ({ comments: [] }) });
+    expect(await getComments(last.ado, 9, 'Sample')).toEqual({ comments: [], cursor: null });
+    expect(last.calls[0].search).not.toContain('continuationToken');
+  });
+
+  it('posts HTML with mentions once and reports a lost response as an unknown outcome', async () => {
+    const posted = {
+      id: 4,
+      format: 'html',
+      text: `<p>Hi ${MENTION}</p>`,
+      createdBy: author,
+      createdDate: '2026-01-04T00:00:00Z',
+    };
+    const { ado, calls } = fakeAdo({ 'POST /workItems/9/comments': () => posted });
+    const html = `<p>Hi ${MENTION}<img src="/api/work-items/9/images/${GUID}"></p>`;
+    const comment = await addComment(ado, 9, { projectId: 'Sample', html });
+    expect(calls).toMatchObject([
+      { method: 'POST', path: '/sample-org/Sample/_apis/wit/workItems/9/comments' },
+    ]);
+    expect(calls[0].search).toBe('?format=html&api-version=7.1-preview.4');
+    expect(calls[0].body).toEqual({
+      text: `<p>Hi ${MENTION}<img src="https://dev.azure.com/sample-org/_apis/wit/attachments/${GUID}"></p>`,
+    });
+    expect(comment).toMatchObject({ id: 4, html: posted.text });
+
+    const lost = fakeAdo({
+      'POST /workItems/9/comments': () => {
+        throw new TypeError('socket hang up');
+      },
+    });
+    await expect(addComment(lost.ado, 9, { projectId: 'Sample', html })).rejects.toMatchObject({
+      body: { code: 'UNKNOWN_OUTCOME' },
+    });
+    expect(lost.calls).toHaveLength(1);
+
+    const garbled = fakeAdo({ 'POST /workItems/9/comments': () => ({ unexpected: true }) });
+    await expect(addComment(garbled.ado, 9, { projectId: 'Sample', html })).rejects.toMatchObject({
+      body: { code: 'UNKNOWN_OUTCOME' },
+    });
+  });
+
+  it('serves a comment image only after a comment read showed it', async () => {
+    const { ado, calls } = fakeAdo({
+      'GET /workitems/9': () => ({
+        id: 9,
+        rev: 1,
+        fields: { 'System.Description': '<p>none</p>' },
+      }),
+      'GET /workItems/9/comments': () => ({
+        comments: [
+          {
+            id: 1,
+            text: `<img src="https://dev.azure.com/sample-org/_apis/wit/attachments/${GUID}">`,
+            createdDate: '2026-01-01T00:00:00Z',
+          },
+        ],
+      }),
+      [`GET /attachments/${GUID.toUpperCase()}`]: () =>
+        new Response('png', { headers: { 'content-type': 'image/png' } }),
+    });
+    await expect(getImage(ado, 9, GUID)).rejects.toMatchObject({ body: { code: 'NOT_FOUND' } });
+    await getComments(ado, 9, 'Sample');
+    await expect(getImage(ado, 10, GUID)).rejects.toMatchObject({ body: { code: 'NOT_FOUND' } });
+    calls.length = 0;
+    expect((await getImage(ado, 9, GUID.toUpperCase())).contentType).toBe('image/png');
+    expect(calls.map((c) => c.path)).toEqual([
+      `/sample-org/_apis/wit/attachments/${GUID.toUpperCase()}`,
+    ]);
+  });
+});
+
+describe('delete', () => {
+  it('moves the item to the recycle bin and never destroys it', async () => {
+    const { ado, calls } = fakeAdo({ 'DELETE /workitems/9': () => ({ id: 9, code: 200 }) });
+    await deleteWorkItem(ado, 9);
+    expect(calls).toMatchObject([
+      {
+        method: 'DELETE',
+        path: '/sample-org/_apis/wit/workitems/9',
+        search: '?destroy=false&api-version=7.1',
+      },
+    ]);
+  });
+
+  it('reports refusal and lost responses without trying again', async () => {
+    const denied = fakeAdo({ 'DELETE /workitems/9': () => new Response(null, { status: 403 }) });
+    await expect(deleteWorkItem(denied.ado, 9)).rejects.toMatchObject({
+      body: { code: 'FORBIDDEN' },
+    });
+    const lost = fakeAdo({
+      'DELETE /workitems/9': () => {
+        throw new TypeError('connection reset');
+      },
+    });
+    await expect(deleteWorkItem(lost.ado, 9)).rejects.toMatchObject({
+      body: { code: 'UNKNOWN_OUTCOME' },
+    });
+    expect(lost.calls).toHaveLength(1);
   });
 });

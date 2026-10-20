@@ -13,7 +13,7 @@ async function call(method: string, path: string, body?: unknown) {
     headers: method === 'GET' ? {} : write,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  return { status: response.status, body: await response.json() };
+  return { status: response.status, body: await response.json().catch(() => null) };
 }
 
 beforeEach(() => {
@@ -170,5 +170,65 @@ describe('mock initial state', () => {
     });
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('A new Bug cannot start in the Closed state.');
+  });
+});
+
+describe('mock comments', () => {
+  const thread = (cursor?: string, projectId = 'sample-project') =>
+    `/work-items/1001/comments?${new URLSearchParams({ projectId, ...(cursor && { cursor }) })}`;
+
+  it('pages newest first without repeats', async () => {
+    const ids: number[] = [];
+    let cursor: string | undefined;
+    let pages = 0;
+    do {
+      const { status, body } = await call('GET', thread(cursor));
+      expect(status).toBe(200);
+      ids.push(...body.comments.map((c: { id: number }) => c.id));
+      cursor = body.cursor ?? undefined;
+      pages++;
+    } while (cursor);
+    expect(pages).toBe(3);
+    expect(new Set(ids).size).toBe(23);
+    expect(ids).toEqual([...ids].sort((a, b) => b - a));
+  });
+
+  it('rejects a bad cursor and a project that does not own the item', async () => {
+    expect((await call('GET', thread('-1'))).status).toBe(400);
+    expect((await call('GET', thread('next'))).status).toBe(400);
+    expect((await call('GET', thread(undefined, 'practice-project'))).status).toBe(404);
+    expect((await call('GET', '/work-items/1001/comments')).status).toBe(400);
+  });
+
+  it('adds a comment at the top and validates the input', async () => {
+    const added = await call('POST', '/work-items/1001/comments', {
+      projectId: 'sample-project',
+      html: '<p>New note</p>',
+    });
+    expect(added.status).toBe(201);
+    expect(added.body).toMatchObject({ html: '<p>New note</p>', author: { id: 'person-a' } });
+    expect((await call('GET', thread())).body.comments[0].id).toBe(added.body.id);
+    for (const bad of [
+      { projectId: 'sample-project', html: '   ' },
+      { projectId: 'sample-project', html: '<p>x</p>', format: 'markdown' },
+      { html: '<p>x</p>' },
+    ]) {
+      expect((await call('POST', '/work-items/1001/comments', bad)).status).toBe(400);
+    }
+  });
+});
+
+describe('mock deletion', () => {
+  it('needs a local origin and an empty JSON body, then removes the item', async () => {
+    const url = `${base}/work-items/1040`;
+    expect((await app.request(url, { method: 'DELETE' })).status).toBe(403);
+    const plain = await app.request(url, { method: 'DELETE', headers: { origin: write.origin } });
+    expect(plain.status).toBe(400);
+    expect((await call('DELETE', '/work-items/1040', { destroy: true })).status).toBe(400);
+    expect((await call('GET', '/work-items/1040')).status).toBe(200);
+
+    expect((await call('DELETE', '/work-items/1040', {})).status).toBe(204);
+    expect((await call('GET', '/work-items/1040')).status).toBe(404);
+    expect((await call('DELETE', '/work-items/1040', {})).status).toBe(404);
   });
 });
