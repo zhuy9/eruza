@@ -45,7 +45,12 @@ export function CreateDialog({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => dialog.current?.showModal(), []);
+  const title = useRef<HTMLInputElement>(null);
+  // showModal focuses the first field (Type), so move focus to the title afterwards.
+  useEffect(() => {
+    dialog.current?.showModal();
+    title.current?.focus();
+  }, []);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { project, team, sprint } = useScope();
@@ -174,8 +179,8 @@ export function CreateDialog({
           <FormField label="Title" htmlFor="create-title-input" error={errors['System.Title']} wide>
             <input
               id="create-title-input"
+              ref={title}
               className="input"
-              autoFocus
               aria-invalid={!!errors['System.Title']}
               value={String(value('System.Title') ?? '')}
               onChange={(e) => set('System.Title', e.target.value)}

@@ -30,15 +30,36 @@ confirmation.
 Start with the [current handoff](docs/handoff.md), then read
 [milestones and acceptance checks](docs/milestones.md).
 
+## Known limitations
+
+- Real mode has not been checked against a live Azure DevOps organization. It is tested
+  only with mocked responses. The live checks (M2.8, M3.9, M4.7, M6.3, and M6.6) are open.
+- Only Azure DevOps Services at `dev.azure.com` is supported.
+- A sprint view loads at most 5,000 items. A larger result is labeled incomplete.
+- The board uses work item states as columns. It does not copy ADO board columns,
+  swimlanes, or manual card order.
+- Only the Description field is edited as rich text. Other HTML fields, such as a
+  bug's repro steps, are not editable. Text with colors, fonts, highlights, or mentions
+  stays read-only in Eruza; edit it in Azure DevOps. Attachments cannot be uploaded.
+- Tags are edited as text separated by `;`.
+- Comments can be added but not edited or deleted. Mention suggestions come from the
+  selected team.
+- Select fields in the detail panel save on every change, including arrow-key changes
+  on Windows.
+- Automated checks run in headless Chromium. Screen readers and other browsers have not
+  been checked.
+- The first download is about 225 KB gzipped, plus about 160 KB for the editor when an
+  item first opens.
+
 ## Stage 1
 
 - One user, running on localhost.
-- One command will start the web client and local server.
+- One command starts the web client and local server.
 - Azure CLI provides the signed-in user's token to the server.
 - The browser calls the local server, never the Azure DevOps API directly.
 - No hosting, database, app registration, or separate ticket store.
 - Multiple projects and teams within one organization.
-- A mock mode will work without Azure CLI or organization settings.
+- Mock mode works without Azure CLI or organization settings.
 
 The grid includes all work item types, with no type filter:
 

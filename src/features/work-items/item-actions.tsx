@@ -17,7 +17,8 @@ export function ItemActions(props: {
 }) {
   const { item, webUrl } = props;
   const toast = useToast();
-  const [confirming, setConfirming] = useState(false);
+  // Each open gets a new key, so the last dialog's late close event cannot close the next one.
+  const [confirming, setConfirming] = useState(0);
   // The clipboard can be missing or blocked, so every failure gets a message.
   const copy = (text: string, done: string) =>
     void Promise.resolve()
@@ -65,14 +66,15 @@ export function ItemActions(props: {
         size="icon"
         title="Delete"
         aria-label="Delete"
-        onClick={() => setConfirming(true)}
+        onClick={() => setConfirming((key) => key + 1)}
       >
         <Trash2 size={15} />
       </Button>
-      {confirming && (
+      {confirming > 0 && (
         <DeleteDialog
+          key={confirming}
           item={item}
-          onClose={() => setConfirming(false)}
+          onClose={() => setConfirming(0)}
           onDeleted={props.onDeleted}
         />
       )}

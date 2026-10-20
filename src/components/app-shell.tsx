@@ -70,7 +70,7 @@ export function AppShell() {
             Skip to content
           </a>
           <aside className="sidebar">
-            <Link to="/board" search={keepView} className="brand" aria-label="Eruza home">
+            <Link to="/board" search={keepView} className="brand">
               <span className="brand-mark" aria-hidden="true">
                 e
               </span>

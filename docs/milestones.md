@@ -4,11 +4,11 @@
 
 M0 and M1 are complete. M2, M3, and M4 are implemented; their live checks
 (M2.8, M3.9, M4.7) are open. M5 is complete in mock mode. M6 is implemented; its live
-checks (M6.3, M6.6) are open. M0-M4 are on GitHub; the shortcut fix (`bf845b0`), M5,
-and M6 are committed locally only.
+checks (M6.3, M6.6) are open. M7's local checks are done; its live parts are open.
+M0-M6 are on GitHub (`2c27ce6`); M7 work is committed locally only.
 Read [the handoff](handoff.md) before continuing.
 
-The GitHub repository was private when checked in the M5 session. Do not assume
+The GitHub repository was private when checked in the M7 session. Do not assume
 visibility is unchanged in a later session; check it before publication work.
 
 | Milestone                                          | Status                            | Depends on |
@@ -20,7 +20,7 @@ visibility is unchanged in a later session; check it before publication work.
 | M4: Board and shared filters                       | Implemented; verification pending | M3         |
 | M5: Meeting grid                                   | Complete                          | M3, M4     |
 | M6: Comments and remaining actions                 | Implemented; verification pending | M3         |
-| M7: Stage 1 acceptance and public-readiness review | Not started                       | M1-M6      |
+| M7: Stage 1 acceptance and public-readiness review | In progress; live checks needed   | M1-M6      |
 
 ## How to use this plan
 
@@ -273,18 +273,22 @@ Acceptance:
       Remaining limitations are stated plainly in the README.
 - [ ] M7.2: From a clean checkout, install, mock startup, and live startup follow
       the README. All documented commands exist and run.
-- [ ] M7.3: `npm run check`, `npm run test:e2e`, and Git whitespace checks pass.
+- [x] M7.3: `npm run check`, `npm run test:e2e`, and Git whitespace checks pass.
       Review dependency audit results and resolve material findings.
-- [ ] M7.4: Keyboard and dark-mode checks cover create, board, grid, detail,
+- [x] M7.4: Keyboard and dark-mode checks cover create, board, grid, detail,
       comments, dialogs, and navigation.
 - [ ] M7.5: Active refresh, conflict recovery, token expiry, query limits, and
       rate-limit behavior have no unresolved acceptance gaps.
-- [ ] M7.6: A build inspection confirms no tokens, private config, or server
+- [x] M7.6: A build inspection confirms no tokens, private config, or server
       credential code is shipped to the browser.
-- [ ] M7.7: Complete the full publication review in `privacy.md`, including
+- [x] M7.7: Complete the full publication review in `privacy.md`, including
       tracked/generated files, history, refs, metadata, and remote artifacts.
 - [ ] M7.8: The handoff states what was verified locally, what was verified
       live, and that publishing still needs explicit approval.
+
+M7.3, M7.4, M7.6, and M7.7 passed in the M7 session. Rerun them if code changes after
+the live checks. M7.1, M7.2 (live startup), M7.5 (live parts), and M7.8 wait for the
+live checks.
 
 Stage 1 is complete only when M1-M7 pass. Making the repository public is a
 separate user-approved action, not a required side effect of finishing M7.
@@ -296,11 +300,13 @@ Update this section at the end of each work session.
 - M0 and M1: complete. M0-M4 are on GitHub (`26b9bca`).
 - M2, M3, and M4: implemented. M2.8, M3.9, and M4.7 are open: they need Azure CLI,
   an approved test organization, and approval for live checks.
-- M5: complete in mock mode. M6: implemented in mock mode; M6.3 and M6.6 need live
-  checks. Both are committed locally, with the shortcut fix (`bf845b0`). Details are in
+- M5: complete in mock mode. M6: implemented; M6.3 and M6.6 need live checks. Both are
+  on GitHub (`2c27ce6`).
+- M7: local parts done (clean clone, audit, accessibility and keyboard checks, limit
+  tests, build inspection, publication review), committed locally. Details are in
   [handoff.md](handoff.md).
 - Latest checks: `npm run check` passed (113 unit/integration tests and build);
-  `npm run test:e2e` passed (38 browser tests) in three full runs.
-- Next step: the M7 parts that do not need live access (M7.2, M7.3, M7.4, M7.6).
-  Live checks M2.8, M3.9, M4.7, M6.3, and M6.6 need access and approval.
+  `npm run test:e2e` passed (44 browser tests) in three full runs.
+- Next step: the live checks M2.8, M3.9, M4.7, M6.3, and M6.6, which need access and
+  approval. Then finish M7.1, M7.2, M7.5, and M7.8.
 - Pushing implementation commits needs explicit approval.

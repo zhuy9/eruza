@@ -20,16 +20,15 @@ The user chose mock-mode work first. Build and test the ADO layer with mocked
 responses, but leave live acceptance checks open. Do not use the user's Azure
 CLI session or real work items yet.
 
-Only the initial plan push was approved. Do not push implementation commits,
-deploy, or change repository visibility without explicit approval.
+Each push needs explicit approval. The user approved pushing through M6 (`2c27ce6`).
+Do not push later commits, deploy, or change repository visibility without new approval.
 
 ## Git checkpoint
 
-- Branch: `main`. At the start of the M5 session, `origin/main` already matched M4
-  (`26b9bca`), so M0-M4 are on GitHub. That push happened outside the M5 session.
-- The shortcut fix (`bf845b0`), M5 (`3cfe471`), and M6 are committed locally only. Do not
-  push them without approval.
-- GitHub was checked as private during the M5 session (`gh repo view`). Keep it private.
+- Branch: `main`. M0-M6 are on GitHub at `2c27ce6`; the user approved pushing the
+  shortcut fix, M5, and M6 in the M7 session.
+- M7 work is committed locally only. Do not push it without approval.
+- GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
 ## M1 result: complete
@@ -404,6 +403,81 @@ Limits:
 - Mention suggestions come from the selected team, like the assignee picker.
 - A description that already contains a mention stays read-only in Eruza (nothing is lost).
 
+## M7 progress: local parts done; live parts open
+
+What was checked or changed:
+
+- M7.1: the README now has a "Known limitations" section. M7.1 stays open until the
+  live checks pass.
+- M7.2 (local part): a fresh clone of `origin/main` (`2c27ce6`) on macOS ran `npm ci`
+  (0 vulnerabilities) and `npm run check` (113 tests), with `.env` copied from
+  `.env.example`. `npm run dev` listened on `127.0.0.1` only (5173 and 3001),
+  `/api/session` through the proxy returned the mock session, a wrong `Host` got 403, and
+  SIGINT stopped both servers. `npm run test:e2e` passed (38 tests) and `npm run format`
+  changed nothing. Every script named in the README and `AGENTS.md` exists. The Playwright
+  browser was already cached, so `npx playwright install chromium` was not rerun. Live
+  startup (README steps 4-7) is open.
+- M7.3: `npm audit` and `npm audit --omit=dev` found 0 vulnerabilities. `npm outdated`
+  lists only major versions we do not need: `@types/node` 26 (Node 24 is pinned) and
+  TypeScript 7.
+- M7.4: `tests/e2e/a11y.spec.ts` runs axe-core (`@axe-core/playwright`, a pinned dev
+  dependency) for WCAG 2.0 and 2.1 A and AA in light and dark mode. It covers the board,
+  both grid presets, the detail panel with comments, the assignee picker, the mention
+  list, the delete dialog, the full item page, the create dialog, the command palette, and
+  the login banner. `tests/e2e/keyboard.spec.ts` runs in dark mode. It checks that every
+  Tab stop on the board, grid, and detail panel visibly changes when focused, and walks
+  through the skip link, `C`, create, a comment, delete (with Escape and focus return), and
+  the command palette by keyboard alone. Older tests cover grid keyboard edits and
+  resizing, keyboard board moves, the parent picker, and `I`.
+- Fixes from these checks:
+  - The sidebar logo link was named "Eruza home", which did not include its visible text
+    (WCAG 2.5.3). It now takes its name from that text.
+  - Since M3, `C` and New opened the create form with focus on Type, not Title:
+    `showModal` focuses the first field and overrides React's `autoFocus`. Focus now moves
+    to Title after the dialog opens.
+  - Enter on Delete right after Escape could open the dialog and then close it at once
+    (the same late close event as `bf845b0`). Each open now gets its own key.
+- M7.5 review. Mock and unit coverage has no open gap; the live parts wait for M2.8 and
+  M3.9.
+
+  | Area              | Covered by                                                                                                                                                 | Live part                     |
+  | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+  | Active refresh    | 45-second polling, paused while hidden, resumed on return (grid); same setup for board, detail, and the first comment page                                 | Live timing not measured      |
+  | Conflict recovery | `/rev` conflict detection (unit); drafts kept in the panel, board, and grid (browser)                                                                      | M3.9 stale revision           |
+  | Token expiry      | Refresh inside 60 seconds, shared refresh, CLI missing vs. login missing, retry without restart (unit); login banner and Retry (app and browser)           | M2.8                          |
+  | Query limits      | 5,000-item cap marks the result incomplete (unit); notice in board and grid and a `+` count (new browser test)                                             | None                          |
+  | Rate limits       | `Retry-After` honored before the next request; long waits fail fast with `RATE_LIMITED` (unit); message shown and next refresh recovers (new browser test) | Real 429 responses unverified |
+
+- M7.6: the built JavaScript has no credential module, token scope, `Bearer`, server
+  setting names, unique names, axe-core, or fixture strings. Its only ADO string is the
+  `https://dev.azure.com/` prefix used to check the Open link. Checked with `grep` on
+  `dist/assets/*.js` after `npm run build`.
+- M7.7 publication review, at `2c27ce6` plus this M7 work: all history (16 commits,
+  including local T3 Code checkpoint refs under `refs/t3/`) has no secrets, tokens,
+  personal paths, real organization names, or emails other than `example.invalid` and the
+  noreply author addresses. GUIDs in history are the synthetic image ID and the public
+  Azure DevOps token scope. No images, screenshots, traces, or recordings are tracked.
+  `.env.example` is blank. The LICENSE copyright holder is the only identity. GitHub has
+  only `main`, with no pull requests, issues, releases, workflow runs, artifacts,
+  deployments, or tags, and the wiki is off. The repository is private. The `refs/t3/`
+  refs are local only; never push with `--all` or `--mirror`. Repeat this review just
+  before any visibility change.
+
+Evidence (mock mode, macOS, Node `24.14.1`, npm `11.11.0`, no live calls):
+
+- `npm run check` passed: lint, format, typecheck, 113 tests, build.
+- `npm run test:e2e` passed: 44 tests (6 new), in three full runs.
+- Mutation checks: restoring the old logo label failed the axe test; removing the Title
+  focus failed the keyboard walkthrough; removing the dialog key failed the walkthrough in
+  2 of 3 runs (the race depends on timing).
+- Main chunk 225 KB gzipped; lazy editor chunk 159 KB.
+
+Limits:
+
+- Axe and the focus checks run in headless Chromium. A screen reader and a Windows browser
+  have not been tried. The focus check counts any visible change in outline, shadow, fill,
+  or border; it does not measure the ring's contrast.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -433,9 +507,9 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-1. M7 mock-mode parts: clean-checkout install and README walk-through (M7.2), checks and
-   dependency audit (M7.3), keyboard and dark-mode sweep (M7.4), and build inspection
-   (M7.6). M7 cannot close until the live checks pass.
-2. Leave M2.8, M3.9, M4.7, M6.3, and M6.6 open. They need Azure CLI, an approved private
-   test organization, an explicitly chosen test identity for the mention, and approval.
-3. Pushing the local commits (`bf845b0`, M5, and M6) needs explicit approval.
+1. The live checks: M2.8, M3.9, M4.7, M6.3, and M6.6. They need Azure CLI, an approved
+   private test organization, an explicitly chosen test identity for the mention, and
+   approval. Then live startup (M7.2), the live parts of M7.5, and M7.1.
+2. After the live checks, rerun M7.3, M7.4, M7.6, and M7.7 if code changed, then write
+   the final M7.8 handoff.
+3. Pushing the M7 commit, and any visibility change, needs explicit approval.
