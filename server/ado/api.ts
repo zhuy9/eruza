@@ -4,6 +4,7 @@ import { createAuth, LOGIN_COMMAND } from '../auth';
 import type { Config } from '../config';
 import { AppError } from '../errors';
 import { createAdoClient } from './client';
+import * as item from './item';
 import * as metadata from './metadata';
 import { getWorkItems } from './work-items';
 
@@ -47,5 +48,12 @@ export function createAdoApi(config: Config, credential?: TokenCredential): Boar
     getWorkItemStates: (projectId, type) => metadata.getWorkItemStates(ado, projectId, type),
     getWorkItemFields: (projectId, type) => metadata.getWorkItemFields(ado, projectId, type),
     getWorkItems: (query) => getWorkItems(ado, query),
+    getWorkItem: (id) => item.getWorkItem(ado, id),
+    searchWorkItems: (projectId, text) => item.searchWorkItems(ado, projectId, text),
+    createWorkItem: (input) => item.createWorkItem(ado, input),
+    updateWorkItem: (id, input) => item.updateWorkItem(ado, id, input),
+    setParent: (id, input) => item.setParent(ado, id, input),
+    getAvatar: (identityId) => metadata.getAvatar(ado, identityId),
+    getImage: (id, resourceId) => item.getImage(ado, id, resourceId),
   };
 }

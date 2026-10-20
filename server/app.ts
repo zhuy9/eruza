@@ -1,7 +1,16 @@
 import { Hono, type Context } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { z } from 'zod';
-import { workItemQuerySchema, type BoardsApi, type TeamScope } from '../shared/contracts';
+import {
+  createWorkItemSchema,
+  searchQuerySchema,
+  setParentSchema,
+  updateWorkItemSchema,
+  workItemQuerySchema,
+  type Binary,
+  type BoardsApi,
+  type TeamScope,
+} from '../shared/contracts';
 import { createAdoApi } from './ado/api';
 import type { Config } from './config';
 import { AppError } from './errors';
@@ -16,6 +25,20 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 const typeQuery = z.object({ type: z.string().min(1) });
+const itemId = (c: Context) => parse(z.coerce.number().int().positive(), c.req.param('id'));
+const body = async <T>(c: Context, schema: z.ZodType<T>) =>
+  parse(schema, await c.req.json().catch(() => undefined));
+
+/** Serves image bytes only. CSP sandbox stops script in an SVG opened directly. */
+function image(c: Context, { bytes, contentType }: Binary) {
+  if (!contentType.startsWith('image/')) {
+    throw new AppError({ code: 'UPSTREAM', message: 'Azure DevOps did not return an image.' });
+  }
+  return c.body(bytes, 200, {
+    'Content-Type': contentType,
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+  });
+}
 const scope = (c: Context): TeamScope => ({
   projectId: c.req.param('projectId')!,
   teamId: c.req.param('teamId')!,
@@ -90,6 +113,31 @@ export function createApp(
   );
   app.get('/api/work-items', async (c) =>
     c.json(await api.getWorkItems(parse(workItemQuerySchema, c.req.query()))),
+  );
+  app.get('/api/work-items/search', async (c) => {
+    const { projectId, text } = parse(searchQuerySchema, c.req.query());
+    return c.json(await api.searchWorkItems(projectId, text));
+  });
+  app.get('/api/work-items/:id', async (c) => c.json(await api.getWorkItem(itemId(c))));
+  app.post('/api/work-items', async (c) =>
+    c.json(await api.createWorkItem(await body(c, createWorkItemSchema)), 201),
+  );
+  app.patch('/api/work-items/:id', async (c) =>
+    c.json(await api.updateWorkItem(itemId(c), await body(c, updateWorkItemSchema))),
+  );
+  app.put('/api/work-items/:id/parent', async (c) =>
+    c.json(await api.setParent(itemId(c), await body(c, setParentSchema))),
+  );
+  app.get('/api/work-items/:id/images/:resourceId', async (c) =>
+    image(c, await api.getImage(itemId(c), c.req.param('resourceId'))),
+  );
+  app.get('/api/avatars/:identityId', async (c) =>
+    image(
+      c,
+      await api.getAvatar(
+        parse(z.string().regex(/^[A-Za-z0-9-]{1,64}$/), c.req.param('identityId')),
+      ),
+    ),
   );
   app.notFound((c) => c.json({ code: 'NOT_FOUND', message: 'This route was not found.' }, 404));
   return app;

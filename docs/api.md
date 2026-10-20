@@ -20,7 +20,8 @@ not exist yet.
 | `Filters`             | Iteration path, optional assignee, area path, tags, and text                                                   |
 | `Identity`            | ADO identity ID, display name, and local avatar URL                                                            |
 | `WorkItemSummary`     | ID, revision, type, title, state, assignee, tags, paths, available numeric fields, and parent ID               |
-| `WorkItemDetail`      | Summary plus description, editable field values, parent, and child summaries                                   |
+| `WorkItemDetail`      | Summary plus project, description, scalar field values, and child IDs                                          |
+| `WorkItemView`        | Detail plus parent and child summaries from one batch, and unreadable IDs                                      |
 | `WorkItemList`        | Matching items, supporting ancestors, missing IDs, and an `incomplete` flag                                    |
 | `FieldDefinition`     | Reference name, label, value type, allowed values, default, required flag, and read-only/system-managed status |
 | `BacklogLevel`        | Backlog category and its work item types, including the requirement/story level                                |
@@ -61,12 +62,15 @@ interface BoardsApi {
   getWorkItemFields(projectId: string, type: string): Promise<FieldDefinition[]>;
 
   getWorkItems(scope: TeamScope, filters: Filters, boardType?: string): Promise<WorkItemList>;
-  getWorkItem(id: number): Promise<WorkItemDetail>;
+  getWorkItem(id: number): Promise<WorkItemView>;
   searchWorkItems(projectId: string, text: string): Promise<SearchResult>;
 
   createWorkItem(input: CreateWorkItemInput): Promise<WorkItemDetail>;
   updateWorkItem(id: number, input: UpdateWorkItemInput): Promise<WorkItemDetail>;
-  setParent(id: number, parentId: number | null, expectedRev: number): Promise<WorkItemDetail>;
+  setParent(
+    id: number,
+    input: { parentId: number | null; expectedRev: number },
+  ): Promise<WorkItemDetail>;
 
   getComments(id: number, cursor?: string): Promise<CommentPage>;
   addComment(id: number, input: AddCommentInput): Promise<Comment>;

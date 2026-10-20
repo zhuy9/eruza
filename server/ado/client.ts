@@ -39,12 +39,51 @@ export function segment(value: string) {
 }
 
 export type Ado = ReturnType<typeof createAdoClient>;
-type Init = { method?: string; body?: unknown };
+type Init = {
+  method?: string;
+  body?: unknown;
+  contentType?: string;
+  /** A write that may have reached ADO even if the response was lost. */
+  write?: boolean;
+};
 const MAX_WAIT_MS = 5000;
+const MAX_MESSAGE = 300;
+
+type AdoErrorBody = {
+  message?: unknown;
+  customProperties?: {
+    RuleValidationErrors?: { fieldReferenceName?: string; fieldStatusFlags?: string }[] | null;
+  };
+};
+
+/** Turns an ADO 400 body into a short message and per-field errors. */
+export function validationError(body: AdoErrorBody | null) {
+  const text = typeof body?.message === 'string' ? body.message : '';
+  // ADO text is untrusted: keep it plain and short.
+  const message = text
+    .replace(/\p{Cc}+/gu, ' ')
+    .trim()
+    .slice(0, MAX_MESSAGE);
+  const fieldErrors: Record<string, string> = {};
+  for (const rule of body?.customProperties?.RuleValidationErrors ?? []) {
+    if (!rule.fieldReferenceName) continue;
+    fieldErrors[rule.fieldReferenceName] = /required|invalidEmpty/i.test(
+      rule.fieldStatusFlags ?? '',
+    )
+      ? 'This field is required.'
+      : 'Azure DevOps rejected this value.';
+  }
+  return adoError('VALIDATION', {
+    ...(message && { message }),
+    ...(Object.keys(fieldErrors).length && { fieldErrors }),
+  });
+}
 
 /** Calls ADO for one organization. Paths are relative to the organization URL. */
 export function createAdoClient(organization: string, auth: Auth) {
   let notBefore = 0;
+  /** Identity ID to unique name. Kept on the server so emails never reach the browser. */
+  const identities = new Map<string, string>();
 
   async function request(path: string, init: Init = {}): Promise<Response> {
     // Built on a fixed origin, so a path can never send the token to another host.
@@ -56,7 +95,7 @@ export function createAdoClient(organization: string, auth: Auth) {
       ...(await auth.getAuthHeader()),
       Accept: 'application/json',
     };
-    if (init.body !== undefined) headers['Content-Type'] = 'application/json';
+    if (init.body !== undefined) headers['Content-Type'] = init.contentType ?? 'application/json';
     let response: Response;
     try {
       response = await fetch(url, {
@@ -66,13 +105,14 @@ export function createAdoClient(organization: string, auth: Auth) {
         redirect: 'manual',
       });
     } catch {
-      throw adoError('NETWORK');
+      throw adoError(init.write ? 'UNKNOWN_OUTCOME' : 'NETWORK');
     }
     const retryAfter = Number(response.headers.get('retry-after'));
     if (retryAfter > 0) notBefore = Date.now() + retryAfter * 1000;
     const code = CODES[response.status] ?? (response.ok ? null : 'UPSTREAM');
     if (!code) return response;
     if (code === 'AUTH_REQUIRED') auth.clearToken();
+    if (code === 'VALIDATION') throw validationError(await response.json().catch(() => null));
     throw adoError(
       code,
       code === 'RATE_LIMITED' && retryAfter > 0 ? { retryAfterMs: retryAfter * 1000 } : {},
@@ -80,6 +120,8 @@ export function createAdoClient(organization: string, auth: Auth) {
   }
 
   return {
+    organization,
+    identities,
     request,
     json: async <T>(path: string, init?: Init): Promise<T> =>
       (await request(path, init)).json() as Promise<T>,

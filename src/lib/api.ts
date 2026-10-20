@@ -8,8 +8,27 @@ export class ApiRequestError extends Error {
   }
 }
 
+/** The safe error body of a failed call, or a generic one. */
+export const apiError = (error: unknown): ApiError =>
+  error instanceof ApiRequestError
+    ? error.error
+    : { code: 'UPSTREAM', message: 'Something went wrong. Try again.' };
+
 async function send<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, init);
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, init);
+  } catch {
+    const writing = init?.method && init.method !== 'GET';
+    throw new ApiRequestError(
+      writing
+        ? {
+            code: 'UNKNOWN_OUTCOME',
+            message: 'Lost contact with Eruza. Check the item before repeating the change.',
+          }
+        : { code: 'NETWORK', message: 'Could not reach the local Eruza server.' },
+    );
+  }
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const error = apiErrorSchema.safeParse(body);
@@ -24,9 +43,10 @@ async function send<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): 
 
 export const getJson = <T>(path: string, schema: z.ZodType<T>) => send(path, schema);
 
-export const postJson = <T>(path: string, body: unknown, schema: z.ZodType<T>) =>
+/** Sends JSON with the given method. */
+export const sendJson = <T>(method: string, path: string, body: unknown, schema: z.ZodType<T>) =>
   send(path, schema, {
-    method: 'POST',
+    method,
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });

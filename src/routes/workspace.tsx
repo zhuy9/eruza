@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRouteApi } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { ArrowUpRight, Circle, Layers3 } from 'lucide-react';
 import { workItemsQuery } from '../lib/queries';
 import { useScope } from '../lib/scope';
@@ -71,7 +71,12 @@ export function WorkspaceView({ title, description }: { title: string; descripti
       )}
       <div className="preview-list">
         {data?.items.map((item) => (
-          <article key={item.id} className="preview-row">
+          <Link
+            key={item.id}
+            to="."
+            search={(prev: Record<string, unknown>) => ({ ...prev, item: item.id })}
+            className="preview-row"
+          >
             <span className={`type-icon type-${item.type.toLowerCase()}`}>
               <Layers3 size={15} />
             </span>
@@ -86,7 +91,7 @@ export function WorkspaceView({ title, description }: { title: string; descripti
             </span>
             <span className="assignee-label">{item.assignee?.displayName ?? 'Unassigned'}</span>
             <ArrowUpRight size={15} className="row-decoration" aria-hidden="true" />
-          </article>
+          </Link>
         ))}
       </div>
       {data?.items.length === 0 && <p className="empty-state">No work items in this sprint.</p>}

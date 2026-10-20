@@ -164,6 +164,9 @@ export const fields: Record<string, FieldDefinition[]> = {
     ...commonFields,
     remainingWork,
     field('Custom.FoundIn', 'Found In', 'string', { required: true }),
+    field('Microsoft.VSTS.Common.ResolvedReason', 'Resolved Reason', 'string', {
+      allowedValues: ['Fixed', 'As designed', 'Cannot reproduce'],
+    }),
   ],
   Feature: commonFields,
   Spike: [
@@ -257,3 +260,28 @@ export const items: WorkItemSummary[] = [
     remainingWork: 6,
   }),
 ];
+
+/** Field values not in the summary, by item ID. */
+export const extraFields: Record<number, Record<string, string>> = {
+  1004: { 'Custom.FoundIn': 'Release 2' },
+  1040: { 'Custom.FoundIn': 'Release 1' },
+};
+
+export const IMAGE_ID = '0b5c3a52-1d43-4c4e-9a43-6a2c1f1e7d10';
+
+/** Descriptions cover supported formatting, unsupported styling, and hostile markup. */
+export const descriptions: Record<number, string> = {
+  1001: [
+    '<p>Shoppers should finish checkout in <strong>three steps</strong> or fewer.</p>',
+    '<ul><li>Keep the cart visible</li><li>Remember the <em>delivery</em> choice</li></ul>',
+    '<table><tbody><tr><th>Step</th><th>Goal</th></tr><tr><td>Cart</td><td>Review items</td></tr></tbody></table>',
+    '<p>See the <a href="https://example.com/checkout-notes">checkout notes</a>.</p>',
+    `<p><img src="/api/work-items/1001/images/${IMAGE_ID}?fileName=flow.png" alt="Checkout flow"></p>`,
+  ].join(''),
+  1002: '<p>Use the <span style="color: #c0392b">red</span> error style from the design notes.</p>',
+  1003: [
+    '<p>Steps to check.</p>',
+    '<img src="x" onerror="alert(1)"><script>alert(2)</script>',
+    '<p><a href="javascript:alert(3)">Run</a> or read the <a href="https://example.com/test-plan">test plan</a>.</p>',
+  ].join(''),
+};

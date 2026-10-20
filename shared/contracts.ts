@@ -61,15 +61,15 @@ export const backlogLevelSchema = z.object({
 export const workItemTypeSchema = z.object({ name: z.string(), color: z.string() });
 export const stateSchema = z.object({ name: z.string(), color: z.string(), category: z.string() });
 
-const fieldValue = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+export const fieldValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 export const fieldDefinitionSchema = z.object({
   referenceName: z.string(),
   name: z.string(),
   type: z.string(),
   required: z.boolean(),
   readOnly: z.boolean(),
-  allowedValues: z.array(fieldValue),
-  defaultValue: fieldValue,
+  allowedValues: z.array(fieldValueSchema),
+  defaultValue: fieldValueSchema,
 });
 
 export const workItemSchema = z.object({
@@ -95,6 +95,56 @@ export const workItemListSchema = z.object({
   incomplete: z.boolean(),
 });
 
+export const workItemDetailSchema = workItemSchema.extend({
+  project: z.string(),
+  description: z.string(),
+  /** Scalar field values by reference name. Identity values are not included. */
+  fields: z.record(z.string(), fieldValueSchema),
+  childIds: z.array(z.number()),
+});
+
+/** An item plus its parent and children, read in one batch. */
+export const workItemViewSchema = z.object({
+  item: workItemDetailSchema,
+  related: z.array(workItemSchema),
+  missingIds: z.array(z.number()),
+});
+
+const fieldChanges = z.record(z.string().min(1), fieldValueSchema);
+
+export const createWorkItemSchema = z
+  .object({
+    projectId: z.string().min(1),
+    type: z.string().min(1),
+    fields: fieldChanges,
+    parentId: z.number().int().positive().optional(),
+  })
+  .strict();
+
+export const updateWorkItemSchema = z
+  .object({
+    expectedRev: z.number().int().positive(),
+    fields: fieldChanges.refine((fields) => Object.keys(fields).length > 0),
+  })
+  .strict();
+
+export const setParentSchema = z
+  .object({
+    parentId: z.number().int().positive().nullable(),
+    expectedRev: z.number().int().positive(),
+  })
+  .strict();
+
+export const searchQuerySchema = z.object({
+  projectId: z.string().min(1),
+  text: z.string().trim().min(1).max(200),
+});
+
+export const searchResultSchema = z.object({
+  items: z.array(workItemSchema),
+  incomplete: z.boolean(),
+});
+
 export const workItemQuerySchema = z.object({
   projectId: z.string().min(1),
   teamId: z.string().min(1),
@@ -116,6 +166,14 @@ export type FieldDefinition = z.infer<typeof fieldDefinitionSchema>;
 export type WorkItemSummary = z.infer<typeof workItemSchema>;
 export type WorkItemList = z.infer<typeof workItemListSchema>;
 export type WorkItemQuery = z.infer<typeof workItemQuerySchema>;
+export type FieldValue = z.infer<typeof fieldValueSchema>;
+export type WorkItemDetail = z.infer<typeof workItemDetailSchema>;
+export type WorkItemView = z.infer<typeof workItemViewSchema>;
+export type CreateWorkItemInput = z.infer<typeof createWorkItemSchema>;
+export type UpdateWorkItemInput = z.infer<typeof updateWorkItemSchema>;
+export type SetParentInput = z.infer<typeof setParentSchema>;
+export type SearchResult = z.infer<typeof searchResultSchema>;
+export type Binary = { bytes: ArrayBuffer; contentType: string };
 export type TeamScope = { projectId: string; teamId: string };
 
 /** Application operations offered by both real and mock mode. */
@@ -133,4 +191,11 @@ export interface BoardsApi {
   getWorkItemStates(projectId: string, type: string): Promise<State[]>;
   getWorkItemFields(projectId: string, type: string): Promise<FieldDefinition[]>;
   getWorkItems(query: WorkItemQuery): Promise<WorkItemList>;
+  getWorkItem(id: number): Promise<WorkItemView>;
+  searchWorkItems(projectId: string, text: string): Promise<SearchResult>;
+  createWorkItem(input: CreateWorkItemInput): Promise<WorkItemDetail>;
+  updateWorkItem(id: number, input: UpdateWorkItemInput): Promise<WorkItemDetail>;
+  setParent(id: number, input: SetParentInput): Promise<WorkItemDetail>;
+  getAvatar(identityId: string): Promise<Binary>;
+  getImage(id: number, resourceId: string): Promise<Binary>;
 }

@@ -11,7 +11,7 @@ import { adoError, segment, type Ado } from './client';
 import { getBacklogs, getTeamSettings } from './metadata';
 
 const e = segment;
-export const BATCH_SIZE = 200;
+const BATCH_SIZE = 200;
 export const QUERY_LIMIT = 5000;
 const CONCURRENCY = 4;
 
@@ -21,7 +21,7 @@ const ESTIMATES = [
   ['Microsoft.VSTS.Scheduling.Size', 'Size'],
 ] as const;
 
-const FIELDS = [
+export const SUMMARY_FIELDS = [
   'System.WorkItemType',
   'System.Title',
   'System.State',
@@ -36,6 +36,11 @@ const FIELDS = [
 ];
 
 const number = z.number().optional();
+export const identityRef = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  uniqueName: z.string().optional(),
+});
 const rawItem = z.object({
   id: z.number(),
   rev: z.number(),
@@ -43,7 +48,7 @@ const rawItem = z.object({
     'System.WorkItemType': z.string(),
     'System.Title': z.string(),
     'System.State': z.string(),
-    'System.AssignedTo': z.object({ id: z.string(), displayName: z.string() }).optional(),
+    'System.AssignedTo': identityRef.optional(),
     'System.Tags': z.string().optional(),
     'System.AreaPath': z.string(),
     'System.IterationPath': z.string(),
@@ -56,10 +61,13 @@ const rawItem = z.object({
   }),
 });
 
-function toSummary(raw: unknown): WorkItemSummary {
+/** Maps an ADO work item to a summary. Records assignee unique names on the server only. */
+export function toSummary(raw: unknown, identities: Map<string, string>): WorkItemSummary {
   const parsed = rawItem.safeParse(raw);
   if (!parsed.success) throw adoError('UPSTREAM');
   const { id, rev, fields: f } = parsed.data;
+  const assignee = f['System.AssignedTo'];
+  if (assignee?.uniqueName) identities.set(assignee.id, assignee.uniqueName);
   const estimate = ESTIMATES.find(([field]) => f[field] !== undefined);
   return {
     id,
@@ -67,9 +75,7 @@ function toSummary(raw: unknown): WorkItemSummary {
     type: f['System.WorkItemType'],
     title: f['System.Title'],
     state: f['System.State'],
-    assignee: f['System.AssignedTo']
-      ? { id: f['System.AssignedTo'].id, displayName: f['System.AssignedTo'].displayName }
-      : null,
+    assignee: assignee ? { id: assignee.id, displayName: assignee.displayName } : null,
     tags: (f['System.Tags'] ?? '')
       .split(';')
       .map((tag) => tag.trim())
@@ -124,10 +130,12 @@ export async function batchGet(ado: Ado, projectId: string, ids: number[]) {
   const pages = await mapLimit(chunks, CONCURRENCY, (chunk) =>
     ado.json<{ value: unknown[] }>(`${e(projectId)}/_apis/wit/workitemsbatch?api-version=7.1`, {
       method: 'POST',
-      body: { ids: chunk, fields: FIELDS, errorPolicy: 'omit' },
+      body: { ids: chunk, fields: SUMMARY_FIELDS, errorPolicy: 'omit' },
     }),
   );
-  const items = pages.flatMap((page) => page.value.filter(Boolean).map(toSummary));
+  const items = pages.flatMap((page) =>
+    page.value.filter(Boolean).map((raw) => toSummary(raw, ado.identities)),
+  );
   const found = new Set(items.map((item) => item.id));
   return { items, missingIds: unique.filter((id) => !found.has(id)) };
 }

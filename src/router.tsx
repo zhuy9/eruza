@@ -1,16 +1,23 @@
 import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router';
 import { AppShell } from './components/app-shell';
+import { ItemPage } from './routes/item-page';
 import { MeetingView, WorkspaceView } from './routes/workspace';
 
 const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
+const itemId = (value: unknown) => {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : undefined;
+};
+
 const rootRoute = createRootRoute({
   component: AppShell,
   validateSearch: (
     search: Record<string, unknown>,
-  ): { project?: string; team?: string; sprint?: string } => ({
+  ): { project?: string; team?: string; sprint?: string; item?: number } => ({
     project: text(search.project),
     team: text(search.team),
     sprint: text(search.sprint),
+    item: itemId(search.item),
   }),
 });
 const indexRoute = createRoute({
@@ -38,8 +45,13 @@ const gridRoute = createRoute({
   }),
   component: MeetingView,
 });
+const itemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/items/$id',
+  component: ItemPage,
+});
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, boardRoute, gridRoute]),
+  routeTree: rootRoute.addChildren([indexRoute, boardRoute, gridRoute, itemRoute]),
 });
 declare module '@tanstack/react-router' {
   interface Register {

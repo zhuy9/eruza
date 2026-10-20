@@ -3,7 +3,8 @@
 ## Current checkpoint
 
 M0 is committed and pushed as `34392a6`. M1 is complete and committed locally.
-M2 is implemented and committed locally; its live check (M2.8) is open.
+M2 and M3 are implemented and committed locally; their live checks (M2.8, M3.9)
+are open.
 Read [the handoff](handoff.md) before continuing.
 
 The GitHub repository was private when the plan was pushed. Its `main` branch
@@ -15,7 +16,7 @@ session; check it before publication work.
 | M0: Repo layout and handoff                        | Complete                          | None       |
 | M1: Local app shell and mock foundation            | Complete                          | M0         |
 | M2: Azure CLI auth and ADO reads                   | Implemented; verification pending | M1         |
-| M3: Create, detail, and parent actions             | Not started                       | M2         |
+| M3: Create, detail, and parent actions             | Implemented; verification pending | M2         |
 | M4: Board and shared filters                       | Not started                       | M3         |
 | M5: Meeting grid                                   | Not started                       | M3, M4     |
 | M6: Comments and remaining actions                 | Not started                       | M3         |
@@ -142,22 +143,22 @@ Build:
 
 Acceptance:
 
-- [ ] M3.1: Create validates title and editable required custom fields, applies
+- [x] M3.1: Create validates title and editable required custom fields, applies
       defaults, and keeps the draft after ADO validation errors.
-- [ ] M3.2: Add child creates the item and parent relation in one request.
-- [ ] M3.3: Every existing-item field/parent patch tests `/rev`.
+- [x] M3.2: Add child creates the item and parent relation in one request.
+- [x] M3.3: Every existing-item field/parent patch tests `/rev`.
       State plus conditionally required fields can be submitted together.
-- [ ] M3.4: Two quick edits to one item save in order using returned revisions.
+- [x] M3.4: Two quick edits to one item save in order using returned revisions.
       Conflict, failed save, and background refresh tests preserve the draft and
       do not undo a later successful edit.
-- [ ] M3.5: Change parent removes and adds in one patch. Remove parent preserves
+- [x] M3.5: Change parent removes and adds in one patch. Remove parent preserves
       both items and unrelated links. Self-parenting/cycles fail clearly.
-- [ ] M3.6: Parent and children are clickable, and children are batch-fetched.
+- [x] M3.6: Parent and children are clickable, and children are batch-fetched.
       Existing assignees outside the team list remain visible.
-- [ ] M3.7: Tests cover malicious HTML/URLs and safe rich-text round trips with
+- [x] M3.7: Tests cover malicious HTML/URLs and safe rich-text round trips with
       tables, links, images, and supported formatting. Opening the editor sends no
       write. Unsupported content cannot be silently lost.
-- [ ] M3.8: Detail panel and full page edit the same item consistently.
+- [x] M3.8: Detail panel and full page edit the same item consistently.
       Keyboard focus and the `I` shortcut work without interrupting typing.
 - [ ] M3.9: A live disposable-item check confirms create, field edit, stale
       revision rejection, add child, change parent, and remove parent.
@@ -293,8 +294,8 @@ Update this section at the end of each work session.
 
 - M0: complete, committed, and pushed as `34392a6`.
 - M1: complete and committed locally (not pushed).
-- M2: implemented and committed locally. M2.1-M2.7 pass with mocked ADO.
-  M2.8 is open: it needs Azure CLI, an approved test organization, and
-  approval for live checks. Details are in [handoff.md](handoff.md).
-- Next step: M3 in mock-first mode.
+- M2 and M3: implemented and committed locally. Their mock-mode checks pass.
+  M2.8 and M3.9 are open: they need Azure CLI, an approved test organization,
+  and approval for live checks. Details are in [handoff.md](handoff.md).
+- Next step: M4 in mock-first mode.
 - Only the initial plan push was approved. Keep implementation commits local.

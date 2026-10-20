@@ -30,9 +30,51 @@ async function pagedBySkip<T>(ado: Ado, path: string): Promise<T[]> {
 export async function getCurrentUser(ado: Ado): Promise<Identity> {
   // ponytail: connectionData is undocumented; confirm this version in the live check (M2.8).
   const { authenticatedUser: user } = await ado.json<{
-    authenticatedUser: { id: string; providerDisplayName?: string; customDisplayName?: string };
+    authenticatedUser: {
+      id: string;
+      providerDisplayName?: string;
+      customDisplayName?: string;
+      properties?: { Account?: { $value?: string } };
+    };
   }>('_apis/connectionData?api-version=7.1-preview');
+  const account = user.properties?.Account?.$value;
+  if (account) ado.identities.set(user.id, account);
   return { id: user.id, displayName: user.customDisplayName || user.providerDisplayName || 'You' };
+}
+
+type OrgFields = Map<string, { readOnly: boolean; isIdentity: boolean }>;
+const orgFieldCache = new WeakMap<Ado, Promise<OrgFields>>();
+
+/** Org field definitions, read once per client. A failed read is not cached. */
+export function getOrgFields(ado: Ado): Promise<OrgFields> {
+  let fields = orgFieldCache.get(ado);
+  if (!fields) {
+    fields = ado
+      .json<List<{ referenceName: string; readOnly: boolean; isIdentity?: boolean }>>(
+        '_apis/wit/fields?api-version=7.1',
+      )
+      .then(
+        ({ value }) =>
+          new Map(
+            value.map((f) => [
+              f.referenceName,
+              { readOnly: f.readOnly, isIdentity: !!f.isIdentity },
+            ]),
+          ),
+      );
+    fields.catch(() => orgFieldCache.delete(ado));
+    orgFieldCache.set(ado, fields);
+  }
+  return fields;
+}
+
+/** A team member's or known user's avatar. Only identity IDs are accepted, never URLs. */
+export async function getAvatar(ado: Ado, identityId: string) {
+  const response = await ado.request(`_api/_common/identityImage?id=${e(identityId)}`);
+  return {
+    bytes: await response.arrayBuffer(),
+    contentType: response.headers.get('content-type') ?? '',
+  };
 }
 
 export async function getProjects(ado: Ado, defaultName: string): Promise<Project[]> {
@@ -65,8 +107,11 @@ export async function getTeams(ado: Ado, projectId: string): Promise<Team[]> {
 
 export async function getTeamMembers(ado: Ado, scope: TeamScope): Promise<Identity[]> {
   const members = await pagedBySkip<{
-    identity: { id: string; displayName: string; isContainer?: boolean };
+    identity: { id: string; displayName: string; uniqueName?: string; isContainer?: boolean };
   }>(ado, `_apis/projects/${e(scope.projectId)}/teams/${e(scope.teamId)}/members?api-version=7.1`);
+  for (const { identity } of members) {
+    if (identity.uniqueName) ado.identities.set(identity.id, identity.uniqueName);
+  }
   return members
     .filter((member) => !member.identity.isContainer)
     .map(({ identity }) => ({ id: identity.id, displayName: identity.displayName }))

@@ -9,10 +9,13 @@ Azure DevOps remains the source of truth.
 ## Current status
 
 M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
-complete. M2 (Azure CLI sign-in and ADO reads) is implemented and tested with
-mocked ADO responses; it has not been checked against a live organization.
-Mock mode lets you pick a project, team, and sprint and see read-only sample
-work items. The board, meeting grid, and editing are not built yet.
+complete. M2 (Azure CLI sign-in and ADO reads) and M3 (create, detail, and
+parent actions) are implemented and tested with mocked ADO responses; they
+have not been checked against a live organization.
+
+Mock mode lets you pick a project, team, and sprint, open items in a side panel
+or full page, edit fields and descriptions, create items, and change parents.
+The board, meeting grid, comments, and deletion are not built yet.
 
 Start with the [current handoff](docs/handoff.md), then read
 [milestones and acceptance checks](docs/milestones.md).

@@ -25,7 +25,7 @@ deploy, or change repository visibility without explicit approval.
 
 ## Git checkpoint
 
-- Branch: `main`. M0 (`34392a6`) is pushed. M1 and M2 are committed locally only.
+- Branch: `main`. M0 (`34392a6`) is pushed. M1, M2, and M3 are committed locally only.
 - GitHub was verified private at the M0 push. Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -92,6 +92,68 @@ Assumptions to confirm in the live check (M2.8):
 - Iteration `attributes.timeFrame` comes back as `past`/`current`/`future`.
 - Team members include `isContainer` for groups.
 
+## M3 result: implemented; live check open
+
+What was built:
+
+- Server: item detail with parent and children from one batch; create with an
+  optional parent in the same JSON Patch; field updates and parent changes
+  that start with a `/rev` test; parent changes that remove and add relations
+  by index at `expectedRev`; ID or title search; avatar and image routes that
+  accept only known IDs and serve images with a sandbox CSP.
+- Writes accept only known, writable fields. People are sent by unique name,
+  which stays on the server. ADO rule errors become field errors. A failed
+  patch is a conflict when the item's revision moved.
+- Client: side panel (`?item=`) and full page (`/items/:id`) share one editor.
+  Saves for one item run in order; a second quick edit uses the revision the
+  first save returned, but a change made elsewhere still conflicts. Pending
+  and failed values overlay server data, so refreshes never drop a draft.
+  Failed saves offer "Save again", "Save together" (with fields ADO requires),
+  or "Discard".
+- Rich text: TipTap with inline images and tables, DOMPurify for display, and
+  a round-trip check. Content the editor would change (colors, fonts,
+  highlights, subscripts) stays read-only with an explanation. Opening the
+  editor sends no write. The editor loads lazily to keep the main bundle small.
+- Create dialog (New button and Add child): type, title, description,
+  assignee, priority, tags, area, iteration, and required custom fields, with
+  team and sprint defaults. The draft survives server errors.
+- `I` assigns the open item to the current user, except while typing or in a
+  dialog.
+
+Evidence (mock mode, no live calls):
+
+- `npm run check` passed: lint, format, typecheck, 85 tests, build.
+- `npm run test:e2e` passed: 11 tests, including create validation and draft
+  keeping, add child in one request, ordered quick edits, conflict recovery,
+  state plus required field, parent change/remove/loop, safe rich text with no
+  write on open, panel/page consistency, focus, and the `I` shortcut.
+- Built bundle has no ADO, token, identity, or fixture strings. The main chunk
+  is 180 KB gzipped; the editor chunk is 154 KB gzipped and loads on demand.
+
+Known limits:
+
+- "Description" means `System.Description`. Other HTML fields, such as a Bug's
+  repro steps, are not edited yet.
+- Styled rich text stays read-only until the editor supports those styles.
+- Tags are edited as text separated by `;`.
+
+Assumptions to confirm in the live check (M3.9):
+
+- `connectionData` returns the user's account name in
+  `authenticatedUser.properties.Account.$value` (needed for "Assign to me").
+- Clearing a field with a JSON Patch `remove` works, including empty fields.
+- The revisions endpoint accepts `$expand=relations`.
+- A failed `/rev` test returns a 4xx that the revision re-read turns into a
+  conflict.
+
+## Machine notes
+
+- The system drive was nearly full (about 10 MB free) and committed memory
+  was close to its limit. Vite's dependency bundler once failed with "memory
+  allocation failed". Freeing space on the system drive or closing large apps
+  avoids this. A stale partial Playwright download in the system temp folder
+  (78 MB, from the earlier failed install) was removed.
+
 ## Local browser setup
 
 The system drive has very little free space. Keep browser downloads, npm cache,
@@ -109,7 +171,7 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-1. M3 in mock-first mode: create form, detail panel and page, field autosave
-   with `/rev`, per-item save order, assignee and parent actions, rich text.
-2. Leave M2.8 and later live checks open. They need Azure CLI installed, an
-   approved private test organization, and user approval.
+1. M4 in mock-first mode: state board for one type, shared filters, drag and
+   keyboard state moves, column create, global New, `C`, and Cmd/Ctrl+K.
+2. Leave M2.8, M3.9, and later live checks open. They need Azure CLI
+   installed, an approved private test organization, and user approval.

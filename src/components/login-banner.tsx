@@ -1,13 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { sessionSchema, type SessionInfo } from '../../shared/contracts';
-import { postJson } from '../lib/api';
+import { sendJson } from '../lib/api';
 import { sessionQuery } from '../lib/queries';
 import { Button } from './ui/button';
 
 export function LoginBanner({ session }: { session: SessionInfo }) {
   const queryClient = useQueryClient();
   const retry = useMutation({
-    mutationFn: () => postJson('/session/retry', {}, sessionSchema),
+    mutationFn: () => sendJson('POST', '/session/retry', {}, sessionSchema),
     onSuccess: async (next) => {
       queryClient.setQueryData(sessionQuery.queryKey, next);
       await queryClient.invalidateQueries();
