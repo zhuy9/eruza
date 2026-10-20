@@ -154,3 +154,21 @@ describe('mock detail', () => {
     expect(byId.body.items.map((i: { id: number }) => i.id)).toEqual([1040]);
   });
 });
+
+describe('mock initial state', () => {
+  it('rejects a state a new item cannot start in', async () => {
+    const response = await call('POST', '/work-items', {
+      projectId: 'sample-project',
+      type: 'Bug',
+      fields: {
+        'System.Title': 'Starts closed',
+        'Custom.FoundIn': 'Release 3',
+        'System.State': 'Closed',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    });
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('A new Bug cannot start in the Closed state.');
+  });
+});

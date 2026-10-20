@@ -1,9 +1,40 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { iterationsQuery, projectsQuery, teamsQuery } from './queries';
 import { chooseSprint } from './sprints';
 
-export type ScopeSearch = { project?: string; team?: string; sprint?: string };
+/** Shared view state kept in the URL across board and grid. */
+export type ViewSearch = {
+  project?: string;
+  team?: string;
+  sprint?: string;
+  assignee?: string;
+  area?: string;
+  tags?: string[];
+  text?: string;
+};
+
+/** The shared view state from any route's search, for links to another view. */
+export const keepView = ({ project, team, sprint, assignee, area, tags, text }: ViewSearch) => ({
+  project,
+  team,
+  sprint,
+  assignee,
+  area,
+  tags,
+  text,
+});
+
+/** Merges changes into the current route's search. */
+export function useSetSearch() {
+  const navigate = useNavigate();
+  return (change: Record<string, unknown>, replace = false) =>
+    void navigate({
+      to: '.',
+      search: (prev: Record<string, unknown>) => ({ ...prev, ...change }),
+      replace,
+    });
+}
 
 const pick = <T extends { id: string; isDefault: boolean }>(list: T[] | undefined, id?: string) =>
   list?.find((item) => item.id === id) ?? list?.find((item) => item.isDefault) ?? list?.[0];

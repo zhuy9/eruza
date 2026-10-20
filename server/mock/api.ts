@@ -14,6 +14,8 @@ const invalid = (message: string, fieldErrors?: Record<string, string>) =>
 const REQUIRED_IN_STATE: Record<string, Record<string, string[]>> = {
   Bug: { Resolved: ['Microsoft.VSTS.Common.ResolvedReason'] },
 };
+/** States a new item cannot start in, like an ADO transition rule. */
+const NOT_INITIAL: Record<string, string[]> = { Bug: ['Closed'] };
 
 function lookup<T>(record: Record<string, T>, key: string): T {
   if (!Object.hasOwn(record, key)) throw notFound();
@@ -184,6 +186,12 @@ export function createMockApi(): BoardsApi {
 
     async createWorkItem(input) {
       const states = lookup(data.states, input.type);
+      const start = input.fields['System.State'];
+      if (typeof start === 'string' && NOT_INITIAL[input.type]?.includes(start)) {
+        throw invalid(`A new ${input.type} cannot start in the ${start} state.`, {
+          'System.State': 'Choose another starting state.',
+        });
+      }
       if (input.parentId && !items.has(input.parentId)) {
         throw invalid('The parent item was not found.');
       }

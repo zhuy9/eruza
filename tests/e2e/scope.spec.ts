@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 test('defaults project, team, and sprint, and keeps valid choices', async ({ page }) => {
-  await page.goto('/board');
-  await expect(page.getByLabel('Project')).toHaveValue('sample-project');
-  await expect(page.getByLabel('Team')).toHaveValue('web-team');
+  await page.goto('/grid?grouping=person');
+  await expect(page.getByLabel('Project', { exact: true })).toHaveValue('sample-project');
+  await expect(page.getByLabel('Team', { exact: true })).toHaveValue('web-team');
   await expect(page.getByLabel('Sprint')).toHaveValue('Sample project\\Sprint 3');
   await expect(page.getByText('Keep the selected delivery option')).toBeVisible();
   await expect(page.getByText('1 linked item could not be read.')).toBeVisible();
@@ -16,15 +16,15 @@ test('defaults project, team, and sprint, and keeps valid choices', async ({ pag
   await page.reload();
   await expect(page.getByLabel('Sprint')).toHaveValue('Sample project\\Sprint 2');
 
-  await page.getByLabel('Team').selectOption({ label: 'Platform team' });
+  await page.getByLabel('Team', { exact: true }).selectOption({ label: 'Platform team' });
   await expect(page.getByText('Speed up search')).toBeVisible();
   await expect(page.getByLabel('Sprint')).toHaveValue('Sample project\\Sprint 3');
 
-  await page.getByLabel('Project').selectOption({ label: 'Practice project' });
-  await expect(page.getByLabel('Team')).toHaveValue('practice-team');
+  await page.getByLabel('Project', { exact: true }).selectOption({ label: 'Practice project' });
+  await expect(page.getByLabel('Team', { exact: true })).toHaveValue('practice-team');
   await expect(page.getByText('This team has no current sprint')).toBeVisible();
   await page.getByLabel('Sprint').selectOption({ label: 'Sprint 2' });
-  await expect(page.getByText('No work items in this sprint.')).toBeVisible();
+  await expect(page.getByText('No work items match.')).toBeVisible();
 });
 
 test('shows the login command and recovers after retry', async ({ page }) => {

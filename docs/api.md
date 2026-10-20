@@ -9,8 +9,14 @@ The server offers the same application operations in real and mock mode.
 Real operations use small ADO helper functions. Mock operations use synthetic
 in-memory records; they do not need to parse WIQL.
 
-This document defines the contract to implement. These types and routes do
-not exist yet.
+This document includes the implemented read, create, edit, and parent operations,
+plus the planned comment and delete operations for M6.
+
+The current `getWorkItems(query: WorkItemQuery)` takes project, team, iteration,
+and optional board type. The server applies the team's area rules. Shared
+assignee, area, tag, and text filters run on the returned items in the browser.
+If the server reaches its result limit, the UI labels the result incomplete;
+these filters do not expand that partial result.
 
 ## Main types
 
@@ -42,8 +48,8 @@ write needs them internally on the server.
 
 ## Application operations
 
-The type names below describe the intended shared contracts. Define them in
-`shared/contracts.ts` during implementation and validate inputs at runtime.
+The interface below describes the intended feature contract, including planned
+operations. See `shared/contracts.ts` for the current signatures and runtime schemas.
 
 ```ts
 interface BoardsApi {

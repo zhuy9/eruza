@@ -11,4 +11,8 @@ export const isShortcut = (event: KeyboardEvent, key: string) =>
   !event.ctrlKey &&
   !event.altKey &&
   !isTyping(event.target) &&
-  !(event.target instanceof Element && event.target.closest('dialog'));
+  !inDialog(event.target);
+
+/** True for targets inside a native or ARIA dialog. */
+export const inDialog = (target: EventTarget | null) =>
+  target instanceof Element && !!target.closest('dialog, [role="dialog"]');

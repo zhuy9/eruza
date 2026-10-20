@@ -1,16 +1,9 @@
-import { useNavigate } from '@tanstack/react-router';
-import { useScope, type ScopeSearch } from '../lib/scope';
+import { useScope, useSetSearch } from '../lib/scope';
 import { sprintOptions } from '../lib/sprints';
-
-function useSetScope() {
-  const navigate = useNavigate();
-  return (change: ScopeSearch) =>
-    void navigate({ to: '.', search: (prev: ScopeSearch) => ({ ...prev, ...change }) });
-}
 
 export function ProjectTeamControls() {
   const { projects, project, teams, team } = useScope();
-  const setScope = useSetScope();
+  const setScope = useSetSearch();
   return (
     <div className="scope-controls">
       <label htmlFor="project-select">Project</label>
@@ -19,7 +12,18 @@ export function ProjectTeamControls() {
         className="select"
         value={project?.id ?? ''}
         disabled={!projects.data}
-        onChange={(e) => setScope({ project: e.target.value, team: undefined, sprint: undefined })}
+        onChange={(e) =>
+          // Team-specific choices do not carry over to another project.
+          setScope({
+            project: e.target.value,
+            team: undefined,
+            sprint: undefined,
+            assignee: undefined,
+            area: undefined,
+            tags: undefined,
+            type: undefined,
+          })
+        }
       >
         {projects.data?.map((p) => (
           <option key={p.id} value={p.id}>
@@ -33,7 +37,14 @@ export function ProjectTeamControls() {
         className="select"
         value={team?.id ?? ''}
         disabled={!teams.data}
-        onChange={(e) => setScope({ team: e.target.value, sprint: undefined })}
+        onChange={(e) =>
+          setScope({
+            team: e.target.value,
+            sprint: undefined,
+            assignee: undefined,
+            area: undefined,
+          })
+        }
       >
         {teams.data?.map((t) => (
           <option key={t.id} value={t.id}>
@@ -47,7 +58,7 @@ export function ProjectTeamControls() {
 
 export function SprintControl() {
   const { iterations, sprint } = useScope();
-  const setScope = useSetScope();
+  const setScope = useSetSearch();
   return (
     <label className="sprint-control">
       <span>Sprint</span>

@@ -718,6 +718,209 @@ a.preview-row:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: -2px;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.inline-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.inline-control .select {
+  width: auto;
+  min-width: 140px;
+  color: var(--foreground);
+}
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.filter-bar .picker-trigger {
+  width: auto;
+  max-width: 260px;
+}
+.filter-search {
+  width: 220px;
+}
+.tag-popover {
+  width: 220px;
+  padding: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.check-row:hover {
+  background: var(--muted);
+}
+.board-hint {
+  margin: 12px 0 0;
+}
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(250px, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+.board-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  border-radius: 10px;
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  transition:
+    border-color var(--duration-fast, 150ms),
+    background-color var(--duration-fast, 150ms);
+}
+.board-column.over {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, var(--sidebar));
+}
+.column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.column-header h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+}
+.column-header .count-badge {
+  margin-right: auto;
+}
+.state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+.board-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: 8px;
+  background: var(--background);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  cursor: grab;
+  touch-action: none;
+}
+.board-card:hover {
+  box-shadow: 0 3px 10px rgb(15 23 42 / 0.08);
+}
+.board-card.placeholder {
+  opacity: 0.35;
+}
+.board-card.overlay {
+  cursor: grabbing;
+  box-shadow: 0 14px 30px rgb(15 23 42 / 0.2);
+}
+.card-top,
+.card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.card-bottom {
+  justify-content: space-between;
+}
+.priority {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--muted);
+  font-weight: 650;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.card-title:hover {
+  color: var(--primary);
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  font-size: 10px;
+}
+.toasts {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+.toast {
+  max-width: 480px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12px;
+  box-shadow: 0 10px 30px rgb(15 23 42 / 0.25);
+}
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(15 23 42 / 0.3);
+}
+.palette {
+  position: fixed;
+  top: 18vh;
+  left: 50%;
+  z-index: 41;
+  width: min(520px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 24px 60px rgb(15 23 42 / 0.3);
+  overflow: hidden;
+}
 @media (max-width: 900px) {
   .app-layout {
     grid-template-columns: 190px minmax(0, 1fr);

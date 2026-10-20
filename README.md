@@ -2,20 +2,22 @@
 
 **Eruza: Azure DevOps Boards, reimagined.**
 
-Eruza is a planned local web app for Azure DevOps (ADO) Boards. It will provide a
-state-based board, a grid for sprint meetings, and work item editing.
+Eruza is a local web app in development for Azure DevOps (ADO) Boards. It provides
+a state-based board and work item editing. A grid for sprint meetings is planned.
 Azure DevOps remains the source of truth.
 
 ## Current status
 
 M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
-complete. M2 (Azure CLI sign-in and ADO reads) and M3 (create, detail, and
-parent actions) are implemented and tested with mocked ADO responses; they
+complete. M2 (Azure CLI sign-in and ADO reads), M3 (create, detail, and
+parent actions), and M4 (board and shared filters) are implemented in mock mode; they
 have not been checked against a live organization.
 
 Mock mode lets you pick a project, team, and sprint, open items in a side panel
 or full page, edit fields and descriptions, create items, and change parents.
-The board, meeting grid, comments, and deletion are not built yet.
+The board has metadata-driven state columns, drag moves, and column creation.
+Shared filters and the `C` and Cmd/Ctrl+K creation shortcuts work across views.
+The meeting grid, comments, and deletion are not built yet.
 
 Start with the [current handoff](docs/handoff.md), then read
 [milestones and acceptance checks](docs/milestones.md).
@@ -55,7 +57,8 @@ One npm package and one lockfile. Node and dependency versions are pinned.
 
 ## Local setup
 
-Mock mode works now. Real ADO mode (steps 4-7) needs M2.
+Mock mode works now. Real ADO mode (steps 4-7) is implemented but has not been
+verified against a live organization.
 
 1. Install Node.js `24.14.1` (see `.node-version`) and Azure CLI.
 2. Run `npm ci`.
@@ -118,8 +121,7 @@ because even organization and project names can be private.
 | [docs/milestones.md](docs/milestones.md)     | Work order, acceptance checks, and handoff |
 | [docs/privacy.md](docs/privacy.md)           | Rules for a repo intended to be public     |
 
-The current board and meeting pages are a read-only preview, not the finished
-board or meeting grid.
+The meeting pages are still a list preview. M5 adds grouping and inline editing.
 
 ## Repository visibility
 

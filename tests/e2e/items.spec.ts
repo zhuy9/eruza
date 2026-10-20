@@ -133,7 +133,10 @@ test('parents can be changed and removed, and loops are refused', async ({ page 
   await openItem(page, 1012, 'Page through older orders');
   const parent = page.getByRole('region', { name: 'Parent' });
   await parent.getByRole('button', { name: 'Change parent' }).click();
-  await page.getByPlaceholder('Search by ID or title').fill('Make checkout');
+  await page
+    .getByRole('combobox')
+    .and(page.getByPlaceholder('Search by ID or title'))
+    .fill('Make checkout');
   await page.getByRole('option', { name: /#1001/ }).click();
   await expect(parent.getByText('Make checkout easier')).toBeVisible();
   await parent.getByRole('button', { name: 'Remove parent' }).click();
@@ -145,7 +148,7 @@ test('parents can be changed and removed, and loops are refused', async ({ page 
     .getByRole('region', { name: 'Parent' })
     .getByRole('button', { name: 'Change parent' })
     .click();
-  await page.getByPlaceholder('Search by ID or title').fill('1002');
+  await page.getByRole('combobox').and(page.getByPlaceholder('Search by ID or title')).fill('1002');
   await page.getByRole('option', { name: /#1002/ }).click();
   await expect(page.getByText('This change would make the item its own ancestor.')).toBeVisible();
 });

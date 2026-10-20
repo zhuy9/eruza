@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { ArrowUpRight, Circle, Layers3 } from 'lucide-react';
+import { FilterBar } from '../components/filter-bar';
+import { ListNotices } from '../components/list-notices';
+import { matchesFilters, useFilters } from '../lib/filters';
 import { workItemsQuery } from '../lib/queries';
 import { useScope } from '../lib/scope';
 
-const SPRINT_PROBLEMS = {
-  none: 'This team has no current sprint. Choose a sprint above.',
-  ambiguous: 'More than one sprint is current. Choose a sprint above.',
-};
-
+/** Read-only list of the sprint's items. The meeting grid replaces it in M5. */
 export function WorkspaceView({ title, description }: { title: string; description: string }) {
   const { project, team, sprint, projects, teams, iterations } = useScope();
+  const { values: filters } = useFilters();
   const query = useQuery(
     workItemsQuery(
       project && team && sprint && 'path' in sprint
@@ -18,8 +18,9 @@ export function WorkspaceView({ title, description }: { title: string; descripti
         : undefined,
     ),
   );
+  const all = query.data?.items ?? [];
+  const items = all.filter((item) => matchesFilters(item, filters));
   const error = projects.error ?? teams.error ?? iterations.error ?? query.error;
-  const data = query.data;
   return (
     <section className="workspace-view">
       <div className="page-heading">
@@ -33,44 +34,19 @@ export function WorkspaceView({ title, description }: { title: string; descripti
           Workspace preview
         </span>
       </div>
+      <FilterBar tags={[...new Set(all.flatMap((item) => item.tags))]} />
       <div className="list-toolbar">
         <span>
           Work items{' '}
           <span className="count-badge">
-            {data ? `${data.items.length}${data.incomplete ? '+' : ''}` : '—'}
+            {query.data ? `${items.length}${query.data.incomplete ? '+' : ''}` : '—'}
           </span>
         </span>
         <span className="muted-text">All ticket types</span>
       </div>
-      {sprint && 'problem' in sprint && (
-        <p role="status" className="notice">
-          {SPRINT_PROBLEMS[sprint.problem]}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="notice notice-error">
-          {error.message}
-        </p>
-      )}
-      {data?.incomplete && (
-        <p role="status" className="notice">
-          This sprint has more items than Eruza can load at once. Only the first {data.items.length}{' '}
-          are shown, so counts are incomplete.
-        </p>
-      )}
-      {data && data.missingIds.length > 0 && (
-        <p role="status" className="notice">
-          {data.missingIds.length} linked item{data.missingIds.length === 1 ? '' : 's'} could not be
-          read. They may be deleted or outside your permissions.
-        </p>
-      )}
-      {query.isLoading && (
-        <p role="status" className="empty-state">
-          Loading work items…
-        </p>
-      )}
+      <ListNotices sprint={sprint} error={error} data={query.data} loading={query.isLoading} />
       <div className="preview-list">
-        {data?.items.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.id}
             to="."
@@ -94,7 +70,7 @@ export function WorkspaceView({ title, description }: { title: string; descripti
           </Link>
         ))}
       </div>
-      {data?.items.length === 0 && <p className="empty-state">No work items in this sprint.</p>}
+      {query.data && items.length === 0 && <p className="empty-state">No work items match.</p>}
     </section>
   );
 }

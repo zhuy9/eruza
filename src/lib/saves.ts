@@ -99,16 +99,28 @@ async function writeAtRev(id: number, baseRev: number, method: string, path: str
   return item;
 }
 
-/** Refetches the item when the outcome is a conflict or unknown, keeping the draft. */
+/** Refetches the item and lists when the outcome is a conflict or unknown, keeping the draft. */
 function recheck(queryClient: QueryClient, id: number, error: unknown) {
   const { code } = apiError(error);
   if (code === 'CONFLICT' || code === 'UNKNOWN_OUTCOME') {
     void queryClient.invalidateQueries({ queryKey: workItemQuery(id).queryKey });
+    void queryClient.invalidateQueries({ queryKey: ['work-items'] });
   }
 }
 
-/** Field saves for one item run one at a time, in order. */
-export function useSaveFields(id: number) {
+/** Forgets a save, so its value stops showing over server data (a rollback). */
+export function dropSave(queryClient: QueryClient, id: number, save: Save) {
+  const cache = queryClient.getMutationCache();
+  for (const mutation of cache.findAll({ mutationKey: ['save', id] })) {
+    if (mutation.state.variables === save) cache.remove(mutation);
+  }
+}
+
+/**
+ * Field saves for one item run one at a time, in order. `onFailure` runs even if the
+ * component that started the save has unmounted.
+ */
+export function useSaveFields(id: number, onFailure?: (error: unknown, save: Save) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['save', id],
@@ -120,8 +132,25 @@ export function useSaveFields(id: number) {
     mutationFn: ({ fields, baseRev }: Save) =>
       writeAtRev(id, baseRev, 'PATCH', `/work-items/${id}`, { fields }),
     onSuccess: (item) => applySaved(queryClient, item),
-    onError: (error) => recheck(queryClient, id, error),
+    onError: (error, save) => {
+      recheck(queryClient, id, error);
+      onFailure?.(error, save);
+    },
   });
+}
+
+/** The state each item is moving to while its save is pending. */
+export function useMovingStates() {
+  const moves = useMutationState({
+    filters: { mutationKey: ['save'], status: 'pending' },
+    select: (mutation) => ({
+      id: mutation.options.mutationKey?.[1] as number,
+      state: (mutation.state.variables as Save | undefined)?.fields['System.State'],
+    }),
+  });
+  return new Map(
+    moves.filter((m) => typeof m.state === 'string').map((m) => [m.id, m.state as string]),
+  );
 }
 
 /** `parent` is only for showing the choice before the save finishes. */

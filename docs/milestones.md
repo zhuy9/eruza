@@ -3,8 +3,8 @@
 ## Current checkpoint
 
 M0 is committed and pushed as `34392a6`. M1 is complete and committed locally.
-M2 and M3 are implemented and committed locally; their live checks (M2.8, M3.9)
-are open.
+M2, M3, and M4 are implemented and committed locally; their live checks
+(M2.8, M3.9, M4.7) are open.
 Read [the handoff](handoff.md) before continuing.
 
 The GitHub repository was private when the plan was pushed. Its `main` branch
@@ -17,7 +17,7 @@ session; check it before publication work.
 | M1: Local app shell and mock foundation            | Complete                          | M0         |
 | M2: Azure CLI auth and ADO reads                   | Implemented; verification pending | M1         |
 | M3: Create, detail, and parent actions             | Implemented; verification pending | M2         |
-| M4: Board and shared filters                       | Not started                       | M3         |
+| M4: Board and shared filters                       | Implemented; verification pending | M3         |
 | M5: Meeting grid                                   | Not started                       | M3, M4     |
 | M6: Comments and remaining actions                 | Not started                       | M3         |
 | M7: Stage 1 acceptance and public-readiness review | Not started                       | M1-M6      |
@@ -177,17 +177,17 @@ Build:
 
 Acceptance:
 
-- [ ] M4.1: Custom type/state fixtures produce columns and cards without
+- [x] M4.1: Custom type/state fixtures produce columns and cards without
       hardcoded workflow names. Cards show all required fields.
-- [ ] M4.2: Dragging succeeds, rolls back on failure, and refetches on revision
+- [x] M4.2: Dragging succeeds, rolls back on failure, and refetches on revision
       conflict. The same move is possible with a keyboard.
-- [ ] M4.3: A column "+" sets the requested initial state. Invalid initial
+- [x] M4.3: A column "+" sets the requested initial state. Invalid initial
       states show ADO errors without losing the create draft.
-- [ ] M4.4: Current and previous sprints work. Area subpaths and tag matching
+- [x] M4.4: Current and previous sprints work. Area subpaths and tag matching
       follow the selected team and documented filter rules.
-- [ ] M4.5: Shared filters survive view changes. Switching projects/teams does
+- [x] M4.5: Shared filters survive view changes. Switching projects/teams does
       not reuse invalid metadata or show stale results as current.
-- [ ] M4.6: New, `C`, and Cmd+K/Ctrl+K reach the shared create form.
+- [x] M4.6: New, `C`, and Cmd+K/Ctrl+K reach the shared create form.
       Single-letter shortcuts do not fire while typing.
 - [ ] M4.7: A live state move and column create use the selected project's
       actual state rules. No manual board rank is written.
@@ -294,8 +294,10 @@ Update this section at the end of each work session.
 
 - M0: complete, committed, and pushed as `34392a6`.
 - M1: complete and committed locally (not pushed).
-- M2 and M3: implemented and committed locally. Their mock-mode checks pass.
-  M2.8 and M3.9 are open: they need Azure CLI, an approved test organization,
+- M2, M3, and M4: implemented and committed locally. Their mock-mode checks pass.
+  M2.8, M3.9, and M4.7 are open: they need Azure CLI, an approved test organization,
   and approval for live checks. Details are in [handoff.md](handoff.md).
-- Next step: M4 in mock-first mode.
+- Latest checks: `npm run check` passed (92 unit/integration tests and build);
+  `npm run test:e2e` passed (21 browser tests). See the handoff for review fixes.
+- Next step: M5 (meeting grid) in mock-first mode.
 - Only the initial plan push was approved. Keep implementation commits local.

@@ -25,7 +25,7 @@ deploy, or change repository visibility without explicit approval.
 
 ## Git checkpoint
 
-- Branch: `main`. M0 (`34392a6`) is pushed. M1, M2, and M3 are committed locally only.
+- Branch: `main`. M0 (`34392a6`) is pushed. M1-M4 are committed locally only.
 - GitHub was verified private at the M0 push. Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -146,6 +146,59 @@ Assumptions to confirm in the live check (M3.9):
 - A failed `/rev` test returns a 4xx that the revision re-read turns into a
   conflict.
 
+## M4 result: implemented; live check open
+
+What was built:
+
+- Board columns and colors come from the selected type's state metadata. Cards
+  show type-colored icons, IDs, titles, assignees, priorities, and tags, sorted
+  by priority then ID.
+- Drag changes only `System.State`, using the shared per-item save queue.
+  Pending moves show immediately. Failures restore the card; conflicts refresh
+  item and list data. Required-field failures keep the draft for "Save together"
+  in the detail panel. Opening a card and choosing a state is the keyboard path.
+- Column "+" uses the shared create form with the selected type and state.
+  Rejected initial states keep the draft and show the server's error.
+- Shared assignee, area, tag, and ID/title filters stay in the URL across board
+  and meeting views. Area choices follow the team's subarea settings; selected
+  tags all have to match. Scope changes clear invalid selections.
+- Global New, `C`, and Cmd/Ctrl+K open the shared create form. The palette also
+  links to the board and meeting views. Shortcuts respect text fields and dialogs.
+
+Review fixes:
+
+- Removed duplicate search state and its timer (14 fewer lines). Clearing filters
+  and browser Back now keep the search box and displayed results in sync.
+- Added the missing type icon and made the drag preview inert and hidden from
+  assistive technology, so it does not expose a second interactive card.
+- Updated older browser selectors for the shared filters and moved the
+  all-ticket scope checks to the meeting list.
+- Correctness and security review found no remaining blocker in the M4 changes.
+  State writes use the existing revision-protected server path. No manual rank,
+  new external requests, or persistent ticket storage was added.
+
+Evidence (mock mode, no live calls):
+
+- `npm run check` passed: lint, format, typecheck, 92 tests, build.
+- `npm run test:e2e` passed: 21 tests, including custom workflows, optimistic
+  drag, keyboard moves, rollback, conflict refetch, required-field recovery,
+  queued moves, column create rejection, shared filters, scope changes, and
+  creation shortcuts.
+- The shortcut test waits for native dialog closure before the next keypress.
+  Its focused check passed three repeated runs.
+- Staged secret-pattern scanning and content privacy review found no secrets or
+  private account data. The built JavaScript has no ADO URL, credential module,
+  server setting, or synthetic identity markers. `git diff --cached --check` passed.
+- Vite reports a non-blocking chunk-size warning. The main chunk is about
+  197 KB gzipped; the lazy editor chunk is about 154 KB gzipped.
+
+Limits and next work:
+
+- M4.7 remains open. Actual ADO state rules still need the approved live check.
+- Optional filters apply to the returned sprint items in memory. A capped
+  server result stays labeled incomplete after filtering.
+- Meeting views remain a list preview until M5. Comments and deletion remain M6.
+
 ## Machine notes
 
 - The system drive was nearly full (about 10 MB free) and committed memory
@@ -171,7 +224,7 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-1. M4 in mock-first mode: state board for one type, shared filters, drag and
-   keyboard state moves, column create, global New, `C`, and Cmd/Ctrl+K.
-2. Leave M2.8, M3.9, and later live checks open. They need Azure CLI
+1. M5 in mock-first mode: meeting grid, both group orders, inline edits,
+   parent drops, virtualization, and the 1,000-ticket checks.
+2. Leave M2.8, M3.9, M4.7, and later live checks open. They need Azure CLI
    installed, an approved private test organization, and user approval.
