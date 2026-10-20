@@ -9,8 +9,10 @@ Azure DevOps remains the source of truth.
 ## Current status
 
 M0 (plan and repo layout) and M1 (local app shell and mock foundation) are
-complete. Mock mode runs a read-only app shell with sample data.
-The board, meeting grid, editing, and real ADO integration are not complete.
+complete. M2 (Azure CLI sign-in and ADO reads) is implemented and tested with
+mocked ADO responses; it has not been checked against a live organization.
+Mock mode lets you pick a project, team, and sprint and see read-only sample
+work items. The board, meeting grid, and editing are not built yet.
 
 Start with the [current handoff](docs/handoff.md), then read
 [milestones and acceptance checks](docs/milestones.md).

@@ -1,12 +1,30 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { z } from 'zod';
+import { workItemQuerySchema, type BoardsApi, type TeamScope } from '../shared/contracts';
+import { createAdoApi } from './ado/api';
 import type { Config } from './config';
+import { AppError } from './errors';
 import { createMockApi } from './mock/api';
 
-export function createApp(config: Config) {
-  if (!config.mock) throw new Error('Real ADO mode is not implemented yet. Set MOCK=1.');
-  const api = createMockApi();
+function parse<T>(schema: z.ZodType<T>, value: unknown): T {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    throw new AppError({ code: 'VALIDATION', message: 'Check the request parameters.' });
+  }
+  return parsed.data;
+}
+
+const typeQuery = z.object({ type: z.string().min(1) });
+const scope = (c: Context): TeamScope => ({
+  projectId: c.req.param('projectId')!,
+  teamId: c.req.param('teamId')!,
+});
+
+export function createApp(
+  config: Config,
+  api: BoardsApi = config.mock ? createMockApi() : createAdoApi(config),
+) {
   const app = new Hono();
   const hosts = new Set(
     [config.port, 5173].flatMap((port) => [`127.0.0.1:${port}`, `localhost:${port}`]),
@@ -29,21 +47,50 @@ export function createApp(config: Config) {
     }
     await next();
   });
-  app.onError((_, c) =>
-    c.json({ code: 'UPSTREAM', message: 'The request could not be completed.' }, 500),
+  app.onError((error, c) =>
+    error instanceof AppError
+      ? c.json(error.body, error.status)
+      : c.json({ code: 'UPSTREAM', message: 'The request could not be completed.' }, 500),
   );
+
   app.get('/api/session', async (c) => c.json(await api.getSession()));
   app.post('/api/session/retry', async (c) => {
-    const parsed = z
-      .object({})
-      .strict()
-      .safeParse(await c.req.json().catch(() => undefined));
-    if (!parsed.success)
-      return c.json({ code: 'VALIDATION', message: 'Send an empty JSON object.' }, 400);
-    return c.json(await api.getSession());
+    parse(z.object({}).strict(), await c.req.json().catch(() => undefined));
+    return c.json(await api.retryConnection());
   });
   app.get('/api/projects', async (c) => c.json(await api.getProjects()));
-  app.get('/api/work-items', async (c) => c.json(await api.getWorkItems()));
+  app.get('/api/projects/:projectId/teams', async (c) =>
+    c.json(await api.getTeams(c.req.param('projectId'))),
+  );
+  app.get('/api/projects/:projectId/areas', async (c) =>
+    c.json(await api.getAreaPaths(c.req.param('projectId'))),
+  );
+  app.get('/api/projects/:projectId/types', async (c) =>
+    c.json(await api.getWorkItemTypes(c.req.param('projectId'))),
+  );
+  app.get('/api/projects/:projectId/states', async (c) => {
+    const { type } = parse(typeQuery, c.req.query());
+    return c.json(await api.getWorkItemStates(c.req.param('projectId'), type));
+  });
+  app.get('/api/projects/:projectId/fields', async (c) => {
+    const { type } = parse(typeQuery, c.req.query());
+    return c.json(await api.getWorkItemFields(c.req.param('projectId'), type));
+  });
+  app.get('/api/projects/:projectId/teams/:teamId/settings', async (c) =>
+    c.json(await api.getTeamSettings(scope(c))),
+  );
+  app.get('/api/projects/:projectId/teams/:teamId/members', async (c) =>
+    c.json(await api.getTeamMembers(scope(c))),
+  );
+  app.get('/api/projects/:projectId/teams/:teamId/iterations', async (c) =>
+    c.json(await api.getIterations(scope(c))),
+  );
+  app.get('/api/projects/:projectId/teams/:teamId/backlogs', async (c) =>
+    c.json(await api.getBacklogs(scope(c))),
+  );
+  app.get('/api/work-items', async (c) =>
+    c.json(await api.getWorkItems(parse(workItemQuerySchema, c.req.query()))),
+  );
   app.notFound((c) => c.json({ code: 'NOT_FOUND', message: 'This route was not found.' }, 404));
   return app;
 }

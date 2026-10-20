@@ -19,7 +19,7 @@ not exist yet.
 | `TeamScope`           | `projectId` and `teamId`                                                                                       |
 | `Filters`             | Iteration path, optional assignee, area path, tags, and text                                                   |
 | `Identity`            | ADO identity ID, display name, and local avatar URL                                                            |
-| `WorkItemSummary`     | ID, revision, project ID, type, title, state, assignee, tags, paths, available numeric fields, and parent ID   |
+| `WorkItemSummary`     | ID, revision, type, title, state, assignee, tags, paths, available numeric fields, and parent ID               |
 | `WorkItemDetail`      | Summary plus description, editable field values, parent, and child summaries                                   |
 | `WorkItemList`        | Matching items, supporting ancestors, missing IDs, and an `incomplete` flag                                    |
 | `FieldDefinition`     | Reference name, label, value type, allowed values, default, required flag, and read-only/system-managed status |

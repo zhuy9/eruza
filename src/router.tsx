@@ -2,7 +2,17 @@ import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/
 import { AppShell } from './components/app-shell';
 import { MeetingView, WorkspaceView } from './routes/workspace';
 
-const rootRoute = createRootRoute({ component: AppShell });
+const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
+const rootRoute = createRootRoute({
+  component: AppShell,
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { project?: string; team?: string; sprint?: string } => ({
+    project: text(search.project),
+    team: text(search.team),
+    sprint: text(search.sprint),
+  }),
+});
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',

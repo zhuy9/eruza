@@ -3,22 +3,23 @@
 ## Current checkpoint
 
 M0 is committed and pushed as `34392a6`. M1 is complete and committed locally.
+M2 is implemented and committed locally; its live check (M2.8) is open.
 Read [the handoff](handoff.md) before continuing.
 
 The GitHub repository was private when the plan was pushed. Its `main` branch
 contains the plan commit only. Do not assume visibility is unchanged in a later
 session; check it before publication work.
 
-| Milestone                                          | Status      | Depends on |
-| -------------------------------------------------- | ----------- | ---------- |
-| M0: Repo layout and handoff                        | Complete    | None       |
-| M1: Local app shell and mock foundation            | Complete    | M0         |
-| M2: Azure CLI auth and ADO reads                   | Not started | M1         |
-| M3: Create, detail, and parent actions             | Not started | M2         |
-| M4: Board and shared filters                       | Not started | M3         |
-| M5: Meeting grid                                   | Not started | M3, M4     |
-| M6: Comments and remaining actions                 | Not started | M3         |
-| M7: Stage 1 acceptance and public-readiness review | Not started | M1-M6      |
+| Milestone                                          | Status                            | Depends on |
+| -------------------------------------------------- | --------------------------------- | ---------- |
+| M0: Repo layout and handoff                        | Complete                          | None       |
+| M1: Local app shell and mock foundation            | Complete                          | M0         |
+| M2: Azure CLI auth and ADO reads                   | Implemented; verification pending | M1         |
+| M3: Create, detail, and parent actions             | Not started                       | M2         |
+| M4: Board and shared filters                       | Not started                       | M3         |
+| M5: Meeting grid                                   | Not started                       | M3, M4     |
+| M6: Comments and remaining actions                 | Not started                       | M3         |
+| M7: Stage 1 acceptance and public-readiness review | Not started                       | M1-M6      |
 
 ## How to use this plan
 
@@ -109,18 +110,18 @@ Build:
 
 Acceptance:
 
-- [ ] M2.1: Tests cover token reuse, refresh within 60 seconds of expiry,
+- [x] M2.1: Tests cover token reuse, refresh within 60 seconds of expiry,
       concurrent refresh, CLI missing, expired login, and permission denial.
-- [ ] M2.2: The UI shows the exact login command and can retry after login.
+- [x] M2.2: The UI shows the exact login command and can retry after login.
       Authentication failure does not stop the local app from loading.
-- [ ] M2.3: "Me" comes from `connectionData`; no identity is hardcoded.
-- [ ] M2.4: Project/team selection loads correct defaults. Current, previous,
+- [x] M2.3: "Me" comes from `connectionData`; no identity is hardcoded.
+- [x] M2.4: Project/team selection loads correct defaults. Current, previous,
       absent, and overlapping current sprint cases have tests.
-- [ ] M2.5: Batch requests never exceed 200 IDs. Shared ancestors are fetched
+- [x] M2.5: Batch requests never exceed 200 IDs. Shared ancestors are fetched
       once per read operation, not once per ticket. A test spans several batches.
-- [ ] M2.6: All supported pagination is handled. Missing items and query limits
+- [x] M2.6: All supported pagination is handled. Missing items and query limits
       are visible; incomplete results cannot appear as complete totals.
-- [ ] M2.7: Tests cover WIQL escaping, `Retry-After`, and prevention of token
+- [x] M2.7: Tests cover WIQL escaping, `Retry-After`, and prevention of token
       forwarding to an unapproved host or redirect.
 - [ ] M2.8: Live read check confirms CLI auth, current user, project/team
       metadata, current iteration lookup, and a work item batch.
@@ -291,7 +292,9 @@ separate user-approved action, not a required side effect of finishing M7.
 Update this section at the end of each work session.
 
 - M0: complete, committed, and pushed as `34392a6`.
-- M1: complete and committed locally (not pushed). Evidence is in
-  [handoff.md](handoff.md).
-- Next step: M2 in mock-first mode. Live ADO checks stay open.
+- M1: complete and committed locally (not pushed).
+- M2: implemented and committed locally. M2.1-M2.7 pass with mocked ADO.
+  M2.8 is open: it needs Azure CLI, an approved test organization, and
+  approval for live checks. Details are in [handoff.md](handoff.md).
+- Next step: M3 in mock-first mode.
 - Only the initial plan push was approved. Keep implementation commits local.

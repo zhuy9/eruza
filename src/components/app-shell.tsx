@@ -3,11 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Columns3, ListTree, Moon, Sun, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { projectsQuery, sessionQuery } from '../lib/queries';
+import { LoginBanner } from './login-banner';
+import { ProjectTeamControls, SprintControl } from './scope-controls';
+import { sessionQuery } from '../lib/queries';
+import { useScope, type ScopeSearch } from '../lib/scope';
+
+const keepScope = ({ project, team, sprint }: ScopeSearch) => ({ project, team, sprint });
 
 export function AppShell() {
   const session = useQuery(sessionQuery);
-  const projects = useQuery(projectsQuery);
+  const { project, team } = useScope();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   function toggleTheme() {
     const next = !dark;
@@ -22,7 +27,7 @@ export function AppShell() {
         Skip to content
       </a>
       <aside className="sidebar">
-        <Link to="/board" className="brand" aria-label="Eruza home">
+        <Link to="/board" search={keepScope} className="brand" aria-label="Eruza home">
           <span className="brand-mark" aria-hidden="true">
             e
           </span>
@@ -31,16 +36,16 @@ export function AppShell() {
           </span>
         </Link>
         <div className="workspace-label">WORKSPACE</div>
-        <div className="project-name">{projects.data?.[0]?.name ?? 'Loading workspace…'}</div>
+        <ProjectTeamControls />
         <nav aria-label="Workspace views">
-          <Link to="/board" className="nav-link">
+          <Link to="/board" search={keepScope} className="nav-link">
             <Columns3 size={17} />
             Board
           </Link>
           <div className="nav-section">SPRINT MEETINGS</div>
           <Link
             to="/grid"
-            search={{ grouping: 'person' }}
+            search={(prev) => ({ ...keepScope(prev), grouping: 'person' as const })}
             className="nav-link"
             activeOptions={{ includeSearch: true }}
           >
@@ -49,7 +54,7 @@ export function AppShell() {
           </Link>
           <Link
             to="/grid"
-            search={{ grouping: 'story' }}
+            search={(prev) => ({ ...keepScope(prev), grouping: 'story' as const })}
             className="nav-link"
             activeOptions={{ includeSearch: true }}
           >
@@ -61,7 +66,7 @@ export function AppShell() {
           <div className="user-avatar">{session.data?.user?.displayName.charAt(0) ?? '·'}</div>
           <div className="user-label">
             {session.data?.user?.displayName ?? 'Connecting…'}
-            <small>Personal workspace</small>
+            <small>{session.data?.mode === 'mock' ? 'Sample data' : 'Azure DevOps'}</small>
           </div>
           <Button
             variant="ghost"
@@ -77,27 +82,25 @@ export function AppShell() {
       <div className="workspace-main">
         <header className="topbar">
           <span>
-            Workspace <span className="breadcrumb-divider">/</span>{' '}
-            {projects.data?.[0]?.name ?? 'Projects'}
+            {project?.name ?? 'Projects'} <span className="breadcrumb-divider">/</span>{' '}
+            {team?.name ?? 'Teams'}
           </span>
-          {session.data?.mode === 'mock' && (
-            <span className="mode-badge">
-              <span />
-              Mock mode
-            </span>
-          )}
+          <div className="topbar-actions">
+            <SprintControl />
+            {session.data?.mode === 'mock' && (
+              <span className="mode-badge">
+                <span />
+                Mock mode
+              </span>
+            )}
+          </div>
         </header>
         <main id="content" tabIndex={-1}>
-          {session.isError || projects.isError ? (
+          {session.data?.status === 'error' && <LoginBanner session={session.data} />}
+          {session.isError ? (
             <div role="alert" className="error-box">
-              Could not load the workspace.
-              <Button
-                variant="outline"
-                onClick={() => {
-                  void session.refetch();
-                  void projects.refetch();
-                }}
-              >
+              Could not reach the local Eruza server.
+              <Button variant="outline" onClick={() => void session.refetch()}>
                 Try again
               </Button>
             </div>
