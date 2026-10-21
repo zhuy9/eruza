@@ -25,6 +25,9 @@ for (const theme of ['light', 'dark']) {
     await page.goto('/board');
     await expect(page.locator('.board-card').first()).toBeVisible();
     found.push(...(await problems(page, 'board')));
+    await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+    found.push(...(await problems(page, 'collapsed sidebar')));
+    await page.getByRole('button', { name: 'Expand sidebar' }).click();
 
     for (const grouping of ['person', 'story']) {
       await page.goto(`/grid?grouping=${grouping}`);

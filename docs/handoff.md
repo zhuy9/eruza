@@ -29,8 +29,8 @@ repository visibility without new approval.
 ## Git checkpoint
 
 - Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
-  on GitHub through `3c66e09`. The user approved each push. The sample seeder and
-  later docs are local commits.
+  on GitHub through `3c66e09`. The user approved each push. The sample seeder, the
+  collapsible sidebar, and later docs are local commits.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -748,6 +748,23 @@ against the full working tree, which held all four fixes.
    instead of failing it; that hang is a loud signal, so the test stays as it is. The
    staged privacy review found nothing.
 
+## Collapsible sidebar
+
+At the user's request, a button under the sidebar footer collapses the sidebar to a
+64px icon rail and expands it again. The user chose the rail (logo mark, view icons,
+avatar, theme toggle, and the toggle) and remembering the choice in `localStorage`
+(`eruza-sidebar`), with no keyboard shortcut. The project and team pickers are hidden
+in the rail. Link and logo text stay available to screen readers, and the links show
+hover titles. At 600px and below the existing stacked layout is unchanged. A new
+browser test covers collapsing, navigating while collapsed, and expanding across
+reloads, and the accessibility test now checks the collapsed state in both themes. All
+three failed before the change. `npm run check` passed (199 tests), and
+`npm run test:e2e` passed (70 tests). Ponytail review replaced a tooltip helper with
+plain titles. The correctness review found the logo link losing its name in the rail
+and a gap at fractional widths near 600px; both are fixed, and the toggle moved to its
+own row so the footer does not squeeze. The security and staged privacy reviews found
+nothing. Screenshots of both states at 1440px and 800px were checked.
+
 ## Sample data for live mode
 
 The user asked for made-up data to try Eruza against Azure DevOps. `npm run seed`
@@ -797,10 +814,9 @@ the dev-server and Ctrl+C checks.
 ## Next steps
 
 Stage 1, the ten audit fixes, and the four follow-up review fixes are complete and on
-GitHub through `3c66e09`. The sample seeder is a local commit; pushing it and any
-publication or visibility change need explicit approval. A collapsible sidebar is in
-the working tree, not committed; its browser tests need the dev ports free. Not yet
-checked against live ADO: the first-load stale read in follow-up fix 3. The
+GitHub through `3c66e09`. The sample seeder and the collapsible sidebar are local
+commits; pushing them and any publication or visibility change need explicit approval.
+Not yet checked against live ADO: the first-load stale read in follow-up fix 3. The
 lower-severity findings from the whole-codebase review, including comments not
 refreshing the item revision, are not fixed yet. Keep `refs/t3/` local; never push
 with `--all` or `--mirror`.

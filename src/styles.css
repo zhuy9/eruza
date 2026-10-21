@@ -931,6 +931,42 @@ h1 {
   box-shadow: 0 24px 60px rgb(15 23 42 / 0.3);
   overflow: hidden;
 }
+.sidebar-toggle {
+  margin-top: 8px;
+}
+/* The collapsed sidebar is an icon rail. Narrow screens stack the sidebar instead. */
+@media (width > 600px) {
+  .app-layout.sidebar-collapsed {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .sidebar-collapsed .sidebar {
+    align-items: center;
+    padding: 29px 10px 16px;
+  }
+  .sidebar-collapsed :is(.workspace-label, .scope-controls, .nav-section, .user-label) {
+    display: none;
+  }
+  .sidebar-collapsed .brand {
+    padding: 0;
+  }
+  .sidebar-collapsed .nav-link {
+    justify-content: center;
+    padding: 10px;
+  }
+  /* Hidden visually, so the logo and view links keep their names. */
+  .sidebar-collapsed :is(.brand-name, .nav-text) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sidebar-collapsed .sidebar-footer {
+    flex-direction: column;
+    padding: 16px 0 0;
+  }
+}
 @media (max-width: 900px) {
   .app-layout {
     grid-template-columns: 190px minmax(0, 1fr);
@@ -963,6 +999,7 @@ h1 {
   .project-name,
   .nav-section,
   .sidebar-footer,
+  .sidebar-toggle,
   .topbar {
     display: none;
   }

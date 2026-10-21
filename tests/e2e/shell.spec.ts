@@ -41,3 +41,17 @@ test('a failed session refresh keeps the full-page comment draft', async ({ page
   await expect(warning).toBeHidden();
   await expect(box).toHaveText('Keep this unsent comment.');
 });
+
+test('the sidebar collapses to icons and remembers the choice', async ({ page }) => {
+  await page.goto('/board');
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await expect(page.getByLabel('Project', { exact: true })).toBeHidden();
+  expect((await page.locator('aside.sidebar').boundingBox())?.width).toBeLessThan(80);
+  await page.getByRole('link', { name: 'Sprint update' }).click();
+  await expect(page.getByRole('heading', { name: 'Sprint update', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Expand sidebar' }).click();
+  await expect(page.getByLabel('Project', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible();
+});

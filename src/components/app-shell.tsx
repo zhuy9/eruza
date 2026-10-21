@@ -1,6 +1,15 @@
 import { Link, Outlet, useSearch } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Columns3, ListTree, Moon, Plus, Sun, UsersRound } from 'lucide-react';
+import {
+  Columns3,
+  ListTree,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Sun,
+  UsersRound,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { CommandPalette } from './command-palette';
 import { Button } from './ui/button';
@@ -15,6 +24,7 @@ import { keepView, useScope } from '../lib/scope';
 import { ToastContext } from '../lib/toast';
 
 const TOAST_MS = 6000;
+const SIDEBAR_KEY = 'eruza-sidebar';
 
 export function AppShell() {
   const session = useQuery(sessionQuery);
@@ -61,11 +71,20 @@ export function AppShell() {
     document.documentElement.classList.toggle('dark', next);
     localStorage.setItem('eruza-theme', next ? 'dark' : 'light');
   }
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_KEY) === 'collapsed',
+  );
+  function toggleSidebar() {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem(SIDEBAR_KEY, next ? 'collapsed' : 'expanded');
+  }
+  const sidebarAction = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
 
   return (
     <ToastContext.Provider value={toast}>
       <CreateContext.Provider value={(request = {}) => setCreateRequest(request)}>
-        <div className="app-layout">
+        <div className={collapsed ? 'app-layout sidebar-collapsed' : 'app-layout'}>
           <a className="skip-link" href="#content">
             Skip to content
           </a>
@@ -74,16 +93,16 @@ export function AppShell() {
               <span className="brand-mark" aria-hidden="true">
                 e
               </span>
-              <span>
+              <span className="brand-name">
                 eruza<span className="brand-dot">.</span>
               </span>
             </Link>
             <div className="workspace-label">WORKSPACE</div>
             <ProjectTeamControls />
             <nav aria-label="Workspace views">
-              <Link to="/board" search={keepView} className="nav-link">
+              <Link to="/board" search={keepView} className="nav-link" title="Board">
                 <Columns3 size={17} />
-                Board
+                <span className="nav-text">Board</span>
               </Link>
               <div className="nav-section">SPRINT MEETINGS</div>
               <Link
@@ -91,18 +110,20 @@ export function AppShell() {
                 search={(prev) => ({ ...keepView(prev), grouping: 'person' as const })}
                 className="nav-link"
                 activeOptions={{ includeSearch: true }}
+                title="Sprint update"
               >
                 <UsersRound size={17} />
-                Sprint update
+                <span className="nav-text">Sprint update</span>
               </Link>
               <Link
                 to="/grid"
                 search={(prev) => ({ ...keepView(prev), grouping: 'story' as const })}
                 className="nav-link"
                 activeOptions={{ includeSearch: true }}
+                title="Sprint retro"
               >
                 <ListTree size={17} />
-                Sprint retro
+                <span className="nav-text">Sprint retro</span>
               </Link>
             </nav>
             <div className="sidebar-footer">
@@ -121,6 +142,16 @@ export function AppShell() {
                 {dark ? <Sun size={16} /> : <Moon size={16} />}
               </Button>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle"
+              onClick={toggleSidebar}
+              aria-label={sidebarAction}
+              title={sidebarAction}
+            >
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </Button>
           </aside>
           <div className="workspace-main">
             <header className="topbar">
