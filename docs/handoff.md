@@ -641,9 +641,19 @@ they add no live ADO evidence. Pushing and publication still need explicit appro
    `npm run test:e2e` passed (53 tests). Ponytail review removed a duplicate jsdom test.
    The separate correctness review found a timing-sensitive group check in an existing
    browser test; it now retries. The security and staged privacy reviews found nothing.
+7. Item editors, comment mentions, and Add child now use the item's own project. The
+   URL team and sprint apply only when the URL's project is the item's project, so a
+   direct link to an item in another project offers that project's members and sprints.
+   Open full page, Copy link, and parent/child links keep the URL project and team when
+   they match the item. Links from another project's view stay bare, as before. Five of
+   the seven new unit tests and all four new browser tests failed before the fix.
+   `npm run check` passed (180 tests), and `npm run test:e2e` passed (57 tests). Ponytail
+   review removed a duplicate jsdom mention test. The correctness review found only nits:
+   the item lookup now matches project names only, and a unit test now covers the URL
+   sprint for an item in the workspace project. The security and staged privacy reviews
+   found nothing.
 
-Still open: finding 7 (item links use the default project's team, members, and
-sprints), finding 8 (required custom person fields), and finding 9 (failed member or
+Still open: finding 8 (required custom person fields) and finding 9 (failed member or
 area metadata silently drops saved filters).
 
 10. Concurrent Retry-After responses can only extend the shared deadline.
@@ -682,6 +692,6 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1 is complete. Finish audit findings 7-9, one local commit each. Pushing the
+Stage 1 is complete. Finish audit findings 8-9, one local commit each. Pushing the
 unpushed docs and audit-fix commits and any publication or visibility change need
 explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.

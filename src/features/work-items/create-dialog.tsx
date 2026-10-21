@@ -53,7 +53,7 @@ export function CreateDialog({
   }, []);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { project, team, sprint } = useScope();
+  const { project, team, sprint } = useScope(request.project);
   const types = useQuery(typesQuery(project?.id));
   const backlogs = useQuery(backlogsQuery(project?.id, team?.id));
   const settings = useQuery(teamSettingsQuery(project?.id, team?.id));

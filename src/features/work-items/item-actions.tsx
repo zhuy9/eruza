@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 import { ExternalLink, Hash, Link2, Trash2 } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { z } from 'zod';
@@ -6,17 +7,21 @@ import type { WorkItemSummary } from '../../../shared/contracts';
 import { Button } from '../../components/ui/button';
 import { apiError, sendJson } from '../../lib/api';
 import { itemScope } from '../../lib/saves';
+import type { ViewSearch } from '../../lib/scope';
 import { useToast } from '../../lib/toast';
 
 /** Copy, open, and delete actions for one item. */
 export function ItemActions(props: {
   item: WorkItemSummary;
+  /** The URL project and team the copied link keeps. */
+  context: Pick<ViewSearch, 'project' | 'team'>;
   webUrl: string | null;
   /** Leaves the item's view after ADO confirms the deletion. */
   onDeleted: () => Promise<void>;
 }) {
   const { item, webUrl } = props;
   const toast = useToast();
+  const router = useRouter();
   // Each open gets a new key, so the last dialog's late close event cannot close the next one.
   const [confirming, setConfirming] = useState(0);
   // The clipboard can be missing or blocked, so every failure gets a message.
@@ -43,9 +48,14 @@ export function ItemActions(props: {
         size="icon"
         title="Copy link"
         aria-label="Copy link"
-        onClick={() =>
-          copy(`${location.origin}/items/${item.id}`, `Copied the link to #${item.id}.`)
-        }
+        onClick={() => {
+          const link = router.buildLocation({
+            to: '/items/$id',
+            params: { id: String(item.id) },
+            search: props.context,
+          });
+          copy(`${location.origin}${link.href}`, `Copied the link to #${item.id}.`);
+        }}
       >
         <Link2 size={15} />
       </Button>

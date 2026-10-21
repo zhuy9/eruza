@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
-/** Where a create starts from. All parts are optional. */
-export type CreateRequest = { parentId?: number; type?: string; state?: string };
+/** Where a create starts from. All parts are optional. `project` is the parent's project. */
+export type CreateRequest = { parentId?: number; project?: string; type?: string; state?: string };
 
 export const CreateContext = createContext<(request?: CreateRequest) => void>(() => {});
 

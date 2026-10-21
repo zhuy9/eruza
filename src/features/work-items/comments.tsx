@@ -85,7 +85,7 @@ const pick = (s: Suggestions, index: number) => {
 /** A rich-text comment. Typing @ suggests team members and inserts an ADO mention. */
 function CommentBox({ id, projectId }: { id: number; projectId: string }) {
   const queryClient = useQueryClient();
-  const { project, team } = useScope();
+  const { project, team } = useScope(projectId);
   const members = useQuery(membersQuery(project?.id, team?.id));
   const listId = useId();
   const hintId = useId();

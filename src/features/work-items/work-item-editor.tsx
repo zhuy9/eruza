@@ -27,7 +27,7 @@ import {
   type FieldChanges,
   type Pending,
 } from '../../lib/saves';
-import { keepView, useScope } from '../../lib/scope';
+import { keepView, useScope, type ViewSearch } from '../../lib/scope';
 import { useCreate } from './create';
 import { DraftInput, FieldInput, FormField } from './field-inputs';
 import { ItemActions } from './item-actions';
@@ -84,7 +84,11 @@ export function WorkItemEditor({ id, variant }: { id: number; variant: Variant }
   );
 }
 
-function ItemLink({ item, variant }: { item: WorkItemSummary; variant: Variant }) {
+/** The URL project and team that item links keep. */
+type ItemContext = Pick<ViewSearch, 'project' | 'team'>;
+
+function ItemLink(props: { item: WorkItemSummary; variant: Variant; context: ItemContext }) {
+  const { item, variant, context } = props;
   const label = (
     <>
       <span className="item-number">#{item.id}</span> {item.title}
@@ -94,7 +98,7 @@ function ItemLink({ item, variant }: { item: WorkItemSummary; variant: Variant }
     </>
   );
   return variant === 'page' ? (
-    <Link to="/items/$id" params={{ id: String(item.id) }} className="linked-item">
+    <Link to="/items/$id" params={{ id: String(item.id) }} search={context} className="linked-item">
       {label}
     </Link>
   ) : (
@@ -117,7 +121,7 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
   const pending = usePendingFields(item.id);
   const openCreate = useCreate();
   const session = useQuery(sessionQuery);
-  const { project, team } = useScope();
+  const { project, team, context } = useScope(item.project);
   const defs = useQuery(fieldsQuery(item.project, item.type));
   const states = useQuery(statesQuery(item.project, item.type));
   const members = useQuery(membersQuery(project?.id, team?.id));
@@ -229,12 +233,18 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
           {saving ? 'Saving…' : failures.length ? 'Not saved' : save.isSuccess ? 'Saved' : ''}
         </span>
         {variant === 'panel' && (
-          <Link to="/items/$id" params={{ id: String(item.id) }} className="text-link">
+          <Link
+            to="/items/$id"
+            params={{ id: String(item.id) }}
+            search={context}
+            className="text-link"
+          >
             Open full page
           </Link>
         )}
         <ItemActions
           item={item}
+          context={context}
           webUrl={view.webUrl}
           onDeleted={() =>
             variant === 'panel'
@@ -320,7 +330,7 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         <h3>Parent</h3>
         {parentId ? (
           parentItem ? (
-            <ItemLink item={parentItem} variant={variant} />
+            <ItemLink item={parentItem} variant={variant} context={context} />
           ) : (
             <p className="muted-text">#{parentId} could not be read.</p>
           )
@@ -364,7 +374,7 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
               {typeof child === 'number' ? (
                 <span className="muted-text">#{child} could not be read.</span>
               ) : (
-                <ItemLink item={child} variant={variant} />
+                <ItemLink item={child} variant={variant} context={context} />
               )}
             </li>
           ))}
@@ -374,7 +384,11 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
             Some linked items may be deleted or outside your permissions.
           </p>
         )}
-        <Button variant="outline" size="sm" onClick={() => openCreate({ parentId: item.id })}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => openCreate({ parentId: item.id, project: item.project })}
+        >
           Add child
         </Button>
       </section>
