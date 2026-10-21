@@ -710,6 +710,14 @@ against the full working tree, which held all four fixes.
    cases where the content check still missed (lone newlines and new links); both
    are fixed. The security reviews and the staged privacy review found nothing.
 
+2. A failed session refresh keeps the loaded page mounted and shows the connection
+   warning above it, so full-page drafts such as an unsent comment survive the
+   failure and recovery. A failure on first load still shows only the warning. The
+   detail panel was never affected. The browser regression failed before the fix.
+   `npm run check` passed (196 tests), and `npm run test:e2e` passed (69 tests).
+   Ponytail, separate correctness and security, and staged privacy reviews found
+   nothing.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from

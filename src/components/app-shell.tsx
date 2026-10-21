@@ -144,16 +144,16 @@ export function AppShell() {
             </header>
             <main id="content" tabIndex={-1}>
               {session.data?.status === 'error' && <LoginBanner session={session.data} />}
-              {session.isError ? (
+              {session.isError && (
                 <div role="alert" className="error-box">
                   Could not reach the local Eruza server.
                   <Button variant="outline" onClick={() => void session.refetch()}>
                     Try again
                   </Button>
                 </div>
-              ) : (
-                <Outlet />
               )}
+              {/* A failed refresh keeps the loaded page, so its drafts survive. */}
+              {(session.data || !session.isError) && <Outlet />}
             </main>
             {item && <DetailPanel id={item} />}
           </div>
