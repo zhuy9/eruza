@@ -1,5 +1,78 @@
 import { expect, test } from '@playwright/test';
 
+for (const view of ['board', 'grid']) {
+  for (const resource of ['members', 'settings']) {
+    test(`${view} keeps saved filters when ${resource} fails and recovers`, async ({ page }) => {
+      const area = 'Sample project\\Web\\Checkout';
+      const message =
+        resource === 'members' ? 'Team members could not load.' : 'Team areas could not load.';
+      const path = `**/api/projects/sample-project/teams/web-team/${resource}`;
+      let failed = true;
+      await page.route(path, (route) =>
+        failed
+          ? route.fulfill({ status: 503, json: { code: 'UPSTREAM', message: 'Upstream failed.' } })
+          : route.fallback(),
+      );
+      await page.route('**/api/work-items?*', async (route) => {
+        const response = await route.fetch();
+        const data = await response.json();
+        const base = data.items.find((item: { type: string }) => item.type === 'Task');
+        await route.fulfill({
+          json: {
+            ...data,
+            items: [
+              {
+                ...base,
+                id: 7101,
+                title: 'Selected ticket',
+                areaPath: area,
+                assignee: { id: 'person-a', displayName: 'Person A' },
+              },
+              {
+                ...base,
+                id: 7102,
+                title: 'Other person',
+                areaPath: area,
+                assignee: { id: 'person-b', displayName: 'Person B' },
+              },
+              {
+                ...base,
+                id: 7103,
+                title: 'Other area',
+                areaPath: 'Sample project\\Web',
+                assignee: { id: 'person-a', displayName: 'Person A' },
+              },
+            ],
+          },
+        });
+      });
+      const params = new URLSearchParams({ type: 'Task', assignee: 'person-a', area });
+      await page.goto(`/${view}?${params}`);
+      await expect(page.getByRole('alert').filter({ hasText: message })).toBeVisible();
+      await expect(page.getByRole('combobox', { name: 'Assignee', exact: true })).toHaveValue(
+        'person-a',
+      );
+      await expect(page.getByRole('combobox', { name: 'Area', exact: true })).toHaveValue(area);
+      const tickets = page.locator(view === 'board' ? '.board-card' : 'tr.ticket-row');
+      await expect(tickets).toHaveCount(1);
+      await expect(
+        tickets.getByRole('link', { name: 'Selected ticket', exact: true }),
+      ).toBeVisible();
+
+      failed = false;
+      await page.reload();
+      await expect(page.getByRole('combobox', { name: 'Area', exact: true })).toHaveValue(area);
+      await expect(
+        page.getByRole('combobox', { name: 'Assignee', exact: true }).locator('option:checked'),
+      ).toHaveText('Person A');
+      await expect(page.getByRole('alert').filter({ hasText: message })).toBeHidden();
+      await expect(tickets).toHaveCount(1);
+      await page.getByRole('button', { name: 'Clear filters' }).click();
+      await expect(tickets).toHaveCount(3);
+    });
+  }
+}
+
 test('shared filters survive view changes and scope changes clear invalid selections', async ({
   page,
 }) => {

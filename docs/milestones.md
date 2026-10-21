@@ -11,9 +11,9 @@ changed during live verification. M0-M6 and the M7 local work are on GitHub
 pushing.
 Read [the handoff](handoff.md) before continuing.
 
-The user then requested ten audit fixes in separate local commits. Progress, the
-findings still open, and the additional mock regression evidence are recorded in the
-handoff.
+The user then requested ten audit fixes in separate local commits. All ten are
+committed locally; the changes and the additional mock regression evidence are
+recorded in the handoff.
 
 The GitHub repository was private when checked in the M7 session. Do not assume
 visibility is unchanged in a later session; check it before publication work.
@@ -315,5 +315,5 @@ separate user-approved action, not a required side effect of finishing M7.
 - M0-M6 and M7 local work are on GitHub at `8b513e9`. Later docs and audit-fix
   commits remain local. Pushing, deploying, or changing visibility requires explicit
   approval.
-- Next step: finish the open audit findings listed in [handoff.md](handoff.md), one
-  local commit each.
+- All ten audit findings in [handoff.md](handoff.md) have local commits. Next step:
+  the user decides whether to push them.

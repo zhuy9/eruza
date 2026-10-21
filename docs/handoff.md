@@ -666,8 +666,19 @@ they add no live ADO evidence. Pushing and publication still need explicit appro
    mock steps that the browser test repeats. The correctness review had the browser test
    confirm the combined retry. The security review led to the message redaction. The
    staged privacy review found nothing. `docs/api.md` describes the new field values.
-
-Still open: finding 9 (failed member or area metadata silently drops saved filters).
+9. If team members, team settings, or areas fail to load, saved assignee and area
+   filters stay applied instead of being dropped. The filter bar names what failed and
+   says those filters are kept but not checked, and the selects show the kept values.
+   Loaded metadata, including empty lists, still rules out invalid values, and so does
+   cached metadata after a failed background refresh. Six of the eight new unit tests
+   and all four new browser cases (board and grid, members and settings) failed before
+   the fix. With the alert kept but the old filter logic, the browser cases still failed
+   at the kept values. `npm run check` passed (193 tests), and `npm run test:e2e`
+   passed (62 tests). The alert sits in the shared filter bar, so a list error is never
+   hidden behind it. Ponytail review removed a duplicate browser case and repeated
+   checks. The correctness review had the refresh test use invalid values; mutation
+   checks showed it now catches both related regressions. The security and staged
+   privacy reviews found nothing.
 
 10. Concurrent Retry-After responses can only extend the shared deadline.
     Requests recheck it after authentication and each wait. Three new unit regressions
@@ -705,6 +716,6 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1 is complete. Finish audit finding 9 in its own local commit. Pushing the
+Stage 1 is complete, and all ten audit findings have local commits. Pushing the
 unpushed docs and audit-fix commits and any publication or visibility change need
 explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.
