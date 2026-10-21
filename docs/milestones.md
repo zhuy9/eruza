@@ -312,8 +312,7 @@ separate user-approved action, not a required side effect of finishing M7.
   deletion with `destroy=false`. The three dated test sprints remain available.
 - Local and live evidence, remaining limits, review results, and actual command
   results are recorded separately in [handoff.md](handoff.md).
-- M0-M6 and M7 local work are on GitHub at `8b513e9`. Later docs and audit-fix
-  commits remain local. Pushing, deploying, or changing visibility requires explicit
-  approval.
-- All ten audit findings in [handoff.md](handoff.md) have local commits. Next step:
-  the user decides whether to push them.
+- M0-M7 and the ten audit fixes are on GitHub at `d80623c`. The four follow-up
+  review fixes in [handoff.md](handoff.md) are local commits. Pushing, deploying, or
+  changing visibility requires explicit approval.
+- Next step: the user decides whether to push the follow-up fixes.

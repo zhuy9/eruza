@@ -22,13 +22,14 @@ signed-in user. Those live checks passed on 2026-10-20. Stage 1 is complete.
 The milestone sections below retain the earlier mock-only evidence; the final
 live verification section records what was checked afterward.
 
-Each push needs explicit approval. The user approved pushing through `8b513e9` (M7 local work).
-Do not push later commits, deploy, or change repository visibility without new approval.
+Each push needs explicit approval. The user approved pushing through `d80623c` (the ten
+audit fixes). Do not push later commits, deploy, or change repository visibility without
+new approval.
 
 ## Git checkpoint
 
-- Branch: `main`. M0-M6 and the M7 local work are on GitHub at `8b513e9`. The user
-  approved each push. Later docs and audit-fix commits are local only.
+- Branch: `main`. M0-M7 and the ten audit fixes are on GitHub at `d80623c`. The user
+  approved each push. The four follow-up review fixes are local only.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -772,7 +773,10 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1 and the first ten audit fixes are complete. Next, fix session refresh
-failures losing full-page drafts, then stale reads replacing successful saves,
-each in its own local commit. Pushing and any publication or visibility change
-need explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.
+Stage 1, the ten audit fixes, and the four follow-up review fixes are complete. The
+follow-up fixes are local commits; pushing them and any publication or visibility
+change need explicit approval. Not yet checked against live ADO: whether a write that
+changes nothing keeps its revision, and the first-load stale read in follow-up fix 3.
+The lower-severity findings from the whole-codebase review, including comments not
+refreshing the item revision, are not fixed yet. Keep `refs/t3/` local; never push
+with `--all` or `--mirror`.
