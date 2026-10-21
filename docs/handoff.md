@@ -22,14 +22,15 @@ signed-in user. Those live checks passed on 2026-10-20. Stage 1 is complete.
 The milestone sections below retain the earlier mock-only evidence; the final
 live verification section records what was checked afterward.
 
-Each push needs explicit approval. The user approved pushing through `a27b994` (the
-four follow-up review fixes). Do not push later commits, deploy, or change repository
-visibility without new approval.
+Each push needs explicit approval. The user approved pushing through `3c66e09` (the
+four follow-up review fixes and their docs). Do not push later commits, deploy, or change
+repository visibility without new approval.
 
 ## Git checkpoint
 
 - Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
-  on GitHub at `a27b994`. The user approved each push.
+  on GitHub through `3c66e09`. The user approved each push. The sample seeder and
+  later docs are local commits.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -62,7 +63,7 @@ Evidence (Windows, Node `24.14.1`, npm `11.11.0`):
 - Built bundle has no server config, Hono, ADO, or token strings.
 - T3 preview showed the shell, Mock mode label, and sample items.
 
-## M2 result: implemented; live check open
+## M2 result: complete (live check passed 2026-10-20)
 
 What was built:
 
@@ -96,7 +97,7 @@ Assumptions to confirm in the live check (M2.8):
 - Iteration `attributes.timeFrame` comes back as `past`/`current`/`future`.
 - Team members include `isContainer` for groups.
 
-## M3 result: implemented; live check open
+## M3 result: complete (live check passed 2026-10-20)
 
 What was built:
 
@@ -150,7 +151,7 @@ Assumptions to confirm in the live check (M3.9):
 - A failed `/rev` test returns a 4xx that the revision re-read turns into a
   conflict.
 
-## M4 result: implemented; live check open
+## M4 result: complete (live check passed 2026-10-20)
 
 What was built:
 
@@ -303,7 +304,7 @@ Evidence (mock mode, macOS, Node `24.14.1`, npm `11.11.0`, no live calls):
 Limits and next work:
 
 - No live check is listed for M5. The grid uses the M2-M4 read and write paths, whose
-  live checks (M2.8, M3.9, M4.7) are still open.
+  live checks (M2.8, M3.9, M4.7) passed on 2026-10-20.
 - The detail panel's selects (from M3) still save on every change, including keyboard
   arrow changes on Windows. The grid's `CellSelect` pattern can be reused there.
 - In retro, a story heading shows the story's own estimate even when the story is
@@ -311,7 +312,7 @@ Limits and next work:
   estimate total.
 - Vite still reports the non-blocking chunk-size warning.
 
-## M6 result: implemented; live checks open
+## M6 result: complete (live checks passed 2026-10-20)
 
 What was built:
 
@@ -405,7 +406,7 @@ Limits:
 - Mention suggestions come from the selected team, like the assignee picker.
 - A description that already contains a mention stays read-only in Eruza (nothing is lost).
 
-## M7 progress: local parts done; live parts open
+## M7 result: complete (live parts passed 2026-10-20)
 
 What was checked or changed:
 
@@ -734,8 +735,11 @@ against the full working tree, which held all four fixes.
 
 4. A save that changes nothing no longer freezes later saves of that item.
    `recordSave` ignores a write that kept its revision, so `expectedRev` cannot loop.
-   The mock now keeps the revision when a write changes nothing. That matches the
-   expected ADO behavior, but it was not checked against live ADO. Before the fix,
+   The mock keeps the revision when a write changes nothing. On 2026-10-21, with the
+   user's approval, a live check on one sample item in the private test project showed
+   ADO keeping the revision for a write of the same title, the case that looped. Writing
+   the same assignee again added a revision there, while the mock treats it as no change.
+   The app handles both. Before the fix,
    the unit regression hung, the mock regression failed, and with only the mock
    change the browser regression froze at the next title save. `npm run check`
    passed (196 tests), and `npm run test:e2e` passed (69 tests). Ponytail review
@@ -758,6 +762,10 @@ review found nothing worth cutting. Two rounds of separate correctness and secur
 reviews led to the tag and organization checks on removal, the confirmation, bug
 placement, saving IDs after each create, and clearer messages. `main()` itself has no
 unit test. `npm run check` passed (199 tests). The staged privacy review found nothing.
+On 2026-10-21 the user approved a live run against the private test project. It
+created all 17 items. That project uses the Basic process, so stories were Issues and
+the bug samples became Tasks; every state change and both comments succeeded. The
+items remain for the user to try, and the no-op check above edited one sample title.
 
 ## Machine notes
 
@@ -788,10 +796,11 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1, the ten audit fixes, and the four follow-up review fixes are complete. The
-follow-up fixes are on GitHub at `a27b994`. Later pushes and any publication or
-visibility change need explicit approval. Not yet checked against live ADO: whether a
-write that changes nothing keeps its revision, and the first-load stale read in
-follow-up fix 3. The lower-severity findings from the whole-codebase review, including
-comments not refreshing the item revision, are not fixed yet. Keep `refs/t3/` local;
-never push with `--all` or `--mirror`.
+Stage 1, the ten audit fixes, and the four follow-up review fixes are complete and on
+GitHub through `3c66e09`. The sample seeder is a local commit; pushing it and any
+publication or visibility change need explicit approval. A collapsible sidebar is in
+the working tree, not committed; its browser tests need the dev ports free. Not yet
+checked against live ADO: the first-load stale read in follow-up fix 3. The
+lower-severity findings from the whole-codebase review, including comments not
+refreshing the item revision, are not fixed yet. Keep `refs/t3/` local; never push
+with `--all` or `--mirror`.

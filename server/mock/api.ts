@@ -226,7 +226,7 @@ export function createMockApi(): BoardsApi {
       const raw = get(id);
       if (input.expectedRev !== raw.rev) throw adoError('CONFLICT');
       const fields = applyFields(raw.fields, input.fields);
-      // A write that changes nothing keeps its revision, as ADO may also do.
+      // A write that changes nothing keeps its revision, as ADO does for a same-title write.
       if (isDeepStrictEqual(fields, raw.fields)) return detail(raw);
       return save({ ...raw, rev: raw.rev + 1, fields });
     },

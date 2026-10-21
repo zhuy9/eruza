@@ -6,9 +6,8 @@ Stage 1 (M0-M7) is complete. The previously open live checks M2.8, M3.9,
 M4.7, M6.3, and M6.6 passed on 2026-10-20 in the approved private test project.
 M7 now includes clean-checkout mock/live startup, refresh and conflict checks,
 final local checks, privacy review, and the final handoff. No application code
-changed during live verification. M0-M6 and the M7 local work are on GitHub
-(`8b513e9`); later docs and audit-fix commits remain local and need approval before
-pushing.
+changed during live verification. Everything through `3c66e09` is on GitHub. Later
+commits stay local until the user approves a push.
 Read [the handoff](handoff.md) before continuing.
 
 The user then requested ten audit fixes in separate local commits. All ten are
@@ -243,7 +242,7 @@ Acceptance:
 
 Evidence: grouping fixtures, request-count tests, browser results, and actual
 local performance measurements. M5 has no live check of its own; it uses the M2-M4
-ADO paths, whose live checks stay open.
+ADO paths, whose live checks passed on 2026-10-20.
 
 ## M6: Comments and remaining actions
 

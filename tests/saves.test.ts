@@ -29,7 +29,7 @@ describe('expected revision', () => {
   });
 
   it('ignores a save that kept its revision', () => {
-    // ADO may return the same revision for a write that changes nothing.
+    // ADO returns the same revision for a write that changes nothing, such as the same title.
     recordSave(502, 6, 6);
     expect(expectedRev(502, 6)).toBe(6);
   });
