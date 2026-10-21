@@ -17,6 +17,7 @@ const invalid = (message: string, fieldErrors?: Record<string, string>) =>
 /** Fields that ADO process rules require only in some states. */
 const REQUIRED_IN_STATE: Record<string, Record<string, string[]>> = {
   Bug: { Resolved: ['Microsoft.VSTS.Common.ResolvedReason'] },
+  Feature: { Done: ['Custom.Reviewer'] },
 };
 /** States a new item cannot start in, like an ADO transition rule. */
 const NOT_INITIAL: Record<string, string[]> = { Bug: ['Closed'] };

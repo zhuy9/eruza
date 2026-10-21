@@ -59,9 +59,10 @@ type AdoErrorBody = {
 /** Turns an ADO 400 body into a short message and per-field errors. */
 export function validationError(body: AdoErrorBody | null) {
   const text = typeof body?.message === 'string' ? body.message : '';
-  // ADO text is untrusted: keep it plain and short.
+  // ADO text is untrusted: keep it plain and short, and hide account names it may quote.
   const message = text
     .replace(/\p{Cc}+/gu, ' ')
+    .replace(/[^\s'"<>]+@[^\s'"<>]+/g, '(account hidden)')
     .trim()
     .slice(0, MAX_MESSAGE);
   const fieldErrors: Record<string, string> = {};

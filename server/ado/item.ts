@@ -11,7 +11,7 @@ import { AppError } from '../errors';
 import { adoError, segment as e, type Ado } from './client';
 import { toAdoImages, toLocalImages } from './images';
 import { getOrgFields } from './metadata';
-import { batchGet, toSummary, wiqlString } from './work-items';
+import { batchGet, identityRef, toSummary, wiqlString } from './work-items';
 
 export const PARENT_LINK = 'System.LinkTypes.Hierarchy-Reverse';
 export const CHILD_LINK = 'System.LinkTypes.Hierarchy-Forward';
@@ -38,7 +38,7 @@ const fieldError = (field: string, message: string) =>
   new AppError({ code: 'VALIDATION', message, fieldErrors: { [field]: message } });
 
 const idFromUrl = (url: string) => Number(url.slice(url.lastIndexOf('/') + 1));
-const isScalar = (value: unknown) =>
+const isScalar = (value: unknown): value is FieldValue =>
   value === null || ['string', 'number', 'boolean'].includes(typeof value);
 
 export function toDetail(
@@ -47,6 +47,20 @@ export function toDetail(
   organization: string,
 ): WorkItemDetail {
   const { 'System.Description': description, ...rest } = raw.fields;
+  const fields: WorkItemDetail['fields'] = {};
+  for (const [ref, value] of Object.entries(rest)) {
+    if (isScalar(value)) {
+      fields[ref] = value;
+      continue;
+    }
+    const person = identityRef.safeParse(value);
+    // System people (creator, last editor) are not editable here, so they stay on the server.
+    if (person.success && !ref.startsWith('System.')) {
+      const { id, displayName, uniqueName } = person.data;
+      if (uniqueName) identities.set(id, uniqueName);
+      fields[ref] = { id, displayName };
+    }
+  }
   return {
     ...toSummary(raw, identities),
     project: String(raw.fields['System.TeamProject'] ?? ''),
@@ -55,9 +69,7 @@ export function toDetail(
       organization,
       raw.id,
     ),
-    fields: Object.fromEntries(
-      Object.entries(rest).filter(([, value]) => isScalar(value)),
-    ) as Record<string, FieldValue>,
+    fields,
     childIds: (raw.relations ?? [])
       .filter((r) => r.rel === CHILD_LINK)
       .map((r) => idFromUrl(r.url)),

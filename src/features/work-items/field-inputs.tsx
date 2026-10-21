@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { FieldDefinition, FieldValue } from '../../../shared/contracts';
+import type { FieldDefinition, FieldValue, Identity } from '../../../shared/contracts';
+import { AssigneePicker } from './pickers';
 
 const SAVE_DELAY_MS = 1000;
 const isNumeric = (def: FieldDefinition) => def.type === 'integer' || def.type === 'double';
@@ -13,10 +14,33 @@ type InputProps = {
   /** Choices for fields whose options come from elsewhere, such as area paths. */
   options?: string[];
   invalid?: boolean;
+  people?: Identity[];
+  me?: Identity;
 };
 
 /** A controlled input chosen from field metadata. Changes are reported immediately. */
-export function FieldInput({ id, def, value, onChange, options, invalid }: InputProps) {
+export function FieldInput(props: InputProps) {
+  const { id, def, value, onChange, options, invalid } = props;
+  if (def.type === 'identity') {
+    const people = props.people ?? [];
+    const person =
+      typeof value === 'string'
+        ? (people.find((p) => p.id === value) ?? { id: value, displayName: '…' })
+        : null;
+    return (
+      <AssigneePicker
+        id={id}
+        invalid={invalid}
+        label={`${def.name}: ${person?.displayName ?? 'Unassigned'}`}
+        menuLabel={`Choose ${def.name}`}
+        required={def.required}
+        assignee={person}
+        members={people}
+        me={props.me}
+        onChange={onChange}
+      />
+    );
+  }
   const choices = options ?? def.allowedValues.map(String);
   if (choices.length) {
     const current = text(value);

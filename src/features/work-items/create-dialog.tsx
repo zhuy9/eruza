@@ -244,6 +244,8 @@ export function CreateDialog({
               <FieldInput
                 id={`create-${d.referenceName}`}
                 def={d}
+                people={people}
+                me={session.data?.user}
                 value={value(d.referenceName)}
                 invalid={!!errors[d.referenceName]}
                 onChange={(v) => set(d.referenceName, v)}

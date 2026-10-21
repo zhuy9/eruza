@@ -169,7 +169,11 @@ export const fields: Record<string, FieldDefinition[]> = {
       allowedValues: ['Fixed', 'As designed', 'Cannot reproduce'],
     }),
   ],
-  Feature: commonFields,
+  Feature: [
+    ...commonFields,
+    field('Custom.Owner', 'Owner', 'identity', { required: true }),
+    field('Custom.Reviewer', 'Reviewer', 'identity'),
+  ],
   Spike: [
     ...commonFields,
     field('Microsoft.VSTS.Scheduling.StoryPoints', 'Story Points', 'double'),
@@ -315,7 +319,8 @@ function largeSprint(): WorkItemSummary[] {
 }
 
 /** Field values not in the summary, by item ID. */
-export const extraFields: Record<number, Record<string, string>> = {
+export const extraFields: Record<number, Record<string, string | Identity>> = {
+  1000: { 'Custom.Owner': d },
   1004: { 'Custom.FoundIn': 'Release 2' },
   1040: { 'Custom.FoundIn': 'Release 1' },
   ...Object.fromEntries(

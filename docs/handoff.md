@@ -652,9 +652,22 @@ they add no live ADO evidence. Pushing and publication still need explicit appro
    the item lookup now matches project names only, and a unit test now covers the URL
    sprint for an item in the workspace project. The security and staged privacy reviews
    found nothing.
+8. Required custom person fields now use the person picker in the create dialog, the
+   editor, and save recovery, and they send identity IDs. Field metadata keeps ADO's
+   `isIdentity` flag and drops person allowed values and defaults, which can hold
+   account names. Item details return person fields outside `System.*` with only an ID
+   and display name, so an existing value from outside the team shows and re-saves.
+   Account names stay on the server, and `System.*` people such as the creator are not
+   sent. Required person fields offer no Unassign. ADO validation messages now hide
+   quoted account names. All five new unit tests and the browser regression failed
+   before the fix. `npm run check` passed (185 tests), and `npm run test:e2e` passed
+   (58 tests). One earlier full run overlapped system sleep and timed out in five
+   unrelated tests; the rerun passed. Ponytail review shortened `FieldInput` and removed
+   mock steps that the browser test repeats. The correctness review had the browser test
+   confirm the combined retry. The security review led to the message redaction. The
+   staged privacy review found nothing. `docs/api.md` describes the new field values.
 
-Still open: finding 8 (required custom person fields) and finding 9 (failed member or
-area metadata silently drops saved filters).
+Still open: finding 9 (failed member or area metadata silently drops saved filters).
 
 10. Concurrent Retry-After responses can only extend the shared deadline.
     Requests recheck it after authentication and each wait. Three new unit regressions
@@ -692,6 +705,6 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1 is complete. Finish audit findings 8-9, one local commit each. Pushing the
+Stage 1 is complete. Finish audit finding 9 in its own local commit. Pushing the
 unpushed docs and audit-fix commits and any publication or visibility change need
 explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.

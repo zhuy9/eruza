@@ -9,6 +9,8 @@ import { searchQuery } from '../../lib/queries';
 const SEARCH_DELAY_MS = 250;
 
 function Picker(props: {
+  id?: string;
+  invalid?: boolean;
   label: string;
   trigger: ReactNode;
   open: boolean;
@@ -17,7 +19,12 @@ function Picker(props: {
 }) {
   return (
     <Popover.Root open={props.open} onOpenChange={props.onOpenChange}>
-      <Popover.Trigger className="picker-trigger" aria-label={props.label}>
+      <Popover.Trigger
+        id={props.id}
+        className="picker-trigger"
+        aria-label={props.label}
+        aria-invalid={props.invalid}
+      >
         {props.trigger}
       </Popover.Trigger>
       {/* No portal: content must stay inside a modal <dialog> to be usable there. */}
@@ -30,8 +37,14 @@ function Picker(props: {
 
 /** Team members, plus the current assignee even when they are not on the team. */
 export function AssigneePicker(props: {
+  id?: string;
+  invalid?: boolean;
   /** Accessible name for the trigger. Defaults to the current assignee. */
   label?: string;
+  /** Accessible name for the menu. */
+  menuLabel?: string;
+  /** Hides Unassign. */
+  required?: boolean;
   assignee: Identity | null;
   me?: Identity;
   members: Identity[];
@@ -47,6 +60,8 @@ export function AssigneePicker(props: {
   };
   return (
     <Picker
+      id={props.id}
+      invalid={props.invalid}
       label={props.label ?? `Assignee: ${props.assignee?.displayName ?? 'Unassigned'}`}
       open={open}
       onOpenChange={setOpen}
@@ -57,7 +72,7 @@ export function AssigneePicker(props: {
         </>
       }
     >
-      <Command label="Choose an assignee">
+      <Command label={props.menuLabel ?? 'Choose an assignee'}>
         <Command.Input placeholder="Search people" className="command-input" />
         <Command.List className="command-list">
           <Command.Empty>No matching people.</Command.Empty>
@@ -70,9 +85,11 @@ export function AssigneePicker(props: {
               Assign to me
             </Command.Item>
           )}
-          <Command.Item value="unassign" onSelect={() => choose(null)}>
-            Unassign
-          </Command.Item>
+          {!props.required && (
+            <Command.Item value="unassign" onSelect={() => choose(null)}>
+              Unassign
+            </Command.Item>
+          )}
           <Command.Group heading="People">
             {people.map((person) => (
               <Command.Item

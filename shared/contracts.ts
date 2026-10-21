@@ -98,8 +98,8 @@ export const workItemListSchema = z.object({
 export const workItemDetailSchema = workItemSchema.extend({
   project: z.string(),
   description: z.string(),
-  /** Scalar field values by reference name. Identity values are not included. */
-  fields: z.record(z.string(), fieldValueSchema),
+  /** Read values include safe person labels; writes accept only scalar identity IDs. */
+  fields: z.record(z.string(), z.union([fieldValueSchema, identitySchema])),
   childIds: z.array(z.number()),
 });
 

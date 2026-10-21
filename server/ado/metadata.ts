@@ -226,18 +226,23 @@ export async function getWorkItemFields(
         defaultValue?: FieldDefinition['defaultValue'];
       }>
     >(`${e(projectId)}/_apis/wit/workitemtypes/${e(type)}/fields?$expand=all&api-version=7.1`),
-    ado.json<List<{ referenceName: string; type: string; readOnly: boolean }>>(
-      `${e(projectId)}/_apis/wit/fields?api-version=7.1`,
-    ),
+    ado.json<
+      List<{ referenceName: string; type: string; readOnly: boolean; isIdentity?: boolean }>
+    >(`${e(projectId)}/_apis/wit/fields?api-version=7.1`),
   ]);
   const info = new Map(fields.value.map((field) => [field.referenceName, field]));
-  return typeFields.value.map((field) => ({
-    referenceName: field.referenceName,
-    name: field.name,
-    type: info.get(field.referenceName)?.type ?? 'string',
-    required: field.alwaysRequired,
-    readOnly: info.get(field.referenceName)?.readOnly ?? false,
-    allowedValues: field.allowedValues ?? [],
-    defaultValue: field.defaultValue ?? null,
-  }));
+  return typeFields.value.map((field) => {
+    const definition = info.get(field.referenceName);
+    const type = definition?.isIdentity ? 'identity' : (definition?.type ?? 'string');
+    return {
+      referenceName: field.referenceName,
+      name: field.name,
+      type,
+      required: field.alwaysRequired,
+      readOnly: definition?.readOnly ?? false,
+      // Identity defaults and allowed values may contain private account names.
+      allowedValues: type === 'identity' ? [] : (field.allowedValues ?? []),
+      defaultValue: type === 'identity' ? null : (field.defaultValue ?? null),
+    };
+  });
 }

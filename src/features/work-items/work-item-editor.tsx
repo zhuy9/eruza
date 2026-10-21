@@ -141,14 +141,13 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
     save.mutate({ fields, baseRev: Math.min(...starts) });
   };
 
-  const value = (ref: string): FieldValue =>
-    ref in pending
-      ? pending[ref].value
-      : ref === 'System.Description'
-        ? item.description
-        : ref === 'System.AssignedTo'
-          ? (item.assignee?.id ?? null)
-          : (item.fields[ref] ?? null);
+  const value = (ref: string): FieldValue => {
+    if (ref in pending) return pending[ref].value;
+    if (ref === 'System.Description') return item.description;
+    if (ref === 'System.AssignedTo') return item.assignee?.id ?? null;
+    const saved = item.fields[ref] ?? null;
+    return saved !== null && typeof saved === 'object' ? saved.id : saved;
+  };
   const fieldError = (ref: string) => {
     if (pending[ref]?.status !== 'error') return undefined;
     const error = apiError(pending[ref].error);
@@ -171,6 +170,7 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
     ...(members.data ?? []),
     ...(me ? [me] : []),
     ...(item.assignee ? [item.assignee] : []),
+    ...Object.values(item.fields).filter((v) => v !== null && typeof v === 'object'),
   ];
   const assigneeId = value('System.AssignedTo');
   const assignee = assigneeId
@@ -204,6 +204,8 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
       <FieldInput
         id={`field-${ref}`}
         def={byRef.get(ref) ?? stringField(ref, label)}
+        people={people}
+        me={me}
         value={value(ref)}
         options={options}
         invalid={!!fieldError(ref)}
@@ -274,6 +276,8 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
           key={String(failure.mutation?.mutationId)}
           failure={failure}
           defs={byRef}
+          people={people}
+          me={me}
           onRetry={(fields) => {
             if (failure.mutation) queryClient.getMutationCache().remove(failure.mutation);
             save.mutate({ fields, baseRev: item.rev });
@@ -310,7 +314,7 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         {estimate && draft(estimate, byRef.get(estimate)!.name, true)}
         {byRef.has(REMAINING) && draft(REMAINING, byRef.get(REMAINING)!.name, true)}
         {extras.map((d) =>
-          d.allowedValues.length || d.type === 'boolean'
+          d.allowedValues.length || d.type === 'boolean' || d.type === 'identity'
             ? select(d.referenceName, d.allowedValues.map(String), d.name)
             : draft(d.referenceName, d.name, d.type === 'integer' || d.type === 'double'),
         )}
@@ -422,6 +426,8 @@ const PROBLEMS: Partial<Record<string, string>> = {
 function SaveProblem(props: {
   failure: Pending;
   defs: Map<string, FieldDefinition>;
+  people: Identity[];
+  me?: Identity;
   onRetry: (fields: FieldChanges) => void;
   onDiscard: () => void;
 }) {
@@ -444,6 +450,8 @@ function SaveProblem(props: {
           <FieldInput
             id={`needed-${ref}`}
             def={props.defs.get(ref)!}
+            people={props.people}
+            me={props.me}
             value={extra[ref] ?? null}
             onChange={(next) => setExtra((current) => ({ ...current, [ref]: next }))}
           />

@@ -26,7 +26,7 @@ these filters do not expand that partial result.
 | `Filters`             | Iteration path, optional assignee, area path, tags, and text                                                   |
 | `Identity`            | ADO identity ID, display name, and local avatar URL                                                            |
 | `WorkItemSummary`     | ID, revision, type, title, state, assignee, tags, paths, available numeric fields, and parent ID               |
-| `WorkItemDetail`      | Summary plus project, description, scalar field values, and child IDs                                          |
+| `WorkItemDetail`      | Summary plus project, description, field values (custom person fields as `Identity`), and child IDs            |
 | `WorkItemView`        | Detail, parent and child summaries from one batch, unreadable IDs, and the ADO web link (null in mock mode)    |
 | `WorkItemList`        | Matching items, supporting ancestors, missing IDs, and an `incomplete` flag                                    |
 | `FieldDefinition`     | Reference name, label, value type, allowed values, default, required flag, and read-only/system-managed status |
@@ -41,7 +41,11 @@ these filters do not expand that partial result.
 Use metadata-validated field reference names. Field values can be strings,
 numbers, booleans, or null where clearing is valid. HTML is a string that
 requires sanitization. Identity input uses a stable ID that the server resolves
-to the form expected by ADO.
+to the form expected by ADO. Detail reads return person fields outside `System.*`
+as `Identity` values with only an ID and display name; the assignee comes in the
+summary, and other `System.*` people stay on the server. Person field definitions
+have the type `identity` and no allowed values or default, because those can hold
+account names.
 
 Do not fabricate zero values for absent numeric fields. Do not use display names
 as identity keys. Do not expose identity email fields unless a supported ADO
