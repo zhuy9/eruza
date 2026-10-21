@@ -6,7 +6,7 @@ Stage 1 (M0-M7) is complete. The previously open live checks M2.8, M3.9,
 M4.7, M6.3, and M6.6 passed on 2026-10-20 in the approved private test project.
 M7 now includes clean-checkout mock/live startup, refresh and conflict checks,
 final local checks, privacy review, and the final handoff. No application code
-changed during live verification. Everything through `3c66e09` is on GitHub. Later
+changed during live verification. Everything through `bfac186` is on GitHub. Later
 commits stay local until the user approves a push.
 Read [the handoff](handoff.md) before continuing.
 
@@ -341,7 +341,7 @@ live ADO behavior: the levels use fields the live checks already read.
   deletion with `destroy=false`. The three dated test sprints remain available.
 - Local and live evidence, remaining limits, review results, and actual command
   results are recorded separately in [handoff.md](handoff.md).
-- M0-M7, the ten audit fixes, and the four follow-up review fixes in
-  [handoff.md](handoff.md) are on GitHub at `a27b994`. Pushing, deploying, or changing
-  visibility requires explicit approval.
+- M0-M7, the audit and review fixes, and later work through the shadcn components
+  are on GitHub at `bfac186`. M8 is complete in local commits. Pushing, deploying, or
+  changing visibility requires explicit approval.
 - Next step: work the user chooses.
