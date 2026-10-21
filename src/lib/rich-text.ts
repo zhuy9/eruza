@@ -68,25 +68,35 @@ export function roundTrip(html: string) {
 }
 
 const ALIASES: Record<string, string> = { b: 'strong', i: 'em', strike: 's', del: 's' };
-const TRACKED = new Set(
-  'a img table tr th td ul ol li h1 h2 h3 h4 h5 h6 pre code blockquote strong em u s hr sub sup mark font'.split(
-    ' ',
-  ),
-);
+const WRAPPERS = new Set('p div span tbody colgroup col'.split(' '));
 
-/** What must survive an edit: text, tracked formatting, link targets, and image sources. */
+/** Preserve elements and attributes, allowing neutral wrappers and editor defaults. */
 function signature(html: string) {
   const body = parseBody(html);
   const tags: Record<string, number> = {};
+  const attributes = [];
   for (const el of body.querySelectorAll('*')) {
     const tag = ALIASES[el.localName] ?? el.localName;
-    if (TRACKED.has(tag)) tags[tag] = (tags[tag] ?? 0) + 1;
+    if (!WRAPPERS.has(tag)) tags[tag] = (tags[tag] ?? 0) + 1;
+    const attrs = [...el.attributes]
+      .filter(
+        ({ name, value }) =>
+          name !== 'style' &&
+          // Column widths are editor layout, like the table/col styles checked below.
+          !((tag === 'td' || tag === 'th') && name === 'colwidth') &&
+          // The sanitizer supplies these link protections on every render.
+          !(tag === 'a' && (name === 'rel' || name === 'target')) &&
+          !((tag === 'td' || tag === 'th') && /^(colspan|rowspan)$/.test(name) && value === '1') &&
+          !(tag === 'ol' && /^(start|type)$/.test(name) && value === '1'),
+      )
+      .map(({ name, value }) => [name, value])
+      .sort();
+    if (attrs.length) attributes.push([tag, attrs]);
   }
   return JSON.stringify({
     text: body.textContent?.replace(/\s+/g, ''),
     tags: Object.entries(tags).sort(),
-    links: [...body.querySelectorAll('a')].map((a) => a.getAttribute('href')),
-    images: [...body.querySelectorAll('img')].map((img) => img.getAttribute('src')),
+    attributes,
   });
 }
 
@@ -96,7 +106,14 @@ function signature(html: string) {
  */
 export function editableWithoutLoss(html: string) {
   // Table and column widths are layout the editor writes itself, not user formatting.
-  if (parseBody(html).querySelector('[style]:not([style=""], table, col), font')) return false;
-  const clean = sanitizeHtml(html);
-  return signature(clean) === signature(roundTrip(clean));
+  for (const el of parseBody(html).querySelectorAll<HTMLElement>('[style]')) {
+    if (
+      el.getAttribute('style')?.trim() &&
+      (!['table', 'col'].includes(el.localName) ||
+        Array.from(el.style).some((property) => !['width', 'min-width'].includes(property)))
+    ) {
+      return false;
+    }
+  }
+  return signature(html) === signature(roundTrip(sanitizeHtml(html)));
 }

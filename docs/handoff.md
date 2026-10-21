@@ -617,6 +617,12 @@ Pushing and publication still need explicit approval.
    before the fix and passed through failure and recovery afterward.
    `npm run check` passed (114 tests), and `npm run test:e2e` passed (47 tests).
    Ponytail, separate correctness/security, and staged privacy reviews passed.
+4. The rich-text guard now rejects unsupported elements and attributes, including
+   colored tables, alignment, reversed lists, and media. Supported formatting and
+   editor-generated table widths stay editable. The delegated regressions failed
+   before implementation; all 32 rich-text tests passed after integration.
+   `npm run check` passed (138 tests), and `npm run test:e2e` passed (47 tests).
+   Ponytail, separate correctness/security, and staged privacy reviews passed.
 
 Finding 10: concurrent Retry-After responses can only extend the shared deadline.
 Requests recheck it after authentication and each wait. Three new unit regressions

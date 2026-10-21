@@ -69,8 +69,66 @@ describe('editing without loss', () => {
     expect(editableWithoutLoss('<div>First line</div><div><b>Second</b> line</div>')).toBe(true);
   });
 
+  it('keeps supported list attributes and editor table layout editable', () => {
+    const html =
+      '<ol type="a" start="3"><li>Third</li><li>Fourth</li></ol>' +
+      '<table><tbody><tr><td colspan="2"><p>Wide cell</p></td></tr></tbody></table>';
+    const saved = roundTrip(sanitizeHtml(html));
+    const list = parse(saved).querySelector('ol')!;
+    expect(list.getAttribute('type')).toBe('a');
+    expect(list.getAttribute('start')).toBe('3');
+    expect(saved).toContain('min-width:');
+    expect(editableWithoutLoss(html)).toBe(true);
+    expect(editableWithoutLoss(saved)).toBe(true);
+  });
+
+  it('keeps fixed-width tables saved by the editor editable', () => {
+    const saved = roundTrip(
+      '<table><tbody><tr><td colwidth="100"><p>Fixed width</p></td></tr></tbody></table>',
+    );
+    expect(saved).toContain('width: 100px');
+    expect(saved).toContain('colwidth="100"');
+    expect(editableWithoutLoss(saved)).toBe(true);
+  });
+
+  it.each([
+    '<a href="https://example.com/notes" title="Notes">Read more</a>',
+    '<img src="https://example.com/flow.png" alt="Flow" title="Diagram" width="120" height="80">',
+    '<ol start="1" type="1"><li>First</li></ol>',
+    '<pre><code class="language-js">const value = 1;</code></pre>',
+    '<p><em><strong>Both formats</strong></em></p>',
+    '<table style="width: 100px"><colgroup><col style="width: 100px"></colgroup><tbody><tr><td>Cell</td></tr></tbody></table>',
+  ])('keeps supported attributes editable: %s', (html) => {
+    expect(editableWithoutLoss(html)).toBe(true);
+  });
+
   it.each([
     ['inline color', descriptions[1002]],
+    [
+      'table color',
+      '<table style="background-color:red"><tbody><tr><td>Red table</td></tr></tbody></table>',
+    ],
+    [
+      'column color',
+      '<table><colgroup><col style="background-color:red"></colgroup><tbody><tr><td>Red column</td></tr></tbody></table>',
+    ],
+    [
+      'table color mixed with layout',
+      '<table style="width:100px;background-color:red"><tbody><tr><td>Red table</td></tr></tbody></table>',
+    ],
+    ['paragraph alignment', '<p align="center">Centered</p>'],
+    ['text direction', '<div dir="rtl">Right to left</div>'],
+    ['reversed list', '<ol reversed><li>Second</li><li>First</li></ol>'],
+    ['list item value', '<ol><li value="4">Fourth</li></ol>'],
+    ['video', '<video controls src="https://example.com/demo.mp4"></video>'],
+    ['audio', '<audio controls src="https://example.com/demo.mp3"></audio>'],
+    ['embedded frame', '<iframe src="https://example.com/demo"></iframe>'],
+    ['disclosure', '<details open><summary>More</summary>Details</details>'],
+    ['formatting title', '<strong title="Important">Note</strong>'],
+    [
+      'image description',
+      '<img src="https://example.com/flow.png" longdesc="https://example.com/flow">',
+    ],
     ['font tag', '<p><font color="red">Red</font></p>'],
     ['subscript', '<p>H<sub>2</sub>O</p>'],
     ['highlight', '<p><mark>note</mark></p>'],
