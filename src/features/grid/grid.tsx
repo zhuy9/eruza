@@ -58,10 +58,10 @@ import { AssigneePicker } from '../work-items/pickers';
 import {
   gridRows,
   NO_STORY,
+  PRESETS,
   remainingTotal,
   UNAVAILABLE_STORY,
   type GridRow,
-  type Grouping,
 } from './grouping';
 import { NativeSelect } from '../../components/ui/native-select';
 import { WithTooltip } from '../../components/ui/tooltip';
@@ -149,6 +149,7 @@ const gridRoute = getRouteApi('/grid');
 /** Meeting grid: sprint tickets grouped by person and story, in either order. */
 export function MeetingGrid() {
   const { grouping } = gridRoute.useSearch();
+  const levels = PRESETS[grouping];
   const { project, team, sprint, projects, teams, iterations } = useScope();
   const { values: filters, members } = useFilters();
   const session = useQuery(sessionQuery);
@@ -190,11 +191,12 @@ export function MeetingGrid() {
       ].map((item) => [item.id, item]),
     );
     return {
-      rows: gridRows(items, byId, filters, storyTypes, grouping),
+      rows: gridRows(items, byId, filters, storyTypes, levels),
       byId,
       tags: [...new Set(items.flatMap((item) => item.tags))],
     };
-  }, [list.data, pending, members, me, sprintPath, chosenParents, filters, storyTypes, grouping]);
+  }, [list.data, pending, members, me, sprintPath, chosenParents, filters, storyTypes, levels]);
+  const tableGrouping = useMemo(() => [...levels], [levels]);
 
   const [initialState] = useState(loadPrefs);
   const table = useTable({
@@ -203,7 +205,7 @@ export function MeetingGrid() {
     data: rows,
     getRowId: (row) => String(row.id),
     initialState,
-    state: { grouping: grouping === 'person' ? ['person', 'story'] : ['story', 'person'] },
+    state: { grouping: tableGrouping },
     groupedColumnMode: 'remove',
     columnResizeMode: 'onChange',
     sortDescFirst: false,
@@ -300,7 +302,6 @@ export function MeetingGrid() {
               table={table}
               rows={shown}
               byId={byId}
-              grouping={grouping}
               collapsed={collapsed}
               onToggle={(id) =>
                 setCollapsed((old) => {
@@ -362,7 +363,6 @@ function GridBody(props: {
   table: GridTable;
   rows: GridTableRow[];
   byId: Map<number, WorkItemSummary>;
-  grouping: Grouping;
   collapsed: Set<string>;
   onToggle: (id: string) => void;
   context: RowContext;
@@ -552,7 +552,6 @@ function GridBody(props: {
                       measure={measure}
                       span={headers.length}
                       byId={props.byId}
-                      grouping={props.grouping}
                       expanded={!props.collapsed.has(row.id)}
                       onToggle={() => props.onToggle(row.id)}
                       dragging={dragging}
@@ -637,7 +636,6 @@ function GroupRow(props: {
   measure: Measure;
   span: number;
   byId: Map<number, WorkItemSummary>;
-  grouping: Grouping;
   expanded: boolean;
   onToggle: () => void;
   dragging: GridRow | null;
@@ -652,16 +650,19 @@ function GroupRow(props: {
     disabled: !story,
     data: { story },
   });
-  const label = !isStory
-    ? (leaves[0].assignee?.displayName ?? 'Unassigned')
-    : key === NO_STORY
-      ? 'No parent story'
-      : key === UNAVAILABLE_STORY
-        ? 'Unavailable story'
-        : `#${key} ${story?.title ?? ''}`;
+  const label =
+    row.groupingColumnId === 'type'
+      ? `Type: ${key}`
+      : !isStory
+        ? (leaves[0].assignee?.displayName ?? 'Unassigned')
+        : key === NO_STORY
+          ? 'No parent story'
+          : key === UNAVAILABLE_STORY
+            ? 'Unavailable story'
+            : `#${key} ${story?.title ?? ''}`;
   const remaining = remainingTotal(leaves);
-  // Story estimates show once per story, so only in the retro's story groups.
-  const estimate = isStory && props.grouping === 'story' ? story?.estimate : null;
+  // A story shows its estimate once, which holds only when Story is the outermost level.
+  const estimate = isStory && row.depth === 0 ? story?.estimate : null;
   return (
     <tr
       ref={(node) => {

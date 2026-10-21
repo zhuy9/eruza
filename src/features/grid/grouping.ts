@@ -1,7 +1,16 @@
 import type { WorkItemSummary } from '../../../shared/contracts';
 import { matchesFilters, UNASSIGNED, type Filters } from '../../lib/filters';
 
-export type Grouping = 'person' | 'story';
+/** A grouping level. Levels are listed outermost first, each at most once. */
+export type GroupKey = 'person' | 'story' | 'type';
+/** The levels a user can add, in the order the Group by bar offers them. */
+export const GROUP_KEYS: readonly GroupKey[] = ['person', 'story', 'type'];
+/** The meeting presets, by their `grouping` URL value. */
+export const PRESETS = {
+  person: ['person', 'story'],
+  story: ['story', 'person'],
+} as const satisfies Record<string, readonly GroupKey[]>;
+export type Preset = keyof typeof PRESETS;
 
 /** Story group keys for tickets without a readable story. Story groups use the story's ID. */
 export const NO_STORY = 'none';
@@ -37,6 +46,11 @@ const byStory = (a: GridRow, b: GridRow) =>
   (LAST_STORIES[a.story] ?? 0) - (LAST_STORIES[b.story] ?? 0) ||
   (Number(a.story) || 0) - (Number(b.story) || 0);
 const isOwnStory = (row: GridRow) => row.story === String(row.id);
+const ORDER: Record<GroupKey, (a: GridRow, b: GridRow) => number> = {
+  person: byPerson,
+  story: byStory,
+  type: (a, b) => a.type.localeCompare(b.type),
+};
 
 /**
  * Grid rows: sprint tickets that match the filters, in group order. Filtered-out tickets
@@ -47,9 +61,8 @@ export function gridRows(
   byId: Map<number, WorkItemSummary>,
   filters: Filters,
   storyTypes: Set<string>,
-  grouping: Grouping,
+  levels: readonly GroupKey[],
 ): GridRow[] {
-  const [first, second] = grouping === 'person' ? [byPerson, byStory] : [byStory, byPerson];
   return items
     .filter((item) => matchesFilters(item, filters))
     .map((item) => ({
@@ -57,10 +70,13 @@ export function gridRows(
       person: item.assignee?.id ?? UNASSIGNED,
       story: storyKey(item, byId, storyTypes),
     }))
-    .sort(
-      (a, b) =>
-        first(a, b) || second(a, b) || Number(isOwnStory(b)) - Number(isOwnStory(a)) || a.id - b.id,
-    );
+    .sort((a, b) => {
+      for (const key of levels) {
+        const order = ORDER[key](a, b);
+        if (order) return order;
+      }
+      return Number(isOwnStory(b)) - Number(isOwnStory(a)) || a.id - b.id;
+    });
 }
 
 /** Remaining work summed over the rows that have it. Null when none do; missing is not zero. */

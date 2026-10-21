@@ -3,6 +3,7 @@ import type { Identity, WorkItemSummary } from '../shared/contracts';
 import {
   gridRows,
   NO_STORY,
+  PRESETS,
   remainingTotal,
   storyKey,
   UNAVAILABLE_STORY,
@@ -88,7 +89,7 @@ describe('story keys', () => {
 
 describe('grid rows', () => {
   it('orders sprint update rows by person, then story, then ticket', () => {
-    expect(keys(gridRows(items, byId, {}, storyTypes, 'person'))).toEqual([
+    expect(keys(gridRows(items, byId, {}, storyTypes, PRESETS.person))).toEqual([
       ['id-ana', '10', 10],
       ['id-ana', '10', 11],
       ['id-ana', '10', 15],
@@ -105,7 +106,7 @@ describe('grid rows', () => {
   });
 
   it('orders sprint retro rows by story, then person, with one story group for everyone', () => {
-    expect(keys(gridRows(items, byId, {}, storyTypes, 'story'))).toEqual([
+    expect(keys(gridRows(items, byId, {}, storyTypes, PRESETS.story))).toEqual([
       ['id-ana', '10', 10],
       ['id-ana', '10', 11],
       ['id-ana', '10', 15],
@@ -122,15 +123,33 @@ describe('grid rows', () => {
   });
 
   it('keeps every matching ticket exactly once, including stories and other types', () => {
-    const rows = gridRows(items, byId, {}, storyTypes, 'person');
+    const rows = gridRows(items, byId, {}, storyTypes, PRESETS.person);
     expect(rows.map((r) => r.id).toSorted((a, b) => a - b)).toEqual(
       items.map((i) => i.id).toSorted((a, b) => a - b),
     );
     expect(rows.some((r) => r.id === 20 || r.id === 30 || r.id === 50)).toBe(false);
   });
 
+  it('orders custom levels, such as type, then person', () => {
+    const rows = gridRows(items, byId, {}, storyTypes, ['type', 'person']);
+    expect(rows.map((r) => [r.type, r.person, r.id])).toEqual([
+      ['Bug', UNASSIGNED, 13],
+      ['Feature', 'id-cy', 60],
+      ['Spike', 'id-ana', 40],
+      ['Story', 'id-ana', 10],
+      ['Task', 'id-ana', 11],
+      ['Task', 'id-ana', 15],
+      ['Task', 'id-ana', 51],
+      ['Task', 'id-ben', 12],
+      ['Task', 'id-ben', 14],
+      ['Task', 'id-ben', 41],
+      ['Task', 'id-cy', 16],
+      ['Task', 'id-cy', 17],
+    ]);
+  });
+
   it('filters tickets first, then still labels groups with filtered-out stories', () => {
-    const rows = gridRows(items, byId, { assignee: ben.id }, storyTypes, 'story');
+    const rows = gridRows(items, byId, { assignee: ben.id }, storyTypes, PRESETS.story);
     expect(keys(rows)).toEqual([
       ['id-ben', '10', 12],
       ['id-ben', '20', 14],
