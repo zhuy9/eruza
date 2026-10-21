@@ -1,5 +1,6 @@
 import { useScope, useSetSearch } from '../lib/scope';
 import { sprintOptions } from '../lib/sprints';
+import { NativeSelect } from './ui/native-select';
 
 export function ProjectTeamControls() {
   const { projects, project, teams, team } = useScope();
@@ -7,9 +8,9 @@ export function ProjectTeamControls() {
   return (
     <div className="scope-controls">
       <label htmlFor="project-select">Project</label>
-      <select
+      <NativeSelect
         id="project-select"
-        className="select"
+        className="w-full"
         value={project?.id ?? ''}
         disabled={!projects.data}
         onChange={(e) =>
@@ -30,11 +31,11 @@ export function ProjectTeamControls() {
             {p.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <label htmlFor="team-select">Team</label>
-      <select
+      <NativeSelect
         id="team-select"
-        className="select"
+        className="w-full"
         value={team?.id ?? ''}
         disabled={!teams.data}
         onChange={(e) =>
@@ -51,7 +52,7 @@ export function ProjectTeamControls() {
             {t.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 }
@@ -62,8 +63,8 @@ export function SprintControl() {
   return (
     <label className="sprint-control">
       <span>Sprint</span>
-      <select
-        className="select"
+      <NativeSelect
+        className="min-w-[170px]"
         value={sprint && 'path' in sprint ? sprint.path : ''}
         disabled={!iterations.data}
         onChange={(e) => setScope({ sprint: e.target.value })}
@@ -78,7 +79,7 @@ export function SprintControl() {
             {i.timeFrame === 'current' ? `${i.name} (current)` : i.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   );
 }

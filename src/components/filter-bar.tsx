@@ -2,6 +2,8 @@ import * as Popover from '@radix-ui/react-popover';
 import { UNASSIGNED, useFilters } from '../lib/filters';
 import { useSetSearch } from '../lib/scope';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { NativeSelect } from './ui/native-select';
 
 /** Shared filters for board and grid. `tags` are the tags found in the current sprint. */
 export function FilterBar({ tags }: { tags: string[] }) {
@@ -23,8 +25,7 @@ export function FilterBar({ tags }: { tags: string[] }) {
       <div className="filter-bar" role="group" aria-label="Filters">
         <label className="inline-control">
           Assignee
-          <select
-            className="select"
+          <NativeSelect
             value={values.assignee ?? ''}
             onChange={(e) => setSearch({ assignee: e.target.value || undefined })}
           >
@@ -40,12 +41,11 @@ export function FilterBar({ tags }: { tags: string[] }) {
                 {m.displayName}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <label className="inline-control">
           Area
-          <select
-            className="select"
+          <NativeSelect
             value={values.area ?? ''}
             onChange={(e) => setSearch({ area: e.target.value || undefined })}
           >
@@ -58,7 +58,7 @@ export function FilterBar({ tags }: { tags: string[] }) {
                 {path}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <Popover.Root>
           <Popover.Trigger className="picker-trigger filter-tags">
@@ -78,9 +78,9 @@ export function FilterBar({ tags }: { tags: string[] }) {
             ))}
           </Popover.Content>
         </Popover.Root>
-        <input
+        <Input
           type="search"
-          className="input filter-search"
+          className="filter-search"
           aria-label="Search by ID or title"
           placeholder="Search by ID or title"
           value={values.text ?? ''}

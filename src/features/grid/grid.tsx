@@ -63,6 +63,7 @@ import {
   type GridRow,
   type Grouping,
 } from './grouping';
+import { NativeSelect } from '../../components/ui/native-select';
 
 const ROW_HEIGHT = 40;
 const PRIORITY = 'Microsoft.VSTS.Common.Priority';
@@ -889,8 +890,9 @@ function CellSelect(props: {
     if (value !== props.value) props.onCommit(value, rev);
   };
   return (
-    <select
-      className="cell-select"
+    <NativeSelect
+      size="sm"
+      className="cell-select max-w-full"
       aria-label={props.label}
       value={draft?.value ?? props.value}
       onKeyDown={(e) => {
@@ -909,6 +911,6 @@ function CellSelect(props: {
       onBlur={() => draft && commit(draft.value, draft.rev)}
     >
       {props.children}
-    </select>
+    </NativeSelect>
   );
 }

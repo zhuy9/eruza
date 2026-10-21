@@ -765,6 +765,25 @@ and a gap at fractional widths near 600px; both are fixed, and the toggle moved 
 own row so the footer does not squeeze. The security and staged privacy reviews found
 nothing. Screenshots of both states at 1440px and 800px were checked.
 
+## shadcn components
+
+The user asked to build more of the UI from shadcn components: Select, Input, Dialog,
+and Tooltip. They chose shadcn's Native Select (a styled native `<select>`) over the
+Radix Select, and shadcn's Dialog over the native `<dialog>`. Each component is
+adapted from the official new-york-v4 registry to the app's colors and focus outline,
+like the existing Button, and each step is its own commit.
+
+1. Native Select and Input replace every `<select>` and text or number `<input>`.
+   NativeSelect's `className` sizes its wrapper (upstream puts it on the select), so
+   width classes work. Grid cells keep a borderless select until hover. The large
+   title stays a plain input, and checkboxes stay native. The old `.select` and
+   `.input` CSS is gone, and picker triggers match the 36px controls. Screenshots of
+   every view in both themes were compared before and after. `npm run check` passed
+   (199 tests), and `npm run test:e2e` passed (70 tests). Ponytail review removed an
+   unused class. The correctness review found a low-contrast chevron (fixed: 5.2:1),
+   a dead minimum-width rule, and 14px text in two toolbars; all are fixed. The
+   security and staged privacy reviews found nothing.
+
 ## Sample data for live mode
 
 The user asked for made-up data to try Eruza against Azure DevOps. `npm run seed`

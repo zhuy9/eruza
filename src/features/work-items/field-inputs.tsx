@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { FieldDefinition, FieldValue, Identity } from '../../../shared/contracts';
 import { AssigneePicker } from './pickers';
+import { Input } from '../../components/ui/input';
+import { NativeSelect } from '../../components/ui/native-select';
 
 const SAVE_DELAY_MS = 1000;
 const isNumeric = (def: FieldDefinition) => def.type === 'integer' || def.type === 'double';
@@ -45,9 +47,9 @@ export function FieldInput(props: InputProps) {
   if (choices.length) {
     const current = text(value);
     return (
-      <select
+      <NativeSelect
         id={id}
-        className="select"
+        className="w-full"
         aria-invalid={invalid}
         value={current}
         onChange={(e) =>
@@ -65,7 +67,7 @@ export function FieldInput(props: InputProps) {
             {choice}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     );
   }
   if (def.type === 'boolean') {
@@ -79,9 +81,8 @@ export function FieldInput(props: InputProps) {
     );
   }
   return (
-    <input
+    <Input
       id={id}
-      className="input"
       aria-invalid={invalid}
       type={isNumeric(def) ? 'number' : 'text'}
       value={text(value)}
@@ -142,12 +143,14 @@ export function DraftInput({
     if (next !== latest.current.value) latest.current.onCommit(next, shown.rev);
   };
 
+  // A custom class, such as the large title, styles a plain input instead of Input.
+  const Field = className ? 'input' : Input;
   return (
-    <input
+    <Field
       id={id}
       aria-label={label}
       aria-invalid={invalid}
-      className={className ?? 'input'}
+      className={className}
       type={numeric ? 'number' : 'text'}
       value={draft}
       onFocus={() => setFocused(true)}

@@ -23,6 +23,8 @@ import type { CreateRequest } from './create';
 import { FieldInput, FormField } from './field-inputs';
 import { AssigneePicker } from './pickers';
 import { LazyRichTextField as RichTextField } from './lazy-rich-text';
+import { Input } from '../../components/ui/input';
+import { NativeSelect } from '../../components/ui/native-select';
 
 /** Fields with their own controls in the form. Other required fields are added below them. */
 const FORM_FIELDS = new Set([
@@ -155,9 +157,9 @@ export function CreateDialog({
         </h2>
         <div className="form-grid">
           <FormField label="Type" htmlFor="create-type">
-            <select
+            <NativeSelect
               id="create-type"
-              className="select"
+              className="w-full"
               value={type ?? ''}
               onChange={(e) => setChosenType(e.target.value)}
             >
@@ -166,7 +168,7 @@ export function CreateDialog({
                   {t.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </FormField>
           <FormField label="Assignee">
             <AssigneePicker
@@ -177,10 +179,9 @@ export function CreateDialog({
             />
           </FormField>
           <FormField label="Title" htmlFor="create-title-input" error={errors['System.Title']} wide>
-            <input
+            <Input
               id="create-title-input"
               ref={title}
-              className="input"
               aria-invalid={!!errors['System.Title']}
               value={String(value('System.Title') ?? '')}
               onChange={(e) => set('System.Title', e.target.value)}
@@ -204,9 +205,8 @@ export function CreateDialog({
             </FormField>
           )}
           <FormField label="Tags" htmlFor="create-tags">
-            <input
+            <Input
               id="create-tags"
-              className="input"
               placeholder="Separate tags with ;"
               value={String(value('System.Tags') ?? '')}
               onChange={(e) => set('System.Tags', e.target.value)}

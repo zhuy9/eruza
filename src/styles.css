@@ -9,6 +9,7 @@
   --primary: #4b5ed5;
   --primary-foreground: #ffffff;
   --border: #e7eaf1;
+  --destructive: #c4584a;
   --sidebar: #f8f9fc;
 }
 .dark {
@@ -30,6 +31,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-border: var(--border);
+  --color-destructive: var(--destructive);
 }
 body {
   margin: 0;
@@ -299,19 +301,6 @@ h1 {
   font-weight: 600;
   color: var(--muted-foreground);
 }
-.select {
-  width: 100%;
-  padding: 7px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--background);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 12px;
-}
-.select:disabled {
-  opacity: 0.6;
-}
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -321,9 +310,6 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.sprint-control .select {
-  min-width: 170px;
 }
 .login-banner {
   display: flex;
@@ -360,22 +346,6 @@ h1 {
   position: relative;
   min-width: 0;
 }
-.input {
-  width: 100%;
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--background);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 13px;
-}
-.input[aria-invalid='true'],
-.select[aria-invalid='true'] {
-  border-color: #c4584a;
-}
-.input:focus-visible,
-.select:focus-visible,
 .title-input:focus-visible,
 .picker-trigger:focus-visible,
 .rich-text:focus-visible,
@@ -484,18 +454,24 @@ h1 {
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 34px;
-  padding: 5px 9px;
+  /* Matches the shadcn Input and NativeSelect beside it. */
+  min-height: 36px;
+  padding: 5px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--background);
   color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   text-align: left;
 }
-.section-actions .picker-trigger {
+.section-actions .picker-trigger,
+.grid-actions .picker-trigger {
   width: auto;
+  /* Matches the small buttons beside it. */
+  box-shadow: none;
+  font-size: 12px;
 }
 .popover {
   z-index: 50;
@@ -744,10 +720,8 @@ h1 {
   font-weight: 600;
   color: var(--muted-foreground);
 }
-.inline-control .select {
-  width: auto;
+.inline-control [data-slot='native-select-wrapper'] {
   min-width: 140px;
-  color: var(--foreground);
 }
 .filter-bar {
   display: flex;
@@ -1013,7 +987,6 @@ h1 {
   gap: 6px;
 }
 .grid-actions .picker-trigger {
-  width: auto;
   min-height: 30px;
 }
 .grid-scroll {
@@ -1063,7 +1036,7 @@ h1 {
 }
 .column-sort:focus-visible,
 .group-toggle:focus-visible,
-.cell-select:focus-visible {
+.cell-select [data-slot='native-select']:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
@@ -1143,23 +1116,29 @@ h1 {
 .cell-link:hover {
   text-decoration: underline;
 }
-.cell-select {
-  max-width: 100%;
+/* Grid cells keep a borderless select until hover, so rows read as text. */
+.cell-select [data-slot='native-select'] {
   height: 28px;
-  border: 1px solid transparent;
-  border-radius: 5px;
+  padding: 0 24px 0 6px;
+  border-color: transparent;
   background: transparent;
+  box-shadow: none;
   color: inherit;
   font: inherit;
 }
-.cell-select:hover {
+.cell-select:hover [data-slot='native-select'] {
   border-color: var(--border);
+}
+.cell-select [data-slot='native-select-icon'] {
+  right: 6px;
 }
 .ticket-row .picker-trigger {
   min-height: 28px;
   padding: 2px 6px;
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
+  font-size: inherit;
 }
 .ticket-row .picker-trigger:hover {
   border-color: var(--border);

@@ -22,6 +22,7 @@ import { backlogsQuery, statesQuery, typesQuery, workItemsQuery } from '../../li
 import { usePendingChanges, useQuickSave, withPending } from '../../lib/saves';
 import { useScope, useSetSearch } from '../../lib/scope';
 import { useCreate } from '../work-items/create';
+import { NativeSelect } from '../../components/ui/native-select';
 
 /** Stable card order: priority first (missing last), then ID. */
 const byPriority = (a: WorkItemSummary, b: WorkItemSummary) =>
@@ -72,17 +73,13 @@ export function BoardView() {
         </div>
         <label className="inline-control">
           Type
-          <select
-            className="select"
-            value={type ?? ''}
-            onChange={(e) => setSearch({ type: e.target.value })}
-          >
+          <NativeSelect value={type ?? ''} onChange={(e) => setSearch({ type: e.target.value })}>
             {types.data?.map((t) => (
               <option key={t.name} value={t.name}>
                 {t.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       </div>
       <FilterBar tags={[...new Set(all.flatMap((item) => item.tags))]} />
