@@ -607,6 +607,11 @@ Pushing and publication still need explicit approval.
    regression failed before the fix and passed afterward. `npm run check` passed
    (113 unit/integration tests), and `npm run test:e2e` passed (45 browser tests).
    Ponytail, separate correctness/security, and staged privacy reviews passed.
+2. Retrying a partly superseded save now sends only the fields it still owns.
+   Unit and browser regressions failed before the fix and passed afterward; the
+   browser checks a failed combined save followed by a successful State edit.
+   `npm run check` passed (114 tests), and `npm run test:e2e` passed (46 tests).
+   Ponytail, separate correctness/security, and staged privacy reviews passed.
 
 ## Machine notes
 

@@ -63,4 +63,11 @@ describe('pending overlay', () => {
     ]);
     expect(overlay['System.Title'].value).toBe('Rejected');
   });
+
+  it('retries only the fields still owned by a partially superseded failure', () => {
+    const failed = state({ 'System.State': 'Resolved', 'Custom.Reason': 'Fixed' }, 'error', 1);
+    const overlay = pendingOverlay([failed, state({ 'System.State': 'Active' }, 'success', 2)]);
+    expect(overlay['Custom.Reason'].save.fields).toEqual({ 'Custom.Reason': 'Fixed' });
+    expect(failed.save.fields['System.State']).toBe('Resolved');
+  });
 });

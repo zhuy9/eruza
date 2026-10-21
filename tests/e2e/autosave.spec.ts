@@ -47,3 +47,50 @@ test('leaving an untouched focused field never overwrites a refreshed value', as
   const saved = await page.request.get(`/api/work-items/${item.id}`);
   expect((await saved.json()).item.title).toBe('Title changed elsewhere');
 });
+
+test('retrying a combined save does not undo a newer successful field edit', async ({ page }) => {
+  const response = await page.request.post('/api/work-items', {
+    headers,
+    data: {
+      projectId: 'sample-project',
+      type: 'Bug',
+      fields: {
+        'System.Title': 'Partial retry example',
+        'Custom.FoundIn': 'Release 3',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const { id } = (await response.json()) as { id: number };
+  await page.goto(`/board?item=${id}`);
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Partial retry example');
+  const patches: Record<string, unknown>[] = [];
+  let rejectCombined = true;
+  await page.route(`**/api/work-items/${id}`, async (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    const { fields } = route.request().postDataJSON();
+    patches.push(fields);
+    if (rejectCombined && Object.keys(fields).length === 2) {
+      rejectCombined = false;
+      return route.fulfill({
+        status: 503,
+        json: { code: 'UPSTREAM', message: 'Try this change again.' },
+      });
+    }
+    return route.fallback();
+  });
+  await page.getByLabel('State', { exact: true }).selectOption('Resolved');
+  await page.getByLabel('Resolved Reason', { exact: true }).selectOption('Fixed');
+  await page.getByRole('button', { name: 'Save together' }).click();
+  await expect(page.getByText('Try this change again.')).toBeVisible();
+  await page.getByLabel('State', { exact: true }).selectOption('Active');
+  const problem = page.getByRole('alert').filter({ hasText: 'Not saved: Resolved Reason.' });
+  await expect(problem).toBeVisible();
+  await problem.getByRole('button', { name: 'Save again' }).click();
+  await expect(problem).toBeHidden();
+  expect(patches.at(-1)).toEqual({ 'Microsoft.VSTS.Common.ResolvedReason': 'Fixed' });
+  const saved = await page.request.get(`/api/work-items/${id}`);
+  expect((await saved.json()).item.state).toBe('Active');
+});

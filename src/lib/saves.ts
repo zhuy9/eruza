@@ -61,14 +61,17 @@ export type Pending = Omit<SaveState, 'submittedAt' | 'status'> & {
 export function pendingOverlay(saves: SaveState[]): Record<string, Pending> {
   const out: Record<string, Pending> = {};
   for (const state of [...saves].sort((a, b) => a.submittedAt - b.submittedAt)) {
+    const save = { ...state.save, fields: { ...state.save.fields } };
     for (const [field, value] of Object.entries(state.save.fields)) {
+      // Retrying an older save must not resend fields owned by a later edit.
+      if (out[field]) delete out[field].save.fields[field];
       if (state.status === 'success') delete out[field];
       else {
         out[field] = {
           value,
           status: state.status as Pending['status'],
           error: state.error,
-          save: state.save,
+          save,
           mutation: state.mutation,
         };
       }
