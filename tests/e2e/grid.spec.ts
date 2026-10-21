@@ -23,7 +23,7 @@ const outline = (page: Page) =>
 const groupsOf = (page: Page, id: number) =>
   row(page, id).evaluate((ticket) => {
     const labels: string[] = [];
-    let depth = 2;
+    let depth = Infinity;
     for (let r = ticket.previousElementSibling; r && depth > 0; r = r.previousElementSibling) {
       const d = Number(r.getAttribute('data-depth'));
       if (r.classList.contains('group-row') && d < depth) {
@@ -819,6 +819,19 @@ test('UI response times on the 1,000-ticket sprint', async ({ page, browserName 
       })()`,
       `!document.querySelector('tr.ticket-row[data-id="2005"]')`,
     ),
+    // Grouping changes, then collapse and expand on Person, then Type, then Story.
+    addLevel: await timeIt(
+      page,
+      `document.querySelector('[data-add="type"]').click()`,
+      `!!document.querySelector('tr.group-row[data-depth="2"]')`,
+    ),
+    moveLevel: await timeIt(
+      page,
+      `document.querySelector('[data-level="type"] [data-action="earlier"]').click()`,
+      `document.querySelector('tr.group-row[data-depth="1"] button')?.textContent.startsWith('Type: ')`,
+    ),
+    customCollapseAll: await timeIt(page, click('Collapse all'), `${tickets} === 0`),
+    customExpandAll: await timeIt(page, click('Expand all'), `${tickets} > 0`),
   };
   const viewport = page.viewportSize();
   const note = `${browserName} ${page.context().browser()?.version()}, ${viewport?.width}x${viewport?.height}, ${size} tickets: ${JSON.stringify(times)} ms`;
@@ -870,4 +883,99 @@ test('no per-ticket reads, and polling pauses while the page is hidden', async (
   await setVisibility(page, 'visible');
   await expect.poll(() => counts.list).toBe(3);
   expect(counts.item).toBe(0);
+});
+
+test('a custom grouping URL regroups the grid, and drops need a story level', async ({ page }) => {
+  const item = await createTicket(page, 'Custom grouping example', {
+    'System.AssignedTo': 'person-b',
+  });
+  const update = page.getByRole('link', { name: 'Sprint update', exact: true });
+  const retro = page.getByRole('link', { name: 'Sprint retro', exact: true });
+
+  await page.goto(`/grid?group=type,person&text=${item.id}`);
+  await expect(page.getByRole('heading', { name: 'Custom grouping' })).toBeVisible();
+  await expect(page.locator('.page-description')).toHaveText('Grouped by Type, then Person.');
+  expect(await groupsOf(page, item.id)).toEqual(['Type: Task', 'Person B']);
+  await expect(row(page, item.id).locator('.drag-handle')).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Story' })).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Person' })).toHaveCount(0);
+  await expect(page).not.toHaveURL(/[?&]grouping=/);
+  await expect(update).not.toHaveAttribute('aria-current', 'page');
+  await expect(retro).not.toHaveAttribute('aria-current', 'page');
+
+  // An order that matches a preset is that preset, and old links still highlight.
+  await page.goto('/grid?group=story,person');
+  await expect(page.getByRole('heading', { name: 'Sprint retro' })).toBeVisible();
+  await expect(retro).toHaveAttribute('aria-current', 'page');
+  await page.goto('/grid?grouping=story');
+  await expect(retro).toHaveAttribute('aria-current', 'page');
+  await update.click();
+  await expect(page.getByRole('heading', { name: 'Sprint update' })).toBeVisible();
+
+  // Story as a later level still accepts drops on its headings.
+  await page.goto(`/grid?group=type,story,person&text=${item.id}`);
+  expect(await groupsOf(page, item.id)).toEqual([
+    'Type: Task',
+    '#1001 Make checkout easier',
+    'Person B',
+  ]);
+  // Room below the target, so the drag never nears the window edge and auto-scrolls.
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await page.goto('/grid?group=type,story,person&assignee=person-b');
+  await dragTo(page, item.id, '#1010 Show order history');
+  await expect(page.locator('.drag-preview')).toContainText(
+    'Set parent to #1010 Show order history.',
+  );
+  await page.mouse.up();
+  await expect
+    .poll(() => groupsOf(page, item.id))
+    .toEqual(['Type: Task', '#1010 Show order history', 'Person B']);
+});
+
+test('the Group by bar adds, moves, removes, and resets levels from the keyboard', async ({
+  page,
+}) => {
+  await page.goto('/grid?grouping=person');
+  const bar = page.getByRole('group', { name: 'Group by' });
+  const levels = bar.getByRole('listitem');
+  await expect(levels).toHaveText([/Person/, /Story/]);
+
+  await bar.getByRole('button', { name: 'Add Type level' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Custom grouping' })).toBeVisible();
+  await expect(page).toHaveURL(/[?&]group=person%2Cstory%2Ctype/);
+  await expect(bar.getByRole('button', { name: 'Move Type earlier' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(bar.getByRole('button', { name: 'Move Type earlier' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  // Type is first now, so focus moves to the button that still applies.
+  await expect(bar.getByRole('button', { name: 'Move Type later' })).toBeFocused();
+  await expect(levels).toHaveText([/Type/, /Person/, /Story/]);
+  await expect(bar.getByRole('status')).toHaveText('Grouped by Type, then Person, then Story.');
+  for (const name of ['Sprint update', 'Sprint retro']) {
+    await expect(page.getByRole('link', { name, exact: true })).not.toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  }
+  await expect(page.locator('tr.group-row[data-depth="0"]').first()).toContainText('Type: ');
+  await expect(page.locator('tr.group-row[data-depth="2"]').first()).toBeVisible();
+
+  await bar.getByRole('button', { name: 'Remove Story' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(bar.getByRole('button', { name: 'Add Story level' })).toBeFocused();
+  await expect(levels).toHaveText([/Type/, /Person/]);
+  await expect(page.locator('.drag-handle')).toHaveCount(0);
+
+  await bar.getByRole('button', { name: 'Sprint retro order' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Sprint retro' })).toBeVisible();
+  await expect(page).toHaveURL(/[?&]grouping=story/);
+  await expect(page).not.toHaveURL(/[?&]group=/);
+  await expect(bar.getByRole('button', { name: 'Sprint update order' })).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Sprint retro', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(bar.getByRole('button', { name: 'Remove Story' })).toBeEnabled();
 });

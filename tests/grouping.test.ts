@@ -3,6 +3,8 @@ import type { Identity, WorkItemSummary } from '../shared/contracts';
 import {
   gridRows,
   NO_STORY,
+  parseLevels,
+  presetOf,
   PRESETS,
   remainingTotal,
   storyKey,
@@ -199,5 +201,22 @@ describe('pending changes', () => {
       iterationPath: 'Sample\\Sprint 2',
       assignee: null,
     });
+  });
+});
+
+describe('grouping levels in the URL', () => {
+  it('keeps known levels once, in order, and ignores the rest', () => {
+    expect(parseLevels('type,person')).toEqual(['type', 'person']);
+    expect(parseLevels('story,story,bogus,type')).toEqual(['story', 'type']);
+    expect(parseLevels('bogus')).toBeUndefined();
+    expect(parseLevels('')).toBeUndefined();
+    expect(parseLevels(['type'])).toBeUndefined();
+  });
+
+  it('names the preset only for its exact order', () => {
+    expect(presetOf(['person', 'story'])).toBe('person');
+    expect(presetOf(['story', 'person'])).toBe('story');
+    expect(presetOf(['person'])).toBeUndefined();
+    expect(presetOf(['person', 'story', 'type'])).toBeUndefined();
   });
 });

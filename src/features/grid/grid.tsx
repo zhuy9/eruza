@@ -57,13 +57,19 @@ import { useToast } from '../../lib/toast';
 import { AssigneePicker } from '../work-items/pickers';
 import {
   gridRows,
+  LEVEL_LABELS,
   NO_STORY,
+  parseLevels,
+  presetOf,
+  PRESET_TEXT,
   PRESETS,
   remainingTotal,
   UNAVAILABLE_STORY,
   type GridRow,
+  type GroupKey,
 } from './grouping';
 import { NativeSelect } from '../../components/ui/native-select';
+import { GroupBar } from './group-bar';
 import { WithTooltip } from '../../components/ui/tooltip';
 
 const ROW_HEIGHT = 40;
@@ -91,8 +97,9 @@ const byText: SortFn<typeof features, GridRow> = (a, b, id) =>
   String(a.getValue(id)).localeCompare(String(b.getValue(id)));
 const helper = createColumnHelper<typeof features, GridRow>();
 const columns = helper.columns([
-  helper.accessor('person', { header: 'Person' }),
-  helper.accessor('story', { header: 'Story' }),
+  // Grouping keys only. They are hidden, so a custom grouping without them shows no empty column.
+  helper.accessor('person', { header: 'Person', enableHiding: false, enableSorting: false }),
+  helper.accessor('story', { header: 'Story', enableHiding: false, enableSorting: false }),
   helper.accessor('id', { header: 'ID', size: 90, enableHiding: false }),
   helper.accessor('title', { header: 'Title', size: 280, sortFn: byText, enableHiding: false }),
   helper.accessor('type', { header: 'Type', size: 80, sortFn: byText }),
@@ -148,8 +155,12 @@ const gridRoute = getRouteApi('/grid');
 
 /** Meeting grid: sprint tickets grouped by person and story, in either order. */
 export function MeetingGrid() {
-  const { grouping } = gridRoute.useSearch();
-  const levels = PRESETS[grouping];
+  const { grouping, group } = gridRoute.useSearch();
+  const levels: readonly GroupKey[] = useMemo(
+    () => parseLevels(group) ?? PRESETS[grouping ?? 'person'],
+    [group, grouping],
+  );
+  const preset = presetOf(levels);
   const { project, team, sprint, projects, teams, iterations } = useScope();
   const { values: filters, members } = useFilters();
   const session = useQuery(sessionQuery);
@@ -198,7 +209,13 @@ export function MeetingGrid() {
   }, [list.data, pending, members, me, sprintPath, chosenParents, filters, storyTypes, levels]);
   const tableGrouping = useMemo(() => [...levels], [levels]);
 
-  const [initialState] = useState(loadPrefs);
+  const [initialState] = useState(() => {
+    const prefs = loadPrefs();
+    return {
+      ...prefs,
+      columnVisibility: { ...prefs.columnVisibility, person: false, story: false },
+    };
+  });
   const table = useTable({
     features,
     columns,
@@ -211,6 +228,16 @@ export function MeetingGrid() {
     sortDescFirst: false,
     defaultColumn: { sortUndefined: 'last', minSize: MIN_WIDTH, maxSize: MAX_WIDTH },
   });
+  // A sort on a column that became a level would silently reorder its groups.
+  useEffect(
+    () =>
+      table.setSorting((old) =>
+        old.some((s) => levels.includes(s.id as GroupKey))
+          ? old.filter((s) => !levels.includes(s.id as GroupKey))
+          : old,
+      ),
+    [table, levels],
+  );
   const { sorting, columnSizing, columnVisibility } = table.state;
   useEffect(
     () =>
@@ -235,7 +262,7 @@ export function MeetingGrid() {
   const estimateLabels = new Set(rows.flatMap((row) => (row.estimate ? [row.estimate.label] : [])));
   const estimateLabel = estimateLabels.size === 1 ? [...estimateLabels][0] : undefined;
   const total = remainingTotal(rows);
-  const noStoryLevel = !!backlogs.data && storyTypes.size === 0;
+  const noStoryLevel = !!backlogs.data && storyTypes.size === 0 && levels.includes('story');
   const error =
     projects.error ?? teams.error ?? iterations.error ?? backlogs.error ?? list.error ?? null;
 
@@ -244,15 +271,16 @@ export function MeetingGrid() {
       <div className="page-heading">
         <div>
           <p className="eyebrow">SPRINT MEETING</p>
-          <h1>{grouping === 'person' ? 'Sprint update' : 'Sprint retro'}</h1>
+          <h1>{preset ? PRESET_TEXT[preset].name : 'Custom grouping'}</h1>
           <p className="page-description">
-            {grouping === 'person'
-              ? 'Each person, their stories, and their tickets.'
-              : 'Each story, the people on it, and their tickets.'}
+            {preset
+              ? PRESET_TEXT[preset].description
+              : `Grouped by ${levels.map((key) => LEVEL_LABELS[key]).join(', then ')}.`}
           </p>
         </div>
       </div>
       <FilterBar tags={tags} />
+      <GroupBar levels={levels} />
       <ListNotices sprint={sprint} error={error} data={list.data} loading={list.isLoading} />
       {noStoryLevel && (
         <p role="alert" className="notice notice-error">
@@ -317,6 +345,7 @@ export function MeetingGrid() {
                 members,
                 me,
                 estimateLabel,
+                canDrag: levels.includes('story'),
               }}
             />
           )}
@@ -357,6 +386,8 @@ type RowContext = {
   me?: Identity;
   /** The estimate field's label when every ticket uses the same one. */
   estimateLabel?: string;
+  /** Rows drag onto story headings, so only while Story is a level. */
+  canDrag: boolean;
 };
 
 function GridBody(props: {
@@ -726,6 +757,7 @@ function TicketRow({
   const { setNodeRef, setActivatorNodeRef, listeners } = useDraggable({
     id: item.id,
     data: { item },
+    disabled: !context.canDrag,
   });
   const commit = (
     column: string,
@@ -747,17 +779,19 @@ function TicketRow({
       case 'id':
         return (
           <>
-            {/* To the left, so the hint never covers the handle in the row above. */}
-            <WithTooltip label="Drag onto a story heading to change the parent" side="left">
-              <span
-                ref={setActivatorNodeRef}
-                {...listeners}
-                className="drag-handle"
-                aria-hidden="true"
-              >
-                <GripVertical size={14} />
-              </span>
-            </WithTooltip>
+            {context.canDrag && (
+              // To the left, so the hint never covers the handle in the row above.
+              <WithTooltip label="Drag onto a story heading to change the parent" side="left">
+                <span
+                  ref={setActivatorNodeRef}
+                  {...listeners}
+                  className="drag-handle"
+                  aria-hidden="true"
+                >
+                  <GripVertical size={14} />
+                </span>
+              </WithTooltip>
+            )}
             <span className="item-number">#{item.id}</span>
           </>
         );

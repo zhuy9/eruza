@@ -310,24 +310,27 @@ and the levels Person, Story, and Type.
 
 Acceptance:
 
-- [ ] M8.1: Grouping is an ordered list of one to three levels from Person, Story,
+- [x] M8.1: Grouping is an ordered list of one to three levels from Person, Story,
       and Type. The two presets keep their current results, and every M5 check
       still passes unchanged.
-- [ ] M8.2: A "Group by" bar shows numbered level chips with buttons to move each
+- [x] M8.2: A "Group by" bar shows numbered level chips with buttons to move each
       level earlier or later and to remove it, a button to add each unused level,
       and resets to both presets. It works with the keyboard alone, keeps focus on
       the control that was used, and passes the axe checks in both themes.
-- [ ] M8.3: `grouping=person|story` URLs and the sidebar and palette links keep
+- [x] M8.3: `grouping=person|story` URLs and the sidebar and palette links keep
       working and highlighting. Other orders use `group=` and show "Custom
       grouping." Unknown or repeated levels are ignored.
-- [ ] M8.4: Type groups sort by name and carry a "Type:" caption. Counts,
+- [x] M8.4: Type groups sort by name and carry a "Type:" caption. Counts,
       remaining work, expand-all, and collapse-all work at every depth. A story
       estimate appears only at the outermost level.
-- [ ] M8.5: The drag handle and story drop targets appear only while Story is a
+- [x] M8.5: The drag handle and story drop targets appear only while Story is a
       level, and a drop still works when Story is not the first level.
-- [ ] M8.6: Unit tests cover level order and URL parsing. Browser tests cover the
+- [x] M8.6: Unit tests cover level order and URL parsing. Browser tests cover the
       bar, old URLs, and drops. The 1,070-ticket fixture with three levels is
       measured in mock mode only.
+
+M8 passed in mock mode. See [handoff.md](handoff.md) for the evidence. It adds no
+live ADO behavior: the levels use fields the live checks already read.
 
 ## Latest handoff
 

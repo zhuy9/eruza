@@ -3,6 +3,7 @@ import { AppShell } from './components/app-shell';
 import { ItemPage } from './routes/item-page';
 import { BoardView } from './features/board/board';
 import { MeetingGrid } from './features/grid/grid';
+import { parseLevels, presetOf, type Preset } from './features/grid/grouping';
 import type { ViewSearch } from './lib/scope';
 
 // Search values arrive JSON-parsed, so a numeric text search comes back as a number.
@@ -52,9 +53,13 @@ const boardRoute = createRoute({
 const gridRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/grid',
-  validateSearch: (search: Record<string, unknown>): { grouping: 'person' | 'story' } => ({
-    grouping: search.grouping === 'story' ? 'story' : 'person',
-  }),
+  // A preset keeps `grouping`, so old links still work; any other order is a `group` list.
+  // Only one of the two is ever set, so a custom view never matches a preset nav link.
+  validateSearch: (search: Record<string, unknown>): { grouping?: Preset; group?: string } => {
+    const levels = parseLevels(search.group);
+    const preset = levels ? presetOf(levels) : search.grouping === 'story' ? 'story' : 'person';
+    return { grouping: preset, group: preset ? undefined : levels?.join(',') };
+  },
   component: MeetingGrid,
 });
 const itemRoute = createRoute({

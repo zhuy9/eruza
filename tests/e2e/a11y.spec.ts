@@ -34,6 +34,9 @@ for (const theme of ['light', 'dark']) {
       await expect(page.locator('.meeting-grid tbody tr').nth(2)).toBeVisible();
       found.push(...(await problems(page, `grid ${grouping}`)));
     }
+    await page.goto('/grid?group=type,story,person');
+    await expect(page.locator('tr.group-row[data-depth="2"]').first()).toBeVisible();
+    found.push(...(await problems(page, 'grid custom grouping')));
 
     await page.goto('/board?item=1001');
     await expect(page.locator('.comment-body').first()).toBeVisible();

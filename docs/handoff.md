@@ -30,7 +30,8 @@ repository visibility without new approval.
 
 - Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
   on GitHub through `3c66e09`. The user approved each push. The sample seeder, the
-  collapsible sidebar, the shadcn components, and later docs are local commits.
+  collapsible sidebar, the shadcn components, M8 custom grouping, and later docs are
+  local commits.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -811,6 +812,37 @@ like the existing Button, and each step is its own commit.
    rail hints in the narrow stacked layout, which is left as is. The security and
    staged privacy reviews found nothing.
 
+## M8 result: complete (mock mode)
+
+The user asked to borrow a configurable "Group by" idea from a separate project's
+table view for the meeting grid. A review of that design kept its numbered level chips
+and "+ field" buttons, and left out its mouse-only drag reordering, lost-on-reload
+state, A-to-Z group order, and lack of virtualization. The user chose a
+keyboard-friendly chip bar with Person, Story, and Type levels.
+
+- `docs/requirements.md` and M8 define the behavior (commit `8c995ce`).
+- Commit `34e67a4` turned grouping into an ordered list of levels with no change
+  to the presets: all 73 browser tests passed unchanged, plus 200 unit tests.
+- The feature commit adds `src/features/grid/group-bar.tsx`. Its chips move earlier,
+  later, or out with buttons, focus follows the change, and a status region states
+  the order. Presets keep `grouping=person|story`. Other orders use only `group=`, so no
+  preset link is active, and an order equal to a preset becomes that preset. The Person
+  and Story key columns are hidden, a sort on a column that becomes a level is
+  dropped, story estimates show only at the outermost level, and the drag handle and
+  the no-story-level notice apply only while Story is a level.
+- `npm run check` passed (202 tests), and `npm run test:e2e` passed (75 tests). New
+  tests cover level order and URL parsing, custom URLs, a drop with Story as the second
+  level, the bar from the keyboard, and axe on three levels in both themes.
+- Mock timing on the 1,070-ticket sprint (Chromium, 1440x900): adding a level 31 ms,
+  moving one 29 ms, collapse all 4 ms and expand all 12 ms with three levels. The
+  existing preset timings stayed at or under 35 ms.
+- Ponytail review merged the chip buttons and the preset text. The correctness review
+  found the preset nav link lighting up on custom views, empty Person and Story
+  columns, a saved sort reordering groups, silent level changes for screen readers,
+  the story notice hiding the grid without a Story level, and Safari dropping list
+  semantics; all are fixed. The security and staged privacy reviews found nothing,
+  and no code, names, or text from the other project are in this repo.
+
 ## Sample data for live mode
 
 The user asked for made-up data to try Eruza against Azure DevOps. `npm run seed`
@@ -860,9 +892,9 @@ the dev-server and Ctrl+C checks.
 ## Next steps
 
 Stage 1, the ten audit fixes, and the four follow-up review fixes are complete and on
-GitHub through `3c66e09`. The sample seeder, the collapsible sidebar, and the three
-shadcn component steps are local commits; pushing them and any publication or
-visibility change need explicit approval. Not yet checked against live ADO: the
-first-load stale read in follow-up fix 3. The lower-severity findings from the
-whole-codebase review, including comments not refreshing the item revision, are not
-fixed yet. Keep `refs/t3/` local; never push with `--all` or `--mirror`.
+GitHub through `3c66e09`. The sample seeder, the collapsible sidebar, the three shadcn
+component steps, and M8 custom grouping are local commits; pushing them and any
+publication or visibility change need explicit approval. Not yet checked against live
+ADO: the first-load stale read in follow-up fix 3. The lower-severity findings from
+the whole-codebase review, including comments not refreshing the item revision, are
+not fixed yet. Keep `refs/t3/` local; never push with `--all` or `--mirror`.

@@ -3,14 +3,36 @@ import { matchesFilters, UNASSIGNED, type Filters } from '../../lib/filters';
 
 /** A grouping level. Levels are listed outermost first, each at most once. */
 export type GroupKey = 'person' | 'story' | 'type';
-/** The levels a user can add, in the order the Group by bar offers them. */
-export const GROUP_KEYS: readonly GroupKey[] = ['person', 'story', 'type'];
+/** Level names, in the order the Group by bar offers them. */
+export const LEVEL_LABELS: Record<GroupKey, string> = {
+  person: 'Person',
+  story: 'Story',
+  type: 'Type',
+};
+export const GROUP_KEYS = Object.keys(LEVEL_LABELS) as GroupKey[];
 /** The meeting presets, by their `grouping` URL value. */
 export const PRESETS = {
   person: ['person', 'story'],
   story: ['story', 'person'],
 } as const satisfies Record<string, readonly GroupKey[]>;
 export type Preset = keyof typeof PRESETS;
+export const PRESET_TEXT: Record<Preset, { name: string; description: string }> = {
+  person: { name: 'Sprint update', description: 'Each person, their stories, and their tickets.' },
+  story: { name: 'Sprint retro', description: 'Each story, the people on it, and their tickets.' },
+};
+
+/** Custom levels from the URL's `group` value. Unknown and repeated keys are ignored. */
+export function parseLevels(value: unknown): GroupKey[] | undefined {
+  if (typeof value !== 'string') return undefined;
+  const levels = [...new Set(value.split(','))].filter((key): key is GroupKey =>
+    GROUP_KEYS.includes(key as GroupKey),
+  );
+  return levels.length ? levels : undefined;
+}
+
+/** The preset with exactly these levels, if any. */
+export const presetOf = (levels: readonly GroupKey[]) =>
+  (Object.keys(PRESETS) as Preset[]).find((preset) => PRESETS[preset].join() === levels.join());
 
 /** Story group keys for tickets without a readable story. Story groups use the story's ID. */
 export const NO_STORY = 'none';
