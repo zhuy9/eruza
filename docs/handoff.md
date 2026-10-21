@@ -618,6 +618,13 @@ Pushing and publication still need explicit approval.
    `npm run check` passed (114 tests), and `npm run test:e2e` passed (47 tests).
    Ponytail, separate correctness/security, and staged privacy reviews passed.
 
+Finding 10: concurrent Retry-After responses can only extend the shared deadline.
+Requests recheck it after authentication and each wait. Three new unit regressions
+failed before the fix and passed afterward: extension while waiting, a shorter
+concurrent delay, and a delay received during authentication. `npm run check`
+passed (117 tests), and `npm run test:e2e` passed (47 tests). Ponytail, separate
+correctness/security, and staged privacy reviews passed. Real 429s were not induced.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from

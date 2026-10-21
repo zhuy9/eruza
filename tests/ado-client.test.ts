@@ -95,6 +95,70 @@ describe('ADO client', () => {
     expect(() => segment('.')).toThrow();
   });
 
+  it('rechecks a concurrent extension while a request is waiting', async () => {
+    vi.useFakeTimers();
+    let finish!: (response: Response) => void;
+    const fetch = stubFetch();
+    fetch.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+    fetch.mockResolvedValueOnce(Response.json({}, { headers: { 'retry-after': '1' } }));
+    const ado = createAdoClient('sample-org', fakeAuth());
+    const inFlight = ado.json('slow');
+    await vi.advanceTimersByTimeAsync(0);
+    await ado.json('initial-limit');
+    const queued = ado.json('queued');
+    await vi.advanceTimersByTimeAsync(200);
+    finish(Response.json({}, { headers: { 'retry-after': '2' } }));
+    await inFlight;
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await queued;
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not shorten a deadline when another response asks for less time', async () => {
+    vi.useFakeTimers();
+    let finish!: (response: Response) => void;
+    const fetch = stubFetch();
+    fetch.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+    fetch.mockResolvedValueOnce(Response.json({}, { headers: { 'retry-after': '3' } }));
+    const ado = createAdoClient('sample-org', fakeAuth());
+    const inFlight = ado.json('slow');
+    await vi.advanceTimersByTimeAsync(0);
+    await ado.json('long-limit');
+    await vi.advanceTimersByTimeAsync(200);
+    finish(Response.json({}, { headers: { 'retry-after': '1' } }));
+    await inFlight;
+    const queued = ado.json('queued');
+    await vi.advanceTimersByTimeAsync(2799);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await queued;
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('checks the latest deadline after authentication finishes', async () => {
+    vi.useFakeTimers();
+    let finish!: (response: Response) => void;
+    let signIn!: (header: { Authorization: string }) => void;
+    const fetch = stubFetch();
+    fetch.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+    const auth = fakeAuth();
+    const ado = createAdoClient('sample-org', auth);
+    const inFlight = ado.json('slow');
+    await vi.advanceTimersByTimeAsync(0);
+    auth.getAuthHeader.mockImplementationOnce(() => new Promise((resolve) => (signIn = resolve)));
+    const queued = ado.json('queued');
+    finish(Response.json({}, { headers: { 'retry-after': '1' } }));
+    await inFlight;
+    signIn({ Authorization: 'Bearer test-token' });
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await queued;
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it('fails fast instead of hanging when the server asks for a long wait', async () => {
     const fetch = stubFetch(Response.json({}, { headers: { 'retry-after': '60' } }));
     const ado = createAdoClient('sample-org', fakeAuth());

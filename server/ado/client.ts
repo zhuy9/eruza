@@ -90,14 +90,15 @@ export function createAdoClient(organization: string, auth: Auth) {
   async function request(path: string, init: Init = {}): Promise<Response> {
     // Built on a fixed origin, so a path can never send the token to another host.
     const url = new URL(`${encodeURIComponent(organization)}/${path}`, `${ORIGIN}/`);
-    const wait = notBefore - Date.now();
-    if (wait > MAX_WAIT_MS) throw adoError('RATE_LIMITED', { retryAfterMs: wait });
-    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     const headers: Record<string, string> = {
       ...(await auth.getAuthHeader()),
       Accept: 'application/json',
     };
     if (init.body !== undefined) headers['Content-Type'] = init.contentType ?? 'application/json';
+    for (let wait = notBefore - Date.now(); wait > 0; wait = notBefore - Date.now()) {
+      if (wait > MAX_WAIT_MS) throw adoError('RATE_LIMITED', { retryAfterMs: wait });
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
     let response: Response;
     try {
       response = await fetch(url, {
@@ -110,7 +111,7 @@ export function createAdoClient(organization: string, auth: Auth) {
       throw adoError(init.write ? 'UNKNOWN_OUTCOME' : 'NETWORK');
     }
     const retryAfter = Number(response.headers.get('retry-after'));
-    if (retryAfter > 0) notBefore = Date.now() + retryAfter * 1000;
+    if (retryAfter > 0) notBefore = Math.max(notBefore, Date.now() + retryAfter * 1000);
     const code = CODES[response.status] ?? (response.ok ? null : 'UPSTREAM');
     if (!code) return response;
     if (code === 'AUTH_REQUIRED') auth.clearToken();
