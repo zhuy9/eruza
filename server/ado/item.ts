@@ -158,19 +158,21 @@ async function conflictOr(ado: Ado, id: number, expectedRev: number, error: unkn
 }
 
 async function patchItem(ado: Ado, id: number, expectedRev: number, ops: PatchOp[]) {
+  let raw: RawItem;
   try {
-    const raw = await ado.json<RawItem>(
-      `_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`,
-      {
-        method: 'PATCH',
-        body: [{ op: 'test', path: '/rev', value: expectedRev }, ...ops],
-        contentType: PATCH,
-        write: true,
-      },
-    );
-    return toDetail(raw, ado.identities, ado.organization);
+    raw = await ado.json<RawItem>(`_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`, {
+      method: 'PATCH',
+      body: [{ op: 'test', path: '/rev', value: expectedRev }, ...ops],
+      contentType: PATCH,
+      write: true,
+    });
   } catch (error) {
     throw await conflictOr(ado, id, expectedRev, error);
+  }
+  try {
+    return toDetail(raw, ado.identities, ado.organization);
+  } catch {
+    throw adoError('UNKNOWN_OUTCOME');
   }
 }
 

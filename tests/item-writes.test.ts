@@ -125,6 +125,20 @@ describe('create', () => {
       createWorkItem(ado, { projectId: 'Sample', type: 'Task', fields: { 'System.Title': 'x' } }),
     ).rejects.toMatchObject({ body: { code: 'UNKNOWN_OUTCOME' } });
   });
+
+  it.each(['{broken', JSON.stringify({ unexpected: true })])(
+    'reports an unreadable 201 create response as unknown without repeating it: %s',
+    async (body) => {
+      const { ado, calls } = fakeAdo({
+        'GET /_apis/wit/fields': () => fieldsList,
+        'POST /workitems/$Task': () => new Response(body, { status: 201 }),
+      });
+      await expect(
+        createWorkItem(ado, { projectId: 'Sample', type: 'Task', fields: { 'System.Title': 'x' } }),
+      ).rejects.toMatchObject({ body: { code: 'UNKNOWN_OUTCOME' } });
+      expect(calls.filter((call) => call.method === 'POST')).toHaveLength(1);
+    },
+  );
 });
 
 describe('update', () => {
@@ -183,6 +197,20 @@ describe('update', () => {
       updateWorkItem(ado, 9, { expectedRev: 4, fields: { 'System.Title': 'x' } }),
     ).rejects.toMatchObject({ body: { code: 'CONFLICT' } });
   });
+
+  it.each(['{broken', JSON.stringify({ ...rawItem(9, 5), rev: 'invalid' })])(
+    'reports an unreadable successful patch as unknown without repeating it: %s',
+    async (body) => {
+      const { ado, calls } = fakeAdo({
+        'GET /_apis/wit/fields': () => fieldsList,
+        'PATCH /workitems/9': () => new Response(body),
+      });
+      await expect(
+        updateWorkItem(ado, 9, { expectedRev: 4, fields: { 'System.Title': 'x' } }),
+      ).rejects.toMatchObject({ body: { code: 'UNKNOWN_OUTCOME' } });
+      expect(calls.map((call) => call.method)).toEqual(['GET', 'PATCH']);
+    },
+  );
 });
 
 describe('parent changes', () => {
@@ -212,6 +240,17 @@ describe('parent changes', () => {
       { op: 'test', path: '/rev', value: 4 },
       { op: 'remove', path: '/relations/1' },
     ]);
+  });
+
+  it('reports a successful parent response with an invalid item as unknown', async () => {
+    const { ado, calls } = fakeAdo({
+      ...routes([link(PARENT, 7)]),
+      'PATCH /workitems/9': () => ({ ...rawItem(9, 5), rev: 'invalid' }),
+    });
+    await expect(setParent(ado, 9, { parentId: 8, expectedRev: 4 })).rejects.toMatchObject({
+      body: { code: 'UNKNOWN_OUTCOME' },
+    });
+    expect(calls.map((call) => call.method)).toEqual(['GET', 'PATCH']);
   });
 
   it('refuses self-parenting without calling ADO', async () => {
@@ -341,6 +380,16 @@ describe('comments', () => {
     expect(last.calls[0].search).not.toContain('continuationToken');
   });
 
+  it('reports a malformed 201 comment response as unknown without repeating it', async () => {
+    const { ado, calls } = fakeAdo({
+      'POST /workItems/9/comments': () => new Response('{broken', { status: 201 }),
+    });
+    await expect(
+      addComment(ado, 9, { projectId: 'Sample', html: '<p>Synthetic comment</p>' }),
+    ).rejects.toMatchObject({ body: { code: 'UNKNOWN_OUTCOME' } });
+    expect(calls).toHaveLength(1);
+  });
+
   it('posts HTML with mentions once and reports a lost response as an unknown outcome', async () => {
     const posted = {
       id: 4,
@@ -418,6 +467,14 @@ describe('delete', () => {
         search: '?destroy=false&api-version=7.1',
       },
     ]);
+  });
+
+  it('accepts an empty 204 response without decoding it', async () => {
+    const { ado, calls } = fakeAdo({
+      'DELETE /workitems/9': () => new Response(null, { status: 204 }),
+    });
+    await expect(deleteWorkItem(ado, 9)).resolves.toBeUndefined();
+    expect(calls).toHaveLength(1);
   });
 
   it('reports refusal and lost responses without trying again', async () => {

@@ -127,7 +127,14 @@ export function createAdoClient(organization: string, auth: Auth) {
     identities,
     commentImages,
     request,
-    json: async <T>(path: string, init?: Init): Promise<T> =>
-      (await request(path, init)).json() as Promise<T>,
+    json: async <T>(path: string, init?: Init): Promise<T> => {
+      const response = await request(path, init);
+      try {
+        return (await response.json()) as T;
+      } catch (error) {
+        if (init?.write) throw adoError('UNKNOWN_OUTCOME');
+        throw error;
+      }
+    },
   };
 }

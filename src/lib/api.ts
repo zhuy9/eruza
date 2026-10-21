@@ -15,22 +15,23 @@ export const apiError = (error: unknown): ApiError =>
     : { code: 'UPSTREAM', message: 'Something went wrong. Try again.' };
 
 async function send<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
+  const writing = init?.method && init.method !== 'GET';
+  const unknownOutcome: ApiError = {
+    code: 'UNKNOWN_OUTCOME',
+    message: 'Lost contact with Eruza. Check the item before repeating the change.',
+  };
   let response: Response;
   try {
     response = await fetch(`/api${path}`, init);
   } catch {
-    const writing = init?.method && init.method !== 'GET';
     throw new ApiRequestError(
       writing
-        ? {
-            code: 'UNKNOWN_OUTCOME',
-            message: 'Lost contact with Eruza. Check the item before repeating the change.',
-          }
+        ? unknownOutcome
         : { code: 'NETWORK', message: 'Could not reach the local Eruza server.' },
     );
   }
-  const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
     const error = apiErrorSchema.safeParse(body);
     throw new ApiRequestError(
       error.success
@@ -38,7 +39,16 @@ async function send<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): 
         : { code: 'UPSTREAM', message: 'The local server did not respond as expected.' },
     );
   }
-  return schema.parse(body);
+  try {
+    const body: unknown = await response.json().catch((error: unknown) => {
+      if (writing && response.status !== 204) throw error;
+      return null;
+    });
+    return schema.parse(body);
+  } catch (error) {
+    if (writing) throw new ApiRequestError(unknownOutcome);
+    throw error;
+  }
 }
 
 export const getJson = <T>(path: string, schema: z.ZodType<T>) => send(path, schema);

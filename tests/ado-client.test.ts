@@ -67,6 +67,56 @@ describe('ADO client', () => {
     expect(JSON.stringify(error)).not.toContain('ECONNREFUSED');
   });
 
+  it('reports a malformed successful write response as unknown without retrying', async () => {
+    const fetch = stubFetch(new Response('{broken', { status: 201 }));
+    const ado = createAdoClient('sample-org', fakeAuth());
+    await expect(ado.json('x', { method: 'POST', write: true })).rejects.toMatchObject({
+      body: { code: 'UNKNOWN_OUTCOME' },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a failed successful-write body stream as unknown without exposing it', async () => {
+    const fetch = stubFetch(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(new TypeError('synthetic body stream failure'));
+          },
+        }),
+        { status: 201 },
+      ),
+    );
+    const error = await createAdoClient('sample-org', fakeAuth())
+      .json('x', { method: 'POST', write: true })
+      .catch((error: unknown) => error);
+    expect(error).toMatchObject({ body: { code: 'UNKNOWN_OUTCOME' } });
+    expect(JSON.stringify(error)).not.toContain('synthetic body stream failure');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([400, 401, 403, 404, 409, 429, 500])(
+    'preserves classified HTTP %i errors for writes',
+    async (status) => {
+      const fetch = stubFetch(
+        new Response('{broken', { status }),
+        new Response('{broken', { status }),
+      );
+      const ado = createAdoClient('sample-org', fakeAuth());
+      const readError = await ado.json('x').catch((error: unknown) => error);
+      await expect(ado.json('x', { method: 'POST', write: true })).rejects.toEqual(readError);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('preserves JSON decoding errors for POST reads', async () => {
+    const fetch = stubFetch(new Response('{broken'));
+    await expect(
+      createAdoClient('sample-org', fakeAuth()).json('x', { method: 'POST' }),
+    ).rejects.toBeInstanceOf(SyntaxError);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('returns RATE_LIMITED with the server delay', async () => {
     stubFetch(new Response(null, { status: 429, headers: { 'retry-after': '7' } }));
     await expect(createAdoClient('sample-org', fakeAuth()).json('x')).rejects.toMatchObject({

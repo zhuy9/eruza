@@ -623,6 +623,13 @@ Pushing and publication still need explicit approval.
    before implementation; all 32 rich-text tests passed after integration.
    `npm run check` passed (138 tests), and `npm run test:e2e` passed (47 tests).
    Ponytail, separate correctness/security, and staged privacy reviews passed.
+5. Unreadable successful write responses now report `UNKNOWN_OUTCOME` from both
+   clients, including failed body streams and invalid item responses. Classified
+   failures, reads, and empty DELETE 204 responses keep their behavior. Delegated
+   unit and root browser regressions failed before the fix. The browser confirms
+   one create/comment write, the warning, the draft, and the refreshed comment.
+   `npm run check` passed (173 tests), and `npm run test:e2e` passed (49 tests).
+   Ponytail, separate correctness/security, and staged privacy reviews passed.
 
 Finding 10: concurrent Retry-After responses can only extend the shared deadline.
 Requests recheck it after authentication and each wait. Three new unit regressions
