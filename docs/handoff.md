@@ -612,6 +612,11 @@ Pushing and publication still need explicit approval.
    browser checks a failed combined save followed by a successful State edit.
    `npm run check` passed (114 tests), and `npm run test:e2e` passed (46 tests).
    Ponytail, separate correctness/security, and staged privacy reviews passed.
+3. A failed detail refresh shows a warning above the cached editor. It no longer
+   unmounts the editor or loses comment drafts. The new browser regression failed
+   before the fix and passed through failure and recovery afterward.
+   `npm run check` passed (114 tests), and `npm run test:e2e` passed (47 tests).
+   Ponytail, separate correctness/security, and staged privacy reviews passed.
 
 ## Machine notes
 

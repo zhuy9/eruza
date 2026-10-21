@@ -48,6 +48,35 @@ test('leaving an untouched focused field never overwrites a refreshed value', as
   expect((await saved.json()).item.title).toBe('Title changed elsewhere');
 });
 
+test('a failed background refresh keeps the comment draft through recovery', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/board?item=1011');
+  const box = page.getByRole('textbox', { name: 'New comment' });
+  await expect(box).toBeVisible();
+  await box.fill('Keep this unsent comment.');
+  let failing = true;
+  let failures = 0;
+  await page.route('**/api/work-items/1011', (route) => {
+    if (!failing || route.request().method() !== 'GET') return route.fallback();
+    failures++;
+    return route.fulfill({
+      status: 502,
+      json: { code: 'UPSTREAM', message: 'Temporary detail refresh failure.' },
+    });
+  });
+  await page.clock.runFor(45_000);
+  await expect.poll(() => failures).toBe(1);
+  await page.clock.runFor(2_000);
+  await expect.poll(() => failures).toBe(2);
+  const warning = page.getByRole('alert').filter({ hasText: 'Temporary detail refresh failure.' });
+  await expect(warning).toBeVisible();
+  await expect(box).toHaveText('Keep this unsent comment.');
+  failing = false;
+  await page.clock.runFor(45_000);
+  await expect(warning).toBeHidden();
+  await expect(box).toHaveText('Keep this unsent comment.');
+});
+
 test('retrying a combined save does not undo a newer successful field edit', async ({ page }) => {
   const response = await page.request.post('/api/work-items', {
     headers,

@@ -64,15 +64,24 @@ export function WorkItemEditor({ id, variant }: { id: number; variant: Variant }
         Loading item…
       </p>
     );
-  if (view.isError) {
+  if (!view.data) {
     return (
       <p role="alert" className="notice notice-error">
-        {view.error.message}
+        {view.error?.message}
       </p>
     );
   }
   // Keyed by item so edit state never carries over to another item.
-  return <EditorBody key={view.data.item.id} view={view.data} variant={variant} />;
+  return (
+    <>
+      {view.isError && (
+        <p role="alert" className="notice notice-error">
+          Could not refresh this item. Showing the last loaded version. {view.error.message}
+        </p>
+      )}
+      <EditorBody key={view.data.item.id} view={view.data} variant={variant} />
+    </>
+  );
 }
 
 function ItemLink({ item, variant }: { item: WorkItemSummary; variant: Variant }) {
