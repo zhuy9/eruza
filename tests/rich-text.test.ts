@@ -2,10 +2,11 @@
 import { describe, expect, it } from 'vitest';
 import { descriptions } from '../server/mock/fixtures';
 import { DOMParser as SchemaParser } from '@tiptap/pm/model';
-import { getHTMLFromFragment, getSchema } from '@tiptap/react';
+import { Editor, getHTMLFromFragment, getSchema } from '@tiptap/react';
 import {
   AdoMention,
   editableWithoutLoss,
+  editorShows,
   extensions,
   roundTrip,
   sanitizeHtml,
@@ -152,5 +153,17 @@ describe('mentions', () => {
     expect(link.getAttribute('data-vss-mention')).toBe('version:2.0,person-b');
     expect(link.textContent).toBe('@Person B');
     expect(link.hasAttribute('href')).toBe(false);
+  });
+});
+
+describe('editorShows', () => {
+  it('matches what the editor holds, including lone newlines and links made in it', () => {
+    const html = sanitizeHtml('<p><strong>Note:</strong>\n<em>check logs</em> on the host</p>');
+    const editor = new Editor({ extensions, content: html });
+    expect(editorShows(editor, html)).toBe(true);
+    editor.chain().selectAll().setLink({ href: 'https://example.com' }).run();
+    expect(editorShows(editor, sanitizeHtml(editor.getHTML()))).toBe(true);
+    expect(editorShows(editor, sanitizeHtml('<p>Changed elsewhere</p>'))).toBe(false);
+    editor.destroy();
   });
 });

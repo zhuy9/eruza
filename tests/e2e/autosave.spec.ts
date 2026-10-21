@@ -2,6 +2,112 @@ import { expect, test } from '@playwright/test';
 
 const headers = { origin: 'http://127.0.0.1:5173' };
 
+for (const field of ['Title', 'Description']) {
+  test(`editing a focused ${field} after refresh keeps the displayed revision`, async ({
+    page,
+  }) => {
+    const response = await page.request.post('/api/work-items', {
+      headers,
+      data: {
+        projectId: 'sample-project',
+        type: 'Task',
+        fields: {
+          'System.Title': 'Original title',
+          'System.Description': '<p>Original description</p>',
+          'System.AreaPath': 'Sample project\\Web',
+          'System.IterationPath': 'Sample project\\Sprint 3',
+        },
+      },
+    });
+    expect(response.ok()).toBe(true);
+    const item = (await response.json()) as { id: number; rev: number };
+    await page.clock.install();
+    await page.goto(`/items/${item.id}`);
+    const input = page.getByRole('textbox', { name: field, exact: true });
+    await expect(input).toBeVisible();
+    await input.focus();
+    const remote = field === 'Title' ? 'Remote title' : '<p>Remote description</p>';
+    const changed = await page.request.patch(`/api/work-items/${item.id}`, {
+      headers,
+      data: {
+        expectedRev: item.rev,
+        fields: { [`System.${field}`]: remote, 'System.Tags': 'refreshed' },
+      },
+    });
+    expect(changed.ok()).toBe(true);
+    await page.clock.runFor(45_000);
+    await expect(page.getByLabel('Tags', { exact: true })).toHaveValue('refreshed');
+    const problem = page.getByRole('alert').filter({ hasText: 'changed in Azure DevOps' });
+    const draft = `Original ${field.toLowerCase()} appended`;
+    // Editing again after the conflict still conflicts, and one Discard clears both drafts.
+    for (const text of [draft, `${draft} again`]) {
+      await input.fill(text);
+      await input.press('Tab');
+      await expect(problem).toBeVisible();
+    }
+    if (field === 'Title') await expect(input).toHaveValue(`${draft} again`);
+    else await expect(input).toHaveText(`${draft} again`);
+    await problem.getByRole('button', { name: 'Discard my change' }).click();
+    if (field === 'Title') await expect(input).toHaveValue('Remote title');
+    else await expect(input).toHaveText('Remote description');
+  });
+}
+
+test('leaving an untouched description adopts refreshed text without saving', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/items/1011');
+  const description = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(description).toBeVisible();
+  await description.focus();
+  const before = (await (await page.request.get('/api/work-items/1011')).json()).item;
+  const writes: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'PATCH') writes.push(request.url());
+  });
+  const changed = await page.request.patch('/api/work-items/1011', {
+    headers,
+    data: {
+      expectedRev: before.rev,
+      fields: {
+        'System.Description': '<p>Refreshed description</p>',
+        'System.Tags': 'description-refreshed',
+      },
+    },
+  });
+  expect(changed.ok()).toBe(true);
+  await page.clock.runFor(45_000);
+  await expect(page.getByLabel('Tags', { exact: true })).toHaveValue('description-refreshed');
+  await description.press('Tab');
+  await expect(description).toHaveText('Refreshed description');
+  expect(writes).toEqual([]);
+});
+
+test('switching away from an untouched description keeps its caret', async ({ page }) => {
+  const response = await page.request.post('/api/work-items', {
+    headers,
+    data: {
+      projectId: 'sample-project',
+      type: 'Task',
+      fields: {
+        'System.Title': 'Selection example',
+        'System.Description': '<p>Select this text</p>',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const { id } = (await response.json()) as { id: number };
+  await page.goto(`/items/${id}`);
+  const description = page.getByRole('textbox', { name: 'Description', exact: true });
+  await description.click();
+  await page.keyboard.press('ControlOrMeta+ArrowUp');
+  // Switching tabs or apps blurs the editor but keeps it as the active element.
+  await description.evaluate((el) => el.dispatchEvent(new FocusEvent('blur')));
+  await page.keyboard.type('First, ');
+  await expect(description).toHaveText('First, Select this text');
+});
+
 test('leaving an untouched focused field never overwrites a refreshed value', async ({ page }) => {
   const response = await page.request.post('/api/work-items', {
     headers,

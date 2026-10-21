@@ -1,5 +1,11 @@
 import DOMPurify from 'dompurify';
-import { getHTMLFromFragment, getSchema, type Extensions } from '@tiptap/react';
+import {
+  createDocument,
+  getHTMLFromFragment,
+  getSchema,
+  type Editor,
+  type Extensions,
+} from '@tiptap/react';
 import { DOMParser as SchemaParser } from '@tiptap/pm/model';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
@@ -12,7 +18,12 @@ const SAFE_IMAGE = /^(https:|\/api\/work-items\/\d+\/images\/)/i;
 
 export const extensions: Extensions = [
   StarterKit.configure({
-    link: { openOnClick: false, isAllowedUri: (url) => SAFE_LINK.test(url) },
+    link: {
+      openOnClick: false,
+      isAllowedUri: (url) => SAFE_LINK.test(url),
+      // The rel the sanitizer sets, so new links match the saved HTML.
+      HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' },
+    },
   }),
   TableKit,
   // Inline, like ADO's own markup, so images stay inside their paragraphs.
@@ -66,6 +77,10 @@ export function roundTrip(html: string) {
   const doc = SchemaParser.fromSchema(schema).parse(parseBody(html));
   return getHTMLFromFragment(doc.content, schema);
 }
+
+/** True when the editor already holds `html`. Setting the same content would move the caret. */
+export const editorShows = (editor: Editor, html: string) =>
+  editor.state.doc.eq(createDocument(html, editor.schema));
 
 const ALIASES: Record<string, string> = { b: 'strong', i: 'em', strike: 's', del: 's' };
 const WRAPPERS = new Set('p div span tbody colgroup col'.split(' '));

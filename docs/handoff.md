@@ -687,6 +687,29 @@ they add no live ADO evidence. Pushing and publication still need explicit appro
     passed (117 tests), and `npm run test:e2e` passed (47 tests). Ponytail, separate
     correctness/security, and staged privacy reviews passed. Real 429s were not induced.
 
+## Follow-up engineering review fixes
+
+The user asked for one local commit for each finding from two later code reviews:
+three from an engineering review and the no-op save loop from a whole-codebase
+review. These fixes use synthetic mock data and add no live ADO evidence. Checks ran
+against the full working tree, which held all four fixes.
+
+1. Text and rich-text editors keep the revision of the value they display. A refresh
+   that arrives while a field has focus no longer moves that field's base revision,
+   so an unseen remote edit now conflicts and keeps the draft instead of being
+   overwritten. Leaving an untouched description adopts refreshed text without
+   saving. The editor replaces its content only when the document differs, so
+   switching tabs keeps the caret in place. New links use the same `rel` the
+   sanitizer writes, so saved links match. A new edit after a conflict replaces the
+   older failed draft of the same field, so one Discard shows the saved value. This
+   covers M3.4, M3.7, and M7.5. The three browser regressions failed before the fix.
+   So did the caret, second-edit, and unit checks added after review. `npm run check`
+   passed (196 tests), and `npm run test:e2e` passed (69 tests). Ponytail review
+   removed redundant request and server checks from the tests. The correctness
+   review found the caret jump and the stacked Discard. A second review found two
+   cases where the content check still missed (lone newlines and new links); both
+   are fixed. The security reviews and the staged privacy review found nothing.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -716,6 +739,7 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1 is complete, and all ten audit findings have local commits. Pushing the
-unpushed docs and audit-fix commits and any publication or visibility change need
-explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.
+Stage 1 and the first ten audit fixes are complete. Next, fix session refresh
+failures losing full-page drafts, then stale reads replacing successful saves,
+each in its own local commit. Pushing and any publication or visibility change
+need explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.

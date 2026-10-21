@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type {
   FieldDefinition,
   FieldValue,
@@ -130,15 +130,15 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
   const byRef = new Map((defs.data ?? []).map((d) => [d.referenceName, d]));
   const me = session.data?.user;
 
-  // The revision each field's edit started from, so changes made elsewhere still conflict.
-  const editStart = useRef<Record<string, number>>({});
-  const begin = (ref: string) => {
-    editStart.current[ref] ??= item.rev;
-  };
-  const commit = (fields: FieldChanges) => {
-    const starts = Object.keys(fields).map((ref) => editStart.current[ref] ?? item.rev);
-    for (const ref of Object.keys(fields)) delete editStart.current[ref];
-    save.mutate({ fields, baseRev: Math.min(...starts) });
+  const commit = (fields: FieldChanges, baseRev = item.rev) => {
+    // A new edit replaces older failed drafts of the same fields, so one Discard clears them.
+    for (const old of Object.values(pending)) {
+      const covered = Object.keys(old.save.fields).every((ref) => ref in fields);
+      if (old.status === 'error' && old.mutation && covered) {
+        queryClient.getMutationCache().remove(old.mutation);
+      }
+    }
+    save.mutate({ fields, baseRev });
   };
 
   const value = (ref: string): FieldValue => {
@@ -219,9 +219,9 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         id={`field-${ref}`}
         numeric={numeric}
         value={value(ref)}
+        rev={pending[ref]?.save.baseRev ?? item.rev}
         invalid={!!fieldError(ref)}
-        onEditStart={() => begin(ref)}
-        onCommit={(next) => commit({ [ref]: next })}
+        onCommit={(next, rev) => commit({ [ref]: next }, rev)}
       />
     </FormField>
   );
@@ -263,9 +263,9 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         label="Title"
         className="title-input"
         value={value('System.Title')}
+        rev={pending['System.Title']?.save.baseRev ?? item.rev}
         invalid={!!fieldError('System.Title')}
-        onEditStart={() => begin('System.Title')}
-        onCommit={(next) => commit({ 'System.Title': next })}
+        onCommit={(next, rev) => commit({ 'System.Title': next }, rev)}
       />
       {fieldError('System.Title') && (
         <small className="field-error">{fieldError('System.Title')}</small>
@@ -325,8 +325,8 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         <RichTextField
           label="Description"
           html={String(value('System.Description') ?? '')}
-          onChange={() => begin('System.Description')}
-          onSave={(html) => commit({ 'System.Description': html })}
+          rev={pending['System.Description']?.save.baseRev ?? item.rev}
+          onSave={(html, rev) => commit({ 'System.Description': html }, rev)}
         />
       </section>
 

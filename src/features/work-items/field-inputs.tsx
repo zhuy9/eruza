@@ -97,30 +97,29 @@ export function FieldInput(props: InputProps) {
 type DraftProps = {
   id: string;
   value: FieldValue;
+  rev: number;
   numeric?: boolean;
   className?: string;
   label?: string;
   invalid?: boolean;
-  /** Called once when the user starts changing the value. */
-  onEditStart: () => void;
   /** Called on blur, Enter, or a pause in typing, only when the value changed. */
-  onCommit: (value: FieldValue) => void;
+  onCommit: (value: FieldValue, baseRev: number) => void;
 };
 
 /** Text or number input that keeps a local draft and saves on blur or after a pause. */
 export function DraftInput({
   id,
   value,
+  rev,
   numeric,
   className,
   label,
   invalid,
-  onEditStart,
   onCommit,
 }: DraftProps) {
   const [draft, setDraft] = useState(text(value));
   const [focused, setFocused] = useState(false);
-  const [shown, setShown] = useState(value);
+  const [shown, setShown] = useState({ value, rev });
   const dirty = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const latest = useRef({ value, onCommit });
@@ -130,8 +129,8 @@ export function DraftInput({
   useEffect(() => () => clearTimeout(timer.current), []);
 
   // Take newer server or saved values, but never while the user is typing.
-  if (!focused && value !== shown) {
-    setShown(value);
+  if (!focused && (value !== shown.value || rev !== shown.rev)) {
+    setShown({ value, rev });
     setDraft(text(value));
   }
 
@@ -140,7 +139,7 @@ export function DraftInput({
     if (!dirty.current) return;
     dirty.current = false;
     const next = input === '' ? null : numeric ? Number(input) : input;
-    if (next !== latest.current.value) latest.current.onCommit(next);
+    if (next !== latest.current.value) latest.current.onCommit(next, shown.rev);
   };
 
   return (
@@ -154,7 +153,6 @@ export function DraftInput({
       onFocus={() => setFocused(true)}
       onChange={(e) => {
         const input = e.target.value;
-        if (!dirty.current) onEditStart();
         dirty.current = true;
         setDraft(input);
         clearTimeout(timer.current);

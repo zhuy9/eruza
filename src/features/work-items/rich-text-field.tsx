@@ -1,14 +1,16 @@
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { editableWithoutLoss, extensions, sanitizeHtml } from '../../lib/rich-text';
+import { editableWithoutLoss, editorShows, extensions, sanitizeHtml } from '../../lib/rich-text';
 
 const SAVE_DELAY_MS = 1500;
 
 type Props = {
   label: string;
   html: string;
+  /** The revision of existing content; absent in the create form. */
+  rev?: number;
   /** Called after a user edit, on blur or after a pause. Never called just for opening. */
-  onSave?: (html: string) => void;
+  onSave?: (html: string, baseRev?: number) => void;
   /** Called on every user edit. */
   onChange?: (html: string) => void;
 };
@@ -31,13 +33,14 @@ export function RichTextField(props: Props) {
   );
 }
 
-function RichTextEditor({ label, html, onSave, onChange }: Props) {
+function RichTextEditor({ label, html, rev, onSave, onChange }: Props) {
   const dirty = useRef(false);
+  const shownRev = useRef(rev);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // The editor keeps its first callbacks, so it reads the latest props through a ref.
-  const latest = useRef({ onSave, onChange });
+  const latest = useRef({ html, rev, onSave, onChange });
   useLayoutEffect(() => {
-    latest.current = { onSave, onChange };
+    latest.current = { html, rev, onSave, onChange };
   });
   const editor = useEditor({
     extensions,
@@ -49,23 +52,32 @@ function RichTextEditor({ label, html, onSave, onChange }: Props) {
       clearTimeout(timer.current);
       timer.current = setTimeout(() => flush(editor.getHTML()), SAVE_DELAY_MS);
     },
-    onBlur: ({ editor }) => flush(editor.getHTML()),
+    onBlur: ({ editor }) => {
+      if (dirty.current) flush(editor.getHTML());
+      else if (latest.current.onSave) sync(editor);
+    },
   });
+
+  function sync(editor: Editor) {
+    const html = sanitizeHtml(latest.current.html);
+    if (!editorShows(editor, html)) editor.commands.setContent(html, { emitUpdate: false });
+    shownRev.current = latest.current.rev;
+  }
 
   function flush(content: string) {
     clearTimeout(timer.current);
     if (!dirty.current) return;
     dirty.current = false;
-    latest.current.onSave?.(content);
+    latest.current.onSave?.(content, shownRev.current);
   }
 
   // Show newer server text only when the user is not editing; never emits a save.
   useEffect(() => {
     // React can rerun this effect after the editor instance was destroyed.
     if (editor && !editor.isDestroyed && !editor.isFocused && !dirty.current) {
-      editor.commands.setContent(sanitizeHtml(html), { emitUpdate: false });
+      sync(editor);
     }
-  }, [editor, html]);
+  }, [editor, html, rev]);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
