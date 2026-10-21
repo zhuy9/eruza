@@ -55,3 +55,40 @@ test('the sidebar collapses to icons and remembers the choice', async ({ page })
   await page.reload();
   await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible();
 });
+
+test('icon buttons and rail links show tooltips', async ({ page }) => {
+  await page.goto('/board?item=1001');
+  const tooltip = page.locator('[data-slot="tooltip-content"]');
+  await page.getByRole('button', { name: 'Copy ID' }).hover();
+  await expect(tooltip).toContainText('Copy ID');
+  // Expanded links have no hint, and hovering one leaves nothing to show after collapsing.
+  await page.mouse.move(700, 700, { steps: 5 });
+  await expect(tooltip).toHaveCount(0);
+  const board = page.getByRole('link', { name: 'Board', exact: true });
+  await board.hover();
+  await board.hover({ position: { x: 20, y: 10 } });
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await page.waitForTimeout(300);
+  await expect(tooltip).toHaveCount(0);
+  await page.getByRole('link', { name: 'Sprint update' }).hover();
+  await expect(tooltip).toContainText('Sprint update');
+  await page.getByRole('button', { name: 'Expand sidebar' }).click();
+});
+
+test('Escape first closes a focused button tooltip, then the panel', async ({ page }) => {
+  await page.goto('/board?item=1001');
+  const panel = page.getByRole('complementary', { name: 'Work item details' });
+  const copy = page.getByRole('button', { name: 'Copy ID' });
+  await expect(panel).toBeFocused();
+  for (let i = 0; i < 10 && !(await copy.evaluate((el) => el === document.activeElement)); i++) {
+    await page.keyboard.press('Tab');
+  }
+  const tooltip = page.locator('[data-slot="tooltip-content"]');
+  await expect(tooltip).toContainText('Copy ID');
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toHaveCount(0);
+  await expect(panel).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+});

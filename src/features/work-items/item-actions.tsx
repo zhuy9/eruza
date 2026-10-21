@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import type { WorkItemSummary } from '../../../shared/contracts';
 import { Button } from '../../components/ui/button';
+import { WithTooltip } from '../../components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -41,52 +42,56 @@ export function ItemActions(props: {
       );
   return (
     <div className="item-actions">
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Copy ID"
-        aria-label="Copy ID"
-        onClick={() => copy(String(item.id), `Copied ID ${item.id}.`)}
-      >
-        <Hash size={15} />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Copy link"
-        aria-label="Copy link"
-        onClick={() => {
-          const link = router.buildLocation({
-            to: '/items/$id',
-            params: { id: String(item.id) },
-            search: props.context,
-          });
-          copy(`${location.origin}${link.href}`, `Copied the link to #${item.id}.`);
-        }}
-      >
-        <Link2 size={15} />
-      </Button>
-      {webUrl && (
-        <a
-          className="icon-link"
-          href={webUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open in Azure DevOps"
-          aria-label="Open in Azure DevOps"
+      <WithTooltip label="Copy ID">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Copy ID"
+          onClick={() => copy(String(item.id), `Copied ID ${item.id}.`)}
         >
-          <ExternalLink size={15} />
-        </a>
+          <Hash size={15} />
+        </Button>
+      </WithTooltip>
+      <WithTooltip label="Copy link">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Copy link"
+          onClick={() => {
+            const link = router.buildLocation({
+              to: '/items/$id',
+              params: { id: String(item.id) },
+              search: props.context,
+            });
+            copy(`${location.origin}${link.href}`, `Copied the link to #${item.id}.`);
+          }}
+        >
+          <Link2 size={15} />
+        </Button>
+      </WithTooltip>
+      {webUrl && (
+        <WithTooltip label="Open in Azure DevOps">
+          <a
+            className="icon-link"
+            href={webUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open in Azure DevOps"
+          >
+            <ExternalLink size={15} />
+          </a>
+        </WithTooltip>
       )}
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Delete"
-        aria-label="Delete"
-        onClick={() => setConfirming((key) => key + 1)}
-      >
-        <Trash2 size={15} />
-      </Button>
+      <WithTooltip label="Delete">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Delete"
+          onClick={() => setConfirming((key) => key + 1)}
+        >
+          <Trash2 size={15} />
+        </Button>
+      </WithTooltip>
       {confirming > 0 && (
         <DeleteDialog
           key={confirming}

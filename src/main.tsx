@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
+import { TooltipProvider } from './components/ui/tooltip';
 import { ApiRequestError } from './lib/api';
 import { sessionQuery } from './lib/queries';
 import { router } from './router';
@@ -23,7 +24,10 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      {/* One provider, so moving between tooltips shows the next one at once. */}
+      <TooltipProvider delayDuration={300}>
+        <RouterProvider router={router} />
+      </TooltipProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

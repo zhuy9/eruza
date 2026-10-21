@@ -64,6 +64,7 @@ import {
   type Grouping,
 } from './grouping';
 import { NativeSelect } from '../../components/ui/native-select';
+import { WithTooltip } from '../../components/ui/tooltip';
 
 const ROW_HEIGHT = 40;
 const PRIORITY = 'Microsoft.VSTS.Common.Priority';
@@ -745,15 +746,17 @@ function TicketRow({
       case 'id':
         return (
           <>
-            <span
-              ref={setActivatorNodeRef}
-              {...listeners}
-              className="drag-handle"
-              title="Drag onto a story heading to change the parent"
-              aria-hidden="true"
-            >
-              <GripVertical size={14} />
-            </span>
+            {/* To the left, so the hint never covers the handle in the row above. */}
+            <WithTooltip label="Drag onto a story heading to change the parent" side="left">
+              <span
+                ref={setActivatorNodeRef}
+                {...listeners}
+                className="drag-handle"
+                aria-hidden="true"
+              >
+                <GripVertical size={14} />
+              </span>
+            </WithTooltip>
             <span className="item-number">#{item.id}</span>
           </>
         );

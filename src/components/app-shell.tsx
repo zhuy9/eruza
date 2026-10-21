@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { CommandPalette } from './command-palette';
 import { Button } from './ui/button';
+import { WithTooltip } from './ui/tooltip';
 import { LoginBanner } from './login-banner';
 import { ProjectTeamControls, SprintControl } from './scope-controls';
 import { CreateContext, type CreateRequest } from '../features/work-items/create';
@@ -80,6 +81,8 @@ export function AppShell() {
     localStorage.setItem(SIDEBAR_KEY, next ? 'collapsed' : 'expanded');
   }
   const sidebarAction = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  // The rail shows only icons, so its links get hints; the full sidebar shows the names.
+  const rail = (label: string) => (collapsed ? label : undefined);
 
   return (
     <ToastContext.Provider value={toast}>
@@ -100,31 +103,35 @@ export function AppShell() {
             <div className="workspace-label">WORKSPACE</div>
             <ProjectTeamControls />
             <nav aria-label="Workspace views">
-              <Link to="/board" search={keepView} className="nav-link" title="Board">
-                <Columns3 size={17} />
-                <span className="nav-text">Board</span>
-              </Link>
+              <WithTooltip label={rail('Board')} side="right">
+                <Link to="/board" search={keepView} className="nav-link">
+                  <Columns3 size={17} />
+                  <span className="nav-text">Board</span>
+                </Link>
+              </WithTooltip>
               <div className="nav-section">SPRINT MEETINGS</div>
-              <Link
-                to="/grid"
-                search={(prev) => ({ ...keepView(prev), grouping: 'person' as const })}
-                className="nav-link"
-                activeOptions={{ includeSearch: true }}
-                title="Sprint update"
-              >
-                <UsersRound size={17} />
-                <span className="nav-text">Sprint update</span>
-              </Link>
-              <Link
-                to="/grid"
-                search={(prev) => ({ ...keepView(prev), grouping: 'story' as const })}
-                className="nav-link"
-                activeOptions={{ includeSearch: true }}
-                title="Sprint retro"
-              >
-                <ListTree size={17} />
-                <span className="nav-text">Sprint retro</span>
-              </Link>
+              <WithTooltip label={rail('Sprint update')} side="right">
+                <Link
+                  to="/grid"
+                  search={(prev) => ({ ...keepView(prev), grouping: 'person' as const })}
+                  className="nav-link"
+                  activeOptions={{ includeSearch: true }}
+                >
+                  <UsersRound size={17} />
+                  <span className="nav-text">Sprint update</span>
+                </Link>
+              </WithTooltip>
+              <WithTooltip label={rail('Sprint retro')} side="right">
+                <Link
+                  to="/grid"
+                  search={(prev) => ({ ...keepView(prev), grouping: 'story' as const })}
+                  className="nav-link"
+                  activeOptions={{ includeSearch: true }}
+                >
+                  <ListTree size={17} />
+                  <span className="nav-text">Sprint retro</span>
+                </Link>
+              </WithTooltip>
             </nav>
             <div className="sidebar-footer">
               <div className="user-avatar">{session.data?.user?.displayName.charAt(0) ?? '·'}</div>
@@ -142,16 +149,17 @@ export function AppShell() {
                 {dark ? <Sun size={16} /> : <Moon size={16} />}
               </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="sidebar-toggle"
-              onClick={toggleSidebar}
-              aria-label={sidebarAction}
-              title={sidebarAction}
-            >
-              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-            </Button>
+            <WithTooltip label={sidebarAction} side="right">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sidebar-toggle"
+                onClick={toggleSidebar}
+                aria-label={sidebarAction}
+              >
+                {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              </Button>
+            </WithTooltip>
           </aside>
           <div className="workspace-main">
             <header className="topbar">

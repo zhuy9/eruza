@@ -23,6 +23,7 @@ import { usePendingChanges, useQuickSave, withPending } from '../../lib/saves';
 import { useScope, useSetSearch } from '../../lib/scope';
 import { useCreate } from '../work-items/create';
 import { NativeSelect } from '../../components/ui/native-select';
+import { WithTooltip } from '../../components/ui/tooltip';
 
 /** Stable card order: priority first (missing last), then ID. */
 const byPriority = (a: WorkItemSummary, b: WorkItemSummary) =>
@@ -203,10 +204,12 @@ function CardBody({ item, color }: { item: WorkItemSummary; color: string }) {
             </span>
           ))}
         </div>
-        <span title={item.assignee?.displayName ?? 'Unassigned'}>
-          <Avatar identity={item.assignee} />
-          <span className="sr-only">{item.assignee?.displayName ?? 'Unassigned'}</span>
-        </span>
+        <WithTooltip label={item.assignee?.displayName ?? 'Unassigned'}>
+          <span>
+            <Avatar identity={item.assignee} />
+            <span className="sr-only">{item.assignee?.displayName ?? 'Unassigned'}</span>
+          </span>
+        </WithTooltip>
       </div>
     </>
   );

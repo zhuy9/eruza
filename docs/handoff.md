@@ -797,6 +797,19 @@ like the existing Button, and each step is its own commit.
    discarding the draft, lost focus when the opener was gone, an active X while
    deleting, and reversed button order on narrow screens; all are fixed. The
    security and staged privacy reviews found nothing.
+3. shadcn's Tooltip (`@radix-ui/react-tooltip` 1.4.1) replaces every `title`: icon
+   buttons, the Azure DevOps link, the board avatar, the grid drag handle (opening to
+   the left so it never covers the handle above), and the collapsed rail's links and
+   toggle. One provider in `main.tsx` uses a 300 ms delay. `WithTooltip` renders
+   nothing extra without a label, opens on keyboard focus but not on mouse focus,
+   and the detail panel ignores an Escape that a tooltip already used. The new
+   browser checks failed before the fixes. `npm run check` passed (199 tests), and
+   `npm run test:e2e` passed (73 tests). Ponytail review folded the unused tooltip
+   parts into `WithTooltip`. The correctness review found tooltips stuck open behind
+   label-less links, tooltips reopening after mouse clicks, Escape closing the panel,
+   and the drag-handle overlap; all are fixed. A saved collapsed state still shows
+   rail hints in the narrow stacked layout, which is left as is. The security and
+   staged privacy reviews found nothing.
 
 ## Sample data for live mode
 

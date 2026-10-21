@@ -24,9 +24,10 @@ export function DetailPanel({ id }: { id: number }) {
 
   const onKeyDown = (event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
-    // Escape inside a dialog or popover closes only that layer.
+    // Escape inside a dialog, popover, or tooltip closes only that layer.
     if (
       event.key === 'Escape' &&
+      !event.defaultPrevented &&
       !isTyping(target) &&
       !inDialog(target) &&
       !target.closest('.popover')
