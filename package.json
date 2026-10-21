@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch --import tsx server/dev.ts",
+    "seed": "node --env-file-if-exists=.env --import tsx server/seed.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

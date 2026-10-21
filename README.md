@@ -120,6 +120,23 @@ For mock mode, set `MOCK=1` in `.env` (or skip `.env`; mock is the default) and
 run `npm run dev`. Leave organization settings blank. Mock mode does not need
 Azure CLI. Mock edits stay in memory and reset when the server restarts.
 
+### Sample items in Azure DevOps
+
+Mock mode already has sample data. To try Eruza against Azure DevOps, use a test
+project, set it as `ADO_DEFAULT_PROJECT`, and run `npm run seed` with `MOCK=0`. It
+creates 17 made-up stories, tasks, and bugs: 16 in the current sprint of the project's
+default team and one story in the next sprint. It shows the project, team, and sprint
+and waits for you to type `yes`. `npm run seed -- --yes` skips that step.
+
+- It stops before creating anything if those types need fields it cannot fill.
+- Every sample has the `eruza-sample` tag.
+- Some samples are assigned to you and the rest are unassigned, so nobody else gets an
+  assignment notice.
+- `npm run seed -- --remove` moves the samples to the ADO recycle bin. It only removes
+  items that still have the tag. Their IDs and organization are kept in the ignored
+  `tmp/sample-ids.json`.
+- A second `npm run seed` stops until the earlier samples are removed.
+
 ## Checks
 
 | Command            | What it does                                                  |

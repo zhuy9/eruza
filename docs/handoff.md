@@ -744,6 +744,21 @@ against the full working tree, which held all four fixes.
    instead of failing it; that hang is a loud signal, so the test stays as it is. The
    staged privacy review found nothing.
 
+## Sample data for live mode
+
+The user asked for made-up data to try Eruza against Azure DevOps. `npm run seed`
+(`server/seed.ts`) creates 17 sample items in the current sprint of the default
+project's default team, with one story in the next sprint. The README lists the rules:
+the `eruza-sample` tag, assignment only to the signed-in user, a typed confirmation
+(or `--yes`), and `--remove`, which recycles only tagged items listed in the ignored
+`tmp/sample-ids.json` for the same organization. Mock mode only prints a note. Three
+unit tests run it against the mock API: the full run and removal, real bugs under
+stories, and the refusals (an unfillable required field, a declined target). Ponytail
+review found nothing worth cutting. Two rounds of separate correctness and security
+reviews led to the tag and organization checks on removal, the confirmation, bug
+placement, saving IDs after each create, and clearer messages. `main()` itself has no
+unit test. `npm run check` passed (199 tests). The staged privacy review found nothing.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
