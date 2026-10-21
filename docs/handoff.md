@@ -783,6 +783,20 @@ like the existing Button, and each step is its own commit.
    unused class. The correctness review found a low-contrast chevron (fixed: 5.2:1),
    a dead minimum-width rule, and 14px text in two toolbars; all are fixed. The
    security and staged privacy reviews found nothing.
+2. shadcn's Dialog (Radix, `@radix-ui/react-dialog` 1.3.1) replaces the native
+   `<dialog>` for New work item and Delete. The dialogs have no Radix Trigger, so
+   closing returns focus to whatever had it before, or to the main content, unless
+   something new, such as the created item's panel, already took focus. Both dialogs
+   stay open while their request runs. The create dialog ignores clicks outside, so a
+   stray click cannot discard the draft, and clicking the overlay keeps focus in the
+   dialog so page shortcuts do not fire behind it. Tall dialogs scroll. The new
+   browser regression failed before the review fixes, and the keyboard test caught
+   the focus return. `npm run check` passed (199 tests), and `npm run test:e2e`
+   passed (71 tests). Ponytail review shortened the wrapper. The correctness review
+   found a late create success closing a newer dialog, no scrolling, outside clicks
+   discarding the draft, lost focus when the opener was gone, an active X while
+   deleting, and reversed button order on narrow screens; all are fixed. The
+   security and staged privacy reviews found nothing.
 
 ## Sample data for live mode
 

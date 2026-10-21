@@ -27,7 +27,7 @@ function Picker(props: {
       >
         {props.trigger}
       </Popover.Trigger>
-      {/* No portal: content must stay inside a modal <dialog> to be usable there. */}
+      {/* No portal, so the menu stays inside an open dialog's focus trap. */}
       <Popover.Content className="popover" align="start" sideOffset={4}>
         {props.children}
       </Popover.Content>

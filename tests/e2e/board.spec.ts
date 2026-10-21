@@ -205,3 +205,32 @@ test('New, C, and Ctrl or Cmd K open the shared create form without interrupting
     await expect(dialog).toHaveCount(0);
   }
 });
+
+test('the new item dialog keeps its draft on outside clicks and stays open while creating', async ({
+  page,
+}) => {
+  await page.goto('/board');
+  await expect(page.locator('.board-card').first()).toBeVisible();
+  await page.keyboard.press('c');
+  const dialog = page.getByRole('dialog', { name: 'New work item' });
+  const title = dialog.getByLabel('Title');
+  await title.fill('Dialog draft example');
+  await page.mouse.click(10, 450);
+  await expect(title).toHaveValue('Dialog draft example');
+  await expect(title).toBeFocused();
+
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/work-items', async (route) => {
+    if (route.request().method() === 'POST') await held;
+    return route.fallback();
+  });
+  await dialog.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Creating…' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  release();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Dialog draft example');
+});

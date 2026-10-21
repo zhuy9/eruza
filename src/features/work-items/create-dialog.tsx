@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import {
   workItemDetailSchema,
   type CreateWorkItemInput,
   type FieldValue,
 } from '../../../shared/contracts';
 import { Button } from '../../components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from '../../components/ui/dialog';
 import { apiError, sendJson } from '../../lib/api';
 import {
   areasQuery,
@@ -46,13 +47,7 @@ export function CreateDialog({
   request: CreateRequest;
   onClose: () => void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const title = useRef<HTMLInputElement>(null);
-  // showModal focuses the first field (Type), so move focus to the title afterwards.
-  useEffect(() => {
-    dialog.current?.showModal();
-    title.current?.focus();
-  }, []);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { project, team, sprint } = useScope(request.project);
@@ -103,7 +98,7 @@ export function CreateDialog({
       if (request.parentId) {
         void queryClient.invalidateQueries({ queryKey: ['work-item', request.parentId] });
       }
-      dialog.current?.close();
+      onClose();
       void navigate({
         to: '.',
         search: (prev: Record<string, unknown>) => ({ ...prev, item: item.id }),
@@ -150,126 +145,145 @@ export function CreateDialog({
   const people = [...(members.data ?? []), ...(session.data?.user ? [session.data.user] : [])];
 
   return (
-    <dialog ref={dialog} className="dialog" onClose={onClose} aria-labelledby="create-title">
-      <form onSubmit={submit} noValidate>
-        <h2 id="create-title">
-          {request.parentId ? `New child of #${request.parentId}` : 'New work item'}
-        </h2>
-        <div className="form-grid">
-          <FormField label="Type" htmlFor="create-type">
-            <NativeSelect
-              id="create-type"
-              className="w-full"
-              value={type ?? ''}
-              onChange={(e) => setChosenType(e.target.value)}
-            >
-              {types.data?.map((t) => (
-                <option key={t.name} value={t.name}>
-                  {t.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </FormField>
-          <FormField label="Assignee">
-            <AssigneePicker
-              assignee={people.find((p) => p.id === assigneeId) ?? null}
-              me={session.data?.user}
-              members={members.data ?? []}
-              onChange={(id) => set('System.AssignedTo', id)}
-            />
-          </FormField>
-          <FormField label="Title" htmlFor="create-title-input" error={errors['System.Title']} wide>
-            <Input
-              id="create-title-input"
-              ref={title}
-              aria-invalid={!!errors['System.Title']}
-              value={String(value('System.Title') ?? '')}
-              onChange={(e) => set('System.Title', e.target.value)}
-            />
-          </FormField>
-          <FormField label="Description" wide>
-            <RichTextField
-              label="Description"
-              html=""
-              onChange={(html) => set('System.Description', html)}
-            />
-          </FormField>
-          {byRef.has(PRIORITY) && (
-            <FormField label="Priority" htmlFor="create-priority" error={errors[PRIORITY]}>
-              <FieldInput
-                id="create-priority"
-                def={byRef.get(PRIORITY)!}
-                value={value(PRIORITY)}
-                onChange={(v) => set(PRIORITY, v)}
+    // Stays open while creating, so a late result reaches this dialog and not a newer one.
+    <Dialog open onOpenChange={(open) => !open && !create.isPending && onClose()}>
+      <DialogContent
+        className="sm:max-w-[640px]"
+        aria-describedby={undefined}
+        closeDisabled={create.isPending}
+        // A stray click outside must not discard the draft. Escape, Cancel, and X close it.
+        onInteractOutside={(event) => event.preventDefault()}
+        // Typing starts in the title, not in the first field (Type).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          title.current?.focus();
+        }}
+      >
+        <form onSubmit={submit} noValidate>
+          <DialogTitle className="mb-5">
+            {request.parentId ? `New child of #${request.parentId}` : 'New work item'}
+          </DialogTitle>
+          <div className="form-grid">
+            <FormField label="Type" htmlFor="create-type">
+              <NativeSelect
+                id="create-type"
+                className="w-full"
+                value={type ?? ''}
+                onChange={(e) => setChosenType(e.target.value)}
+              >
+                {types.data?.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </FormField>
+            <FormField label="Assignee">
+              <AssigneePicker
+                assignee={people.find((p) => p.id === assigneeId) ?? null}
+                me={session.data?.user}
+                members={members.data ?? []}
+                onChange={(id) => set('System.AssignedTo', id)}
               />
             </FormField>
-          )}
-          <FormField label="Tags" htmlFor="create-tags">
-            <Input
-              id="create-tags"
-              placeholder="Separate tags with ;"
-              value={String(value('System.Tags') ?? '')}
-              onChange={(e) => set('System.Tags', e.target.value)}
-            />
-          </FormField>
-          {(['System.AreaPath', 'System.IterationPath'] as const).map((ref) =>
-            byRef.has(ref) ? (
-              <FormField
-                key={ref}
-                label={byRef.get(ref)!.name}
-                htmlFor={`create-${ref}`}
-                error={errors[ref]}
-              >
+            <FormField
+              label="Title"
+              htmlFor="create-title-input"
+              error={errors['System.Title']}
+              wide
+            >
+              <Input
+                id="create-title-input"
+                ref={title}
+                aria-invalid={!!errors['System.Title']}
+                value={String(value('System.Title') ?? '')}
+                onChange={(e) => set('System.Title', e.target.value)}
+              />
+            </FormField>
+            <FormField label="Description" wide>
+              <RichTextField
+                label="Description"
+                html=""
+                onChange={(html) => set('System.Description', html)}
+              />
+            </FormField>
+            {byRef.has(PRIORITY) && (
+              <FormField label="Priority" htmlFor="create-priority" error={errors[PRIORITY]}>
                 <FieldInput
-                  id={`create-${ref}`}
-                  def={byRef.get(ref)!}
-                  value={value(ref)}
-                  onChange={(v) => set(ref, v)}
-                  options={
-                    ref === 'System.AreaPath'
-                      ? (areas.data ?? [])
-                      : (iterations.data ?? []).map((i) => i.path)
-                  }
+                  id="create-priority"
+                  def={byRef.get(PRIORITY)!}
+                  value={value(PRIORITY)}
+                  onChange={(v) => set(PRIORITY, v)}
                 />
               </FormField>
-            ) : null,
-          )}
-          {extras.map((d) => (
-            <FormField
-              key={d.referenceName}
-              label={d.name}
-              htmlFor={`create-${d.referenceName}`}
-              error={errors[d.referenceName]}
-            >
-              <FieldInput
-                id={`create-${d.referenceName}`}
-                def={d}
-                people={people}
-                me={session.data?.user}
-                value={value(d.referenceName)}
-                invalid={!!errors[d.referenceName]}
-                onChange={(v) => set(d.referenceName, v)}
+            )}
+            <FormField label="Tags" htmlFor="create-tags">
+              <Input
+                id="create-tags"
+                placeholder="Separate tags with ;"
+                value={String(value('System.Tags') ?? '')}
+                onChange={(e) => set('System.Tags', e.target.value)}
               />
             </FormField>
-          ))}
-        </div>
-        {request.state && <p className="muted-text">Starts in the {request.state} state.</p>}
-        {failure && (
-          <p role="alert" className="notice notice-error">
-            {failure.code === 'UNKNOWN_OUTCOME'
-              ? 'Eruza lost contact while creating the item. It may already exist. Check before creating it again.'
-              : failure.message}
-          </p>
-        )}
-        <div className="dialog-actions">
-          <Button type="button" variant="ghost" onClick={() => dialog.current?.close()}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={create.isPending || !defs.data}>
-            {create.isPending ? 'Creating…' : 'Create'}
-          </Button>
-        </div>
-      </form>
-    </dialog>
+            {(['System.AreaPath', 'System.IterationPath'] as const).map((ref) =>
+              byRef.has(ref) ? (
+                <FormField
+                  key={ref}
+                  label={byRef.get(ref)!.name}
+                  htmlFor={`create-${ref}`}
+                  error={errors[ref]}
+                >
+                  <FieldInput
+                    id={`create-${ref}`}
+                    def={byRef.get(ref)!}
+                    value={value(ref)}
+                    onChange={(v) => set(ref, v)}
+                    options={
+                      ref === 'System.AreaPath'
+                        ? (areas.data ?? [])
+                        : (iterations.data ?? []).map((i) => i.path)
+                    }
+                  />
+                </FormField>
+              ) : null,
+            )}
+            {extras.map((d) => (
+              <FormField
+                key={d.referenceName}
+                label={d.name}
+                htmlFor={`create-${d.referenceName}`}
+                error={errors[d.referenceName]}
+              >
+                <FieldInput
+                  id={`create-${d.referenceName}`}
+                  def={d}
+                  people={people}
+                  me={session.data?.user}
+                  value={value(d.referenceName)}
+                  invalid={!!errors[d.referenceName]}
+                  onChange={(v) => set(d.referenceName, v)}
+                />
+              </FormField>
+            ))}
+          </div>
+          {request.state && <p className="muted-text">Starts in the {request.state} state.</p>}
+          {failure && (
+            <p role="alert" className="notice notice-error">
+              {failure.code === 'UNKNOWN_OUTCOME'
+                ? 'Eruza lost contact while creating the item. It may already exist. Check before creating it again.'
+                : failure.message}
+            </p>
+          )}
+          <DialogFooter className="mt-5">
+            <Button type="button" variant="ghost" disabled={create.isPending} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending || !defs.data}>
+              {create.isPending ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

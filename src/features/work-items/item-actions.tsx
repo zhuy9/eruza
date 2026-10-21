@@ -1,10 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { ExternalLink, Hash, Link2, Trash2 } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useState } from 'react';
 import { z } from 'zod';
 import type { WorkItemSummary } from '../../../shared/contracts';
 import { Button } from '../../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { apiError, sendJson } from '../../lib/api';
 import { itemScope } from '../../lib/saves';
 import type { ViewSearch } from '../../lib/scope';
@@ -98,10 +105,6 @@ function DeleteDialog(props: {
   onDeleted: () => Promise<void>;
 }) {
   const { item } = props;
-  const dialog = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  const textId = useId();
-  useEffect(() => dialog.current?.showModal(), []);
   const queryClient = useQueryClient();
   const toast = useToast();
   const remove = useMutation({
@@ -125,42 +128,32 @@ function DeleteDialog(props: {
   const failure = remove.error && apiError(remove.error);
 
   return (
-    <dialog
-      ref={dialog}
-      className="dialog dialog-narrow"
-      onClose={props.onClose}
-      // Stays open while deleting, so a late failure is still shown.
-      onCancel={(event) => remove.isPending && event.preventDefault()}
-      aria-labelledby={titleId}
-      aria-describedby={textId}
-    >
-      <h2 id={titleId}>
-        Delete #{item.id} {item.title}?
-      </h2>
-      <p id={textId}>
-        Azure DevOps moves the item to the project&apos;s Recycle Bin, where it can be restored.
-        Eruza never deletes items permanently.
-      </p>
-      {failure && (
-        <p role="alert" className="notice notice-error">
-          {failure.code === 'UNKNOWN_OUTCOME'
-            ? 'Eruza lost contact while deleting. The item may already be in the Recycle Bin. Check before trying again.'
-            : failure.message}
-        </p>
-      )}
-      <div className="dialog-actions">
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={remove.isPending}
-          onClick={() => dialog.current?.close()}
-        >
-          Cancel
-        </Button>
-        <Button type="button" disabled={remove.isPending} onClick={() => remove.mutate()}>
-          {remove.isPending ? 'Deleting…' : 'Move to Recycle Bin'}
-        </Button>
-      </div>
-    </dialog>
+    // Stays open while deleting, so a late failure is still shown.
+    <Dialog open onOpenChange={(open) => !open && !remove.isPending && props.onClose()}>
+      <DialogContent className="sm:max-w-[460px]" closeDisabled={remove.isPending}>
+        <DialogTitle>
+          Delete #{item.id} {item.title}?
+        </DialogTitle>
+        <DialogDescription>
+          Azure DevOps moves the item to the project&apos;s Recycle Bin, where it can be restored.
+          Eruza never deletes items permanently.
+        </DialogDescription>
+        {failure && (
+          <p role="alert" className="notice notice-error">
+            {failure.code === 'UNKNOWN_OUTCOME'
+              ? 'Eruza lost contact while deleting. The item may already be in the Recycle Bin. Check before trying again.'
+              : failure.message}
+          </p>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="ghost" disabled={remove.isPending} onClick={props.onClose}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={remove.isPending} onClick={() => remove.mutate()}>
+            {remove.isPending ? 'Deleting…' : 'Move to Recycle Bin'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

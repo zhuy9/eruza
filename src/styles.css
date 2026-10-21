@@ -664,32 +664,6 @@ h1 {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.dialog {
-  /* Tailwind's reset removes the browser's centering margin for modal dialogs. */
-  margin: auto;
-  width: min(640px, calc(100vw - 32px));
-  padding: 24px 26px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--background);
-  color: var(--foreground);
-  box-shadow: 0 24px 60px rgb(15 23 42 / 0.25);
-}
-.dialog::backdrop {
-  background: rgb(15 23 42 / 0.35);
-}
-.dialog h2 {
-  margin: 0 0 18px;
-  font-size: 18px;
-}
-.dialog-narrow {
-  width: min(460px, calc(100vw - 32px));
-}
-.dialog-narrow p {
-  margin: 0 0 10px;
-  font-size: 13px;
-  line-height: 1.5;
-}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -697,12 +671,6 @@ h1 {
 }
 .form-field.wide {
   grid-column: 1 / -1;
-}
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 20px;
 }
 .sr-only {
   position: absolute;
