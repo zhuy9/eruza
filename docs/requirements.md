@@ -46,6 +46,22 @@ Person means the ticket's assignee. It does not mean the parent story's owner.
 A story shared by several people appears under each person in Sprint update.
 In Sprint retro, that story appears once with people underneath.
 
+### Custom grouping (M8)
+
+The presets are starting points. A "Group by" bar above the grid shows the levels
+as numbered chips. The user can add a level, remove one, move one earlier or later,
+or reset to either preset.
+
+- Levels: Person, Story, and Type, each used once, from one to three levels.
+- Person and Story keep the rules above. Type groups use the type name, sorted A to Z,
+  with a "Type:" caption on the heading.
+- Every control works with the keyboard. Reordering never needs a mouse drag.
+- The presets keep `grouping=person|story` in the URL, so old links still work.
+  Any other order is stored as `group=type,person,...` and titled "Custom grouping."
+  The sidebar links and the command palette always open a preset.
+- A story's estimate appears only when Story is the outermost level, so it shows
+  once per story. Drag to change a parent works only while Story is a level.
+
 ### Which records appear
 
 1. Find all tickets matching the selected sprint, team areas, and other filters.
@@ -76,6 +92,7 @@ silently guess story types from their names. Board access can still work.
 - Show story estimates separately from ticket remaining work.
 - In Sprint retro, show the estimate once on the story group.
   In Sprint update, omit story estimates from person-group rollups.
+  With custom grouping, show it only when Story is the outermost level.
 - Keep Story Points, Effort, and Size labels and units distinct.
 - Do not treat missing values as zero or mix estimates with remaining work.
 - Label totals as covering the filtered tickets, not all descendants.
@@ -101,7 +118,8 @@ at least 1,000 matching tickets.
 - A story heading is a drop target for setting that story as the direct parent.
 - Show the target story and the action before the drop completes.
 - The action changes the parent only. It does not change the assignee.
-- The row appears under its existing assignee in the destination story group.
+- The row keeps its assignee and its other group values in the destination story
+  group.
 - Reject self-parenting and cycles. Show ADO rule errors clearly.
 - Use the same revision check and rollback behavior as the parent picker.
 

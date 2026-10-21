@@ -64,6 +64,7 @@ The grid includes all work item types, with no type filter:
 | Sprint retro  | Story > Person > Ticket |
 
 Both views default to the current sprint and allow selecting previous sprints.
+A "Group by" bar can reorder those levels or add Type, as a custom grouping.
 The board has a separate work item type selector because its columns use that
 type's states.
 

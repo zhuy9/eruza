@@ -302,6 +302,33 @@ remaining limits.
 Stage 1 is complete only when M1-M7 pass. Making the repository public is a
 separate user-approved action, not a required side effect of finishing M7.
 
+## M8: Custom grouping for the meeting grid
+
+The user asked to borrow a configurable "Group by" bar for the Sprint update and
+Sprint retro grid. Both presets stay. The user chose a keyboard-friendly chip bar
+and the levels Person, Story, and Type.
+
+Acceptance:
+
+- [ ] M8.1: Grouping is an ordered list of one to three levels from Person, Story,
+      and Type. The two presets keep their current results, and every M5 check
+      still passes unchanged.
+- [ ] M8.2: A "Group by" bar shows numbered level chips with buttons to move each
+      level earlier or later and to remove it, a button to add each unused level,
+      and resets to both presets. It works with the keyboard alone, keeps focus on
+      the control that was used, and passes the axe checks in both themes.
+- [ ] M8.3: `grouping=person|story` URLs and the sidebar and palette links keep
+      working and highlighting. Other orders use `group=` and show "Custom
+      grouping." Unknown or repeated levels are ignored.
+- [ ] M8.4: Type groups sort by name and carry a "Type:" caption. Counts,
+      remaining work, expand-all, and collapse-all work at every depth. A story
+      estimate appears only at the outermost level.
+- [ ] M8.5: The drag handle and story drop targets appear only while Story is a
+      level, and a drop still works when Story is not the first level.
+- [ ] M8.6: Unit tests cover level order and URL parsing. Browser tests cover the
+      bar, old URLs, and drops. The 1,070-ticket fixture with three levels is
+      measured in mock mode only.
+
 ## Latest handoff
 
 - Stage 1 (M0-M7): complete. No Stage 2 work was added.
