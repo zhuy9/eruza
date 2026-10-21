@@ -97,6 +97,7 @@ export function DraftInput({
   const [draft, setDraft] = useState(text(value));
   const [focused, setFocused] = useState(false);
   const [shown, setShown] = useState(value);
+  const dirty = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const latest = useRef({ value, onCommit });
   useLayoutEffect(() => {
@@ -112,6 +113,8 @@ export function DraftInput({
 
   const commit = (input: string) => {
     clearTimeout(timer.current);
+    if (!dirty.current) return;
+    dirty.current = false;
     const next = input === '' ? null : numeric ? Number(input) : input;
     if (next !== latest.current.value) latest.current.onCommit(next);
   };
@@ -127,7 +130,8 @@ export function DraftInput({
       onFocus={() => setFocused(true)}
       onChange={(e) => {
         const input = e.target.value;
-        if (draft === text(value)) onEditStart();
+        if (!dirty.current) onEditStart();
+        dirty.current = true;
         setDraft(input);
         clearTimeout(timer.current);
         timer.current = setTimeout(() => commit(input), SAVE_DELAY_MS);

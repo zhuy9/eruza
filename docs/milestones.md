@@ -10,6 +10,9 @@ changed during live verification. M0-M6 and the M7 local work are on GitHub
 (`8b513e9`); the later docs commits remain local and need approval before pushing.
 Read [the handoff](handoff.md) before continuing.
 
+The user then requested ten audit fixes in separate local commits. Progress and
+the additional mock regression evidence are recorded in the handoff.
+
 The GitHub repository was private when checked in the M7 session. Do not assume
 visibility is unchanged in a later session; check it before publication work.
 

@@ -596,6 +596,18 @@ The next action is user-directed use or separately scoped work. Pushing any
 unpushed commits, deploying, or publishing/changing repository visibility still
 requires explicit approval. No push or visibility change was performed.
 
+## Post-acceptance audit fixes
+
+The user requested fixes for the ten audit findings, with one local commit per
+finding. These checks use synthetic mock data; they add no live ADO evidence.
+Pushing and publication still need explicit approval.
+
+1. Focused text/number fields now commit only after an edit. Leaving an untouched
+   field after a refresh adopts the new value without a write. The new browser
+   regression failed before the fix and passed afterward. `npm run check` passed
+   (113 unit/integration tests), and `npm run test:e2e` passed (45 browser tests).
+   Ponytail, separate correctness/security, and staged privacy reviews passed.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
