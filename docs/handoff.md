@@ -30,7 +30,7 @@ repository visibility without new approval.
 
 - Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
   on GitHub through `3c66e09`. The user approved each push. The sample seeder, the
-  collapsible sidebar, and later docs are local commits.
+  collapsible sidebar, the shadcn components, and later docs are local commits.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -860,9 +860,9 @@ the dev-server and Ctrl+C checks.
 ## Next steps
 
 Stage 1, the ten audit fixes, and the four follow-up review fixes are complete and on
-GitHub through `3c66e09`. The sample seeder and the collapsible sidebar are local
-commits; pushing them and any publication or visibility change need explicit approval.
-Not yet checked against live ADO: the first-load stale read in follow-up fix 3. The
-lower-severity findings from the whole-codebase review, including comments not
-refreshing the item revision, are not fixed yet. Keep `refs/t3/` local; never push
-with `--all` or `--mirror`.
+GitHub through `3c66e09`. The sample seeder, the collapsible sidebar, and the three
+shadcn component steps are local commits; pushing them and any publication or
+visibility change need explicit approval. Not yet checked against live ADO: the
+first-load stale read in follow-up fix 3. The lower-severity findings from the
+whole-codebase review, including comments not refreshing the item revision, are not
+fixed yet. Keep `refs/t3/` local; never push with `--all` or `--mirror`.
