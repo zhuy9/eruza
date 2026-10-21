@@ -28,9 +28,9 @@ import {
   type Row,
   type SortFn,
 } from '@tanstack/react-table';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { defaultRangeExtractor, useVirtualizer, type Range } from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import type { Identity, Iteration, WorkItemSummary } from '../../../shared/contracts';
 import { FilterBar } from '../../components/filter-bar';
@@ -367,6 +367,18 @@ function GridBody(props: {
 }) {
   const { table, rows, context } = props;
   const scroller = useRef<HTMLDivElement>(null);
+  const [focusedRow, setFocusedRow] = useState<string | null>(null);
+  const focusedIndex = rows.findIndex((row) => row.id === focusedRow);
+  // Keep the focused editor mounted so scrolling cannot drop its keyboard draft.
+  const rangeExtractor = useCallback(
+    (range: Range) => {
+      const indexes = defaultRangeExtractor(range);
+      return focusedIndex < 0 || indexes.includes(focusedIndex)
+        ? indexes
+        : [...indexes, focusedIndex].sort((a, b) => a - b);
+    },
+    [focusedIndex],
+  );
   // eslint-disable-next-line react-hooks/incompatible-library -- no React Compiler in this app.
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -374,13 +386,13 @@ function GridBody(props: {
     estimateSize: () => ROW_HEIGHT,
     getItemKey: (index) => rows[index].id,
     overscan: 10,
+    rangeExtractor,
   });
   const [dragging, setDragging] = useState<GridRow | null>(null);
   const [target, setTarget] = useState<WorkItemSummary | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const headers = table.getHeaderGroups()[0]?.headers ?? [];
   const items = virtualizer.getVirtualItems();
-  const before = items[0]?.start ?? 0;
   const after = virtualizer.getTotalSize() - (items.at(-1)?.end ?? 0);
   const spacer = (height: number) =>
     height > 0 && (
@@ -414,8 +426,16 @@ function GridBody(props: {
     // Runs after a closing picker returns focus, if it still can.
     const timer = setTimeout(() => {
       edited.current = null;
-      if (!keyboard.current || document.activeElement !== document.body) return;
+      if (!keyboard.current) return;
       const found = rows.findIndex((row) => row.id === String(last.id));
+      const active = document.activeElement;
+      if (active !== document.body) {
+        // The focused row stays mounted when it moves, so bring it back into view.
+        if (active?.closest('tr[data-id]')?.getAttribute('data-id') === String(last.id)) {
+          active.scrollIntoView({ block: 'nearest' });
+        }
+        return;
+      }
       const index = found >= 0 ? found : Math.min(last.index, rows.length - 1);
       virtualizer.scrollToIndex(index);
       const focus = (frames: number) => {
@@ -439,7 +459,16 @@ function GridBody(props: {
       onDragEnd={stop}
       onDragCancel={stop}
     >
-      <div ref={scroller} className="grid-scroll">
+      <div
+        ref={scroller}
+        className="grid-scroll"
+        onFocusCapture={(event) =>
+          setFocusedRow(event.target.closest('tr[data-id]')?.getAttribute('data-id') ?? null)
+        }
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setFocusedRow(null);
+        }}
+      >
         <table
           className="meeting-grid"
           style={{ width: table.getTotalSize() }}
@@ -506,35 +535,37 @@ function GridBody(props: {
             </tr>
           </thead>
           <tbody>
-            {spacer(before)}
-            {items.map((virtual) => {
+            {items.map((virtual, index) => {
               const row = rows[virtual.index];
               const measure = {
                 index: virtual.index,
                 ref: virtualizer.measureElement,
               };
-              return row.getIsGrouped() ? (
-                <GroupRow
-                  key={row.id}
-                  row={row}
-                  measure={measure}
-                  span={headers.length}
-                  byId={props.byId}
-                  grouping={props.grouping}
-                  expanded={!props.collapsed.has(row.id)}
-                  onToggle={() => props.onToggle(row.id)}
-                  dragging={dragging}
-                />
-              ) : (
-                <TicketRow
-                  key={row.id}
-                  row={row}
-                  measure={measure}
-                  context={context}
-                  onEdit={(column) => {
-                    edited.current = { id: row.original.id, column, index: virtual.index };
-                  }}
-                />
+              return (
+                <Fragment key={row.id}>
+                  {spacer(virtual.start - (items[index - 1]?.end ?? 0))}
+                  {row.getIsGrouped() ? (
+                    <GroupRow
+                      row={row}
+                      measure={measure}
+                      span={headers.length}
+                      byId={props.byId}
+                      grouping={props.grouping}
+                      expanded={!props.collapsed.has(row.id)}
+                      onToggle={() => props.onToggle(row.id)}
+                      dragging={dragging}
+                    />
+                  ) : (
+                    <TicketRow
+                      row={row}
+                      measure={measure}
+                      context={context}
+                      onEdit={(column) => {
+                        edited.current = { id: row.original.id, column, index: virtual.index };
+                      }}
+                    />
+                  )}
+                </Fragment>
               );
             })}
             {spacer(after)}

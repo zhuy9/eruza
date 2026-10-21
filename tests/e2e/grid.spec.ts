@@ -92,6 +92,14 @@ const ticket = (
   estimate: null,
   ...extra,
 });
+/** The saved-item response for a ticket from `ticket`. */
+const detail = (item: ReturnType<typeof ticket>) => ({
+  ...item,
+  project: 'Sample project',
+  description: '',
+  fields: {},
+  childIds: [],
+});
 
 test.describe('grouping', () => {
   test.use({ viewport: { width: 1440, height: 1400 } });
@@ -510,7 +518,9 @@ test('keyboard edits save on Enter and keep focus on the ticket', async ({ page 
   // The ticket moves far down to Person B, and focus follows it.
   await expect(assignee).toBeFocused();
   await expect(assignee).toHaveAccessibleName('Assignee of #2005: Person B');
-  expect((await groupsOf(page, 2005))[0]).toBe('Person B');
+  await expect(assignee).toBeInViewport();
+  // The focused row can move before the rows around it are drawn again.
+  await expect.poll(async () => (await groupsOf(page, 2005))[0]).toBe('Person B');
 
   let writes = 0;
   page.on('request', (r) => (writes += r.method() === 'PATCH' ? 1 : 0));
@@ -578,6 +588,124 @@ test('a keyboard draft keeps the revision it started from', async ({ page }) => 
   });
   await expect(page.getByText(`#${item.id} changed elsewhere`)).toBeVisible();
   await expect(state).toHaveValue('Queued');
+});
+
+for (const finish of ['Enter', 'Tab', 'Escape']) {
+  test(`a keyboard draft survives scrolling until ${finish}`, async ({ page }) => {
+    const items = Array.from({ length: 1000 }, (_, index) =>
+      ticket(2001 + index, 'Task', person('person-a', 'Person A'), null, {
+        iterationPath: 'Sample project\\Sprint 1',
+        state: 'Queued',
+        rev: 7,
+      }),
+    );
+    await page.route('**/api/work-items?*', (route) =>
+      route.fulfill({ json: { items, ancestors: [], missingIds: [], incomplete: false } }),
+    );
+    const writes: unknown[] = [];
+    await page.route('**/api/work-items/2005', (route) => {
+      writes.push(route.request().postDataJSON());
+      return route.fulfill({ json: detail({ ...items[4], rev: 8, state: 'Done' }) });
+    });
+    await page.goto(LARGE);
+    const state = row(page, 2005).getByRole('combobox', { name: 'State of #2005' });
+    await expect(state.locator('option')).toHaveText(['Queued', 'In progress', 'Done']);
+    await state.evaluate((element: HTMLSelectElement) => {
+      element.focus();
+      // Keep change within the 100ms keyboard-draft window on every platform.
+      element.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true }));
+      element.value = 'Done';
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(state).toHaveValue('Done');
+    expect(writes).toEqual([]);
+    const grid = page.locator('.grid-scroll');
+    const height = await grid.evaluate((element) => element.scrollHeight);
+    await grid.evaluate((element) => (element.scrollTop = 15_000));
+    await expect
+      .poll(async () =>
+        Number(await page.locator('tr.ticket-row').last().getAttribute('data-index')),
+      )
+      .toBeGreaterThan(350);
+    await expect(row(page, 2005)).toHaveCount(1);
+    await expect(state).toBeFocused();
+    await expect(state).toHaveValue('Done');
+    expect(await page.locator('tr.ticket-row').count()).toBeLessThan(150);
+    expect(await grid.evaluate((element) => element.scrollTop)).toBe(15_000);
+    expect(await grid.evaluate((element) => element.scrollHeight)).toBe(height);
+    expect(
+      await grid.evaluate((element) => {
+        const top =
+          element.getBoundingClientRect().top + element.querySelector('thead')!.offsetHeight;
+        const bottom = element.getBoundingClientRect().top + element.clientHeight;
+        const boxes = [...element.querySelectorAll('tr.ticket-row')].map((r) =>
+          r.getBoundingClientRect(),
+        );
+        return (
+          boxes.some((b) => b.top <= top + 1 && b.bottom > top) &&
+          boxes.some((b) => b.top < bottom && b.bottom >= bottom - 1)
+        );
+      }),
+    ).toBe(true);
+    await page.keyboard.press(finish);
+    if (finish === 'Escape') {
+      await expect(state).toHaveValue('Queued');
+      // Leaving the grid lets the row unmount, and a canceled draft never saves.
+      await page.getByRole('button', { name: 'Expand all' }).focus();
+      await expect(row(page, 2005)).toHaveCount(0);
+      await page.waitForTimeout(300);
+      expect(writes).toEqual([]);
+    } else {
+      await expect
+        .poll(() => writes)
+        .toEqual([{ expectedRev: 7, fields: { 'System.State': 'Done' } }]);
+    }
+  });
+}
+
+test('a sorted keyboard save that moves the row far away keeps its control in view', async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'eruza-grid-columns',
+      JSON.stringify({ sorting: [{ id: 'state', desc: false }] }),
+    ),
+  );
+  // Sorted by State, the one Done ticket is first. As Queued, it sorts after the other 999.
+  const items = Array.from({ length: 1000 }, (_, index) =>
+    ticket(2001 + index, 'Task', person('person-a', 'Person A'), null, {
+      iterationPath: 'Sample project\\Sprint 1',
+      state: index === 999 ? 'Done' : 'Queued',
+      rev: 7,
+    }),
+  );
+  await page.route('**/api/work-items?*', (route) =>
+    route.fulfill({ json: { items, ancestors: [], missingIds: [], incomplete: false } }),
+  );
+  let writes = 0;
+  await page.route('**/api/work-items/3000', (route) => {
+    writes++;
+    items[999] = { ...items[999], rev: 8, state: 'Queued' };
+    return route.fulfill({ json: detail(items[999]) });
+  });
+  await page.goto(LARGE);
+  const state = row(page, 3000).getByRole('combobox', { name: 'State of #3000' });
+  await expect(state).toBeInViewport();
+  await state.evaluate((element: HTMLSelectElement) => {
+    element.focus();
+    // Keep change within the 100ms keyboard-draft window on every platform.
+    element.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    element.value = 'Queued';
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.keyboard.press('Enter');
+  await expect.poll(() => writes).toBe(1);
+  await expect
+    .poll(async () => Number(await row(page, 3000).getAttribute('aria-rowindex')))
+    .toBeGreaterThan(900);
+  await expect(state).toBeFocused();
+  await expect(state).toBeInViewport();
 });
 
 test('a story dropped on its own heading is rejected without a request', async ({ page }) => {

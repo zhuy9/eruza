@@ -28,7 +28,7 @@ Do not push later commits, deploy, or change repository visibility without new a
 ## Git checkpoint
 
 - Branch: `main`. M0-M6 and the M7 local work are on GitHub at `8b513e9`. The user
-  approved each push.
+  approved each push. Later docs and audit-fix commits are local only.
 - GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
@@ -599,8 +599,8 @@ requires explicit approval. No push or visibility change was performed.
 ## Post-acceptance audit fixes
 
 The user requested fixes for the ten audit findings, with one local commit per
-finding. These checks use synthetic mock data; they add no live ADO evidence.
-Pushing and publication still need explicit approval.
+finding. Items use the audit finding numbers. These checks use synthetic mock data;
+they add no live ADO evidence. Pushing and publication still need explicit approval.
 
 1. Focused text/number fields now commit only after an edit. Leaving an untouched
    field after a refresh adopts the new value without a write. The new browser
@@ -631,12 +631,27 @@ Pushing and publication still need explicit approval.
    `npm run check` passed (173 tests), and `npm run test:e2e` passed (49 tests).
    Ponytail, separate correctness/security, and staged privacy reviews passed.
 
-Finding 10: concurrent Retry-After responses can only extend the shared deadline.
-Requests recheck it after authentication and each wait. Three new unit regressions
-failed before the fix and passed afterward: extension while waiting, a shorter
-concurrent delay, and a delay received during authentication. `npm run check`
-passed (117 tests), and `npm run test:e2e` passed (47 tests). Ponytail, separate
-correctness/security, and staged privacy reviews passed. Real 429s were not induced.
+6. A focused grid row stays mounted while it is outside the virtual window, so
+   scrolling can no longer drop a keyboard select draft. Spacer rows keep the retained
+   row at its real offset. If a keyboard save moves the still-focused row far away
+   (for example, in a sorted grid), the grid scrolls it back into view. Three browser
+   regressions (draft through scrolling, then Enter, Tab, or Escape) failed before the
+   fix and pass now. A review then found the moved-row case; its browser regression
+   failed until the scroll fix. `npm run check` passed (173 tests), and
+   `npm run test:e2e` passed (53 tests). Ponytail review removed a duplicate jsdom test.
+   The separate correctness review found a timing-sensitive group check in an existing
+   browser test; it now retries. The security and staged privacy reviews found nothing.
+
+Still open: finding 7 (item links use the default project's team, members, and
+sprints), finding 8 (required custom person fields), and finding 9 (failed member or
+area metadata silently drops saved filters).
+
+10. Concurrent Retry-After responses can only extend the shared deadline.
+    Requests recheck it after authentication and each wait. Three new unit regressions
+    failed before the fix and passed afterward: extension while waiting, a shorter
+    concurrent delay, and a delay received during authentication. `npm run check`
+    passed (117 tests), and `npm run test:e2e` passed (47 tests). Ponytail, separate
+    correctness/security, and staged privacy reviews passed. Real 429s were not induced.
 
 ## Machine notes
 
@@ -667,6 +682,6 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1 is complete. Use the app locally or choose a separate follow-up task.
-Pushing the unpushed docs commits and any publication or visibility change need
+Stage 1 is complete. Finish audit findings 7-9, one local commit each. Pushing the
+unpushed docs and audit-fix commits and any publication or visibility change need
 explicit approval. Keep `refs/t3/` local; never push with `--all` or `--mirror`.

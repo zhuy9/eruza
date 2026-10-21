@@ -7,11 +7,13 @@ M4.7, M6.3, and M6.6 passed on 2026-10-20 in the approved private test project.
 M7 now includes clean-checkout mock/live startup, refresh and conflict checks,
 final local checks, privacy review, and the final handoff. No application code
 changed during live verification. M0-M6 and the M7 local work are on GitHub
-(`8b513e9`); the later docs commits remain local and need approval before pushing.
+(`8b513e9`); later docs and audit-fix commits remain local and need approval before
+pushing.
 Read [the handoff](handoff.md) before continuing.
 
-The user then requested ten audit fixes in separate local commits. Progress and
-the additional mock regression evidence are recorded in the handoff.
+The user then requested ten audit fixes in separate local commits. Progress, the
+findings still open, and the additional mock regression evidence are recorded in the
+handoff.
 
 The GitHub repository was private when checked in the M7 session. Do not assume
 visibility is unchanged in a later session; check it before publication work.
@@ -310,6 +312,8 @@ separate user-approved action, not a required side effect of finishing M7.
   deletion with `destroy=false`. The three dated test sprints remain available.
 - Local and live evidence, remaining limits, review results, and actual command
   results are recorded separately in [handoff.md](handoff.md).
-- M0-M6 and M7 local work are on GitHub at `8b513e9`. Later docs commits remain
-  local. Pushing, deploying, or changing visibility requires explicit approval.
-- Next step: use Stage 1 locally or choose a separately scoped follow-up task.
+- M0-M6 and M7 local work are on GitHub at `8b513e9`. Later docs and audit-fix
+  commits remain local. Pushing, deploying, or changing visibility requires explicit
+  approval.
+- Next step: finish the open audit findings listed in [handoff.md](handoff.md), one
+  local commit each.
