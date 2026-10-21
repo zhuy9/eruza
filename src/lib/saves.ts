@@ -38,6 +38,8 @@ export function expectedRev(id: number, baseRev: number) {
 }
 
 export function recordSave(id: number, from: number, to: number) {
+  // A write that changes nothing can keep its revision; recording it would loop forever.
+  if (to <= from) return;
   if (!ownSaves.has(id)) ownSaves.set(id, new Map());
   ownSaves.get(id)!.set(from, to);
 }

@@ -731,6 +731,18 @@ against the full working tree, which held all four fixes.
    the older value until the next refresh, at most 45 seconds. The mock cannot
    produce that ordering, and it does not affect what is saved.
 
+4. A save that changes nothing no longer freezes later saves of that item.
+   `recordSave` ignores a write that kept its revision, so `expectedRev` cannot loop.
+   The mock now keeps the revision when a write changes nothing. That matches the
+   expected ADO behavior, but it was not checked against live ADO. Before the fix,
+   the unit regression hung, the mock regression failed, and with only the mock
+   change the browser regression froze at the next title save. `npm run check`
+   passed (196 tests), and `npm run test:e2e` passed (69 tests). Ponytail review
+   removed two redundant test checks. The security review found nothing. The
+   correctness review noted that removing the guard later would hang the unit test
+   instead of failing it; that hang is a loud signal, so the test stays as it is. The
+   staged privacy review found nothing.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from

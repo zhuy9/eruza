@@ -27,6 +27,12 @@ describe('expected revision', () => {
     expect(expectedRev(501, 5)).toBe(5);
     expect(expectedRev(501, 3)).toBe(4);
   });
+
+  it('ignores a save that kept its revision', () => {
+    // ADO may return the same revision for a write that changes nothing.
+    recordSave(502, 6, 6);
+    expect(expectedRev(502, 6)).toBe(6);
+  });
 });
 
 describe('pending overlay', () => {

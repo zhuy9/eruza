@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import type { BoardsApi, FieldValue, TeamScope, WorkItemSummary } from '../../shared/contracts';
 import { adoError } from '../ado/client';
 import { toComment } from '../ado/comments';
@@ -224,7 +225,10 @@ export function createMockApi(): BoardsApi {
     async updateWorkItem(id, input) {
       const raw = get(id);
       if (input.expectedRev !== raw.rev) throw adoError('CONFLICT');
-      return save({ ...raw, rev: raw.rev + 1, fields: applyFields(raw.fields, input.fields) });
+      const fields = applyFields(raw.fields, input.fields);
+      // A write that changes nothing keeps its revision, as ADO may also do.
+      if (isDeepStrictEqual(fields, raw.fields)) return detail(raw);
+      return save({ ...raw, rev: raw.rev + 1, fields });
     },
 
     async setParent(id, { parentId, expectedRev }) {

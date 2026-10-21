@@ -194,6 +194,21 @@ test('rich text is shown safely and opening the editor sends no write', async ({
   expect(alerts).toEqual([]);
 });
 
+test('a save that changes nothing does not block later saves', async ({ page }) => {
+  await openItem(page, 1060, 'Set up the payment sandbox');
+  await expect(page.getByRole('button', { name: 'Assignee: Person A' })).toBeVisible();
+  // The item is already assigned to the current user, so this write changes nothing.
+  await page.getByRole('complementary', { name: 'Work item details' }).focus();
+  await page.keyboard.press('i');
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
+  const title = page.getByLabel('Title', { exact: true });
+  await title.fill('Set up the payment sandbox early');
+  await title.press('Enter');
+  await expect
+    .poll(async () => (await getItem(page, 1060)).title)
+    .toBe('Set up the payment sandbox early');
+});
+
 test('panel and full page edit the same item, and I assigns it to me', async ({ page }) => {
   await openItem(page, 1031, 'Summarize lookup findings');
   await expect(page.getByRole('complementary', { name: 'Work item details' })).toBeFocused();

@@ -102,6 +102,14 @@ describe('mock update', () => {
     });
     expect(cleared.body.assignee).toBeNull();
   });
+
+  it('keeps the revision when a write changes nothing', async () => {
+    const same = await call('PATCH', '/work-items/1004', {
+      expectedRev: 1,
+      fields: { 'System.Title': 'Keep the selected delivery option', 'System.AssignedTo': null },
+    });
+    expect(same.body.rev).toBe(1);
+  });
 });
 
 describe('mock parents', () => {
