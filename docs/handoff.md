@@ -718,6 +718,19 @@ against the full working tree, which held all four fixes.
    Ponytail, separate correctness and security, and staged privacy reviews found
    nothing.
 
+3. The item view ignores a response older than the revision it holds, so a refresh
+   that started during a save can no longer bring back the old value after "Saved".
+   The guard uses TanStack Query's `structuralSharing` option on the item query, so it
+   also covers a save response that arrives after a newer refresh. The browser
+   regression failed before the fix and passed ten repeated runs after it.
+   `npm run check` passed (196 tests), and `npm run test:e2e` passed (69 tests).
+   Ponytail review found nothing to cut. The correctness review tightened the test's
+   "Saved" check. The security and staged privacy reviews found nothing. Known gap:
+   when no view of the item is cached yet, for example when the panel opens while a
+   board drag is still saving, a first read that started before the save can show
+   the older value until the next refresh, at most 45 seconds. The mock cannot
+   produce that ordering, and it does not affect what is saved.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from

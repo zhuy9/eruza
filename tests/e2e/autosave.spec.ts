@@ -229,3 +229,57 @@ test('retrying a combined save does not undo a newer successful field edit', asy
   const saved = await page.request.get(`/api/work-items/${id}`);
   expect((await saved.json()).item.state).toBe('Active');
 });
+
+test('a refresh that started during a save cannot bring back the old value', async ({ page }) => {
+  const response = await page.request.post('/api/work-items', {
+    headers,
+    data: {
+      projectId: 'sample-project',
+      type: 'Task',
+      fields: {
+        'System.Title': 'Before the save',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const { id } = (await response.json()) as { id: number };
+  await page.clock.install();
+  await page.goto(`/items/${id}`);
+  const title = page.getByLabel('Title', { exact: true });
+  await expect(title).toHaveValue('Before the save');
+
+  // Hold the save, read the item while it is held, and deliver that read after the save.
+  let saveDone!: () => void;
+  let readDone!: () => void;
+  const saveGate = new Promise<void>((resolve) => (saveDone = resolve));
+  const readGate = new Promise<void>((resolve) => (readDone = resolve));
+  let saving = false;
+  let staleReads = 0;
+  let delivered = 0;
+  await page.route(`**/api/work-items/${id}`, async (route) => {
+    if (route.request().method() === 'PATCH') {
+      saving = true;
+      await saveGate;
+      return route.fallback();
+    }
+    if (!saving) return route.fallback();
+    const stale = await route.fetch();
+    staleReads++;
+    await readGate;
+    await route.fulfill({ response: stale });
+    delivered++;
+  });
+  await title.fill('After the save');
+  await title.press('Enter');
+  await expect.poll(() => saving).toBe(true);
+  await page.clock.runFor(45_000);
+  await expect.poll(() => staleReads).toBeGreaterThan(0);
+  saveDone();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
+  readDone();
+  await expect.poll(() => delivered).toBe(staleReads);
+  await page.clock.runFor(1_000);
+  await expect(title).toHaveValue('After the save');
+});

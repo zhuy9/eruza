@@ -1,4 +1,9 @@
-import { infiniteQueryOptions, queryOptions, skipToken } from '@tanstack/react-query';
+import {
+  infiniteQueryOptions,
+  queryOptions,
+  replaceEqualDeep,
+  skipToken,
+} from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   backlogLevelSchema,
@@ -16,6 +21,7 @@ import {
   workItemTypeSchema,
   workItemViewSchema,
   type WorkItemQuery,
+  type WorkItemView,
 } from '../../shared/contracts';
 import { getJson } from './api';
 
@@ -112,6 +118,11 @@ export const workItemQuery = (id: number) =>
     queryKey: ['work-item', id],
     queryFn: () => getJson(`/work-items/${id}`, workItemViewSchema),
     refetchInterval: REFRESH_MS,
+    // A read that started before a save can finish after it. Never go back to an older revision.
+    structuralSharing: (old: unknown, next: unknown) =>
+      old && (next as WorkItemView).item.rev < (old as WorkItemView).item.rev
+        ? old
+        : replaceEqualDeep(old, next),
   });
 
 /** Newest comments first; each next page is older. Polls only while one page is loaded. */
