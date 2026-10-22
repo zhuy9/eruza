@@ -4,11 +4,15 @@ import { AppError } from './errors';
 
 const SCOPE = '499b84ac-1321-427f-aa17-267ca6975798/.default';
 const REFRESH_MS = 60_000;
+// A hung `az` call would otherwise keep the shared refresh pending forever.
+const CLI_TIMEOUT_MS = 30_000;
 export const LOGIN_COMMAND = 'az login --allow-no-subscriptions';
 
 export type Auth = ReturnType<typeof createAuth>;
 
-export function createAuth(credential: TokenCredential = new AzureCliCredential()) {
+export function createAuth(
+  credential: TokenCredential = new AzureCliCredential({ processTimeoutInMs: CLI_TIMEOUT_MS }),
+) {
   let token: AccessToken | null = null;
   let refresh: Promise<AccessToken> | null = null;
 

@@ -1,5 +1,8 @@
+import { AzureCliCredential } from '@azure/identity';
 import { describe, expect, it, vi } from 'vitest';
 import { createAuth } from '../server/auth';
+
+vi.mock('@azure/identity', () => ({ AzureCliCredential: vi.fn() }));
 
 const MINUTE = 60_000;
 const token = (value: string, msLeft: number) => ({
@@ -9,6 +12,11 @@ const token = (value: string, msLeft: number) => ({
 const credential = (getToken: (...args: unknown[]) => unknown) => ({ getToken: vi.fn(getToken) });
 
 describe('getAuthHeader', () => {
+  it('gives the default Azure CLI credential a process timeout', () => {
+    createAuth();
+    expect(vi.mocked(AzureCliCredential).mock.calls[0]?.[0]?.processTimeoutInMs).toBeGreaterThan(0);
+  });
+
   it('reuses a token until it is within 60 seconds of expiry', async () => {
     const cred = credential(async () => token('first', 10 * MINUTE));
     const auth = createAuth(cred as never);
