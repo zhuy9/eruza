@@ -862,6 +862,24 @@ created all 17 items. That project uses the Basic process, so stories were Issue
 the bug samples became Tasks; every state change and both comments succeeded. The
 items remain for the user to try, and the no-op check above edited one sample title.
 
+## Favicon
+
+Added `public/favicon.svg` and the icon link in `index.html`. The icon uses the
+existing brand's white lowercase e on a rounded indigo square, with vector paths
+and no external fonts or resources.
+
+- `npm run check` passed: lint, formatting, types, all 202 tests, and build.
+- Local HTTP checks confirmed the icon link, a 200 response with the SVG content
+  type, and the same asset and link in the build output.
+- A Playwright render confirmed the SVG decodes at 16, 32, and 48 pixels. The
+  render was visually checked on light and dark backgrounds. The shared browser's
+  snapshot timed out twice, so the installed Playwright browser was used instead.
+- Ponytail review and separate correctness, security, and staged privacy reviews
+  found no issues. No runtime behavior changed, so no new test was added and the
+  full browser suite was not rerun. No live ADO calls were made.
+- The existing build chunk-size warning remains. Next step: normal app use; a
+  push still needs approval.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
