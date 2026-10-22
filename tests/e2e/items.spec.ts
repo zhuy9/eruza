@@ -209,6 +209,88 @@ test('a save that changes nothing does not block later saves', async ({ page }) 
     .toBe('Set up the payment sandbox early');
 });
 
+test('an empty sprint list disables Iteration, and create still sends the default', async ({
+  page,
+}) => {
+  await page.route('**/api/projects/*/teams/*/iterations', (route) => route.fulfill({ json: [] }));
+  const response = await page.request.post('/api/work-items', {
+    headers: origin,
+    data: {
+      projectId: 'sample-project',
+      type: 'Task',
+      fields: {
+        'System.Title': 'Check the empty sprint list',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 2',
+      },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const { id } = (await response.json()) as { id: number };
+  const sent = writes(page);
+  await page.goto(`/items/${id}`);
+  const iteration = page.getByLabel('Iteration', { exact: true });
+  await expect(iteration).toBeDisabled();
+  await expect(iteration).toHaveValue('Sample project\\Sprint 2');
+  await expect(iteration).toHaveAccessibleDescription('No choices available.');
+  expect(sent).toEqual([]);
+
+  await page.getByRole('button', { name: 'Add child' }).click();
+  const dialog = page.getByRole('dialog', { name: `New child of #${id}` });
+  await expect(dialog.getByLabel('Iteration Path')).toBeDisabled();
+  await expect(dialog.getByLabel('Iteration Path')).toHaveAccessibleDescription(
+    'No choices available.',
+  );
+  await dialog.getByLabel('Title').fill('Child with the team sprint');
+  await dialog.getByRole('button', { name: 'Create' }).click();
+  await expect(dialog).toBeHidden();
+  expect(sent[0].postDataJSON().fields['System.IterationPath']).toBe('Sample project\\Sprint 3');
+});
+
+test('a failed choice list says so under the disabled select', async ({ page }) => {
+  await page.route('**/api/projects/*/areas', (route) =>
+    route.fulfill({ status: 500, json: { code: 'UPSTREAM', message: 'Made-up failure.' } }),
+  );
+  await openItem(page, 1004, (await getItem(page, 1004)).title);
+  const area = page.getByLabel('Area', { exact: true });
+  await expect(area).toBeDisabled();
+  await expect(area).toHaveAccessibleDescription(
+    'Could not load the choices. Reload the page to try again.',
+  );
+});
+
+test('keyboard steps through an editor select save only on Enter', async ({ page }) => {
+  const response = await page.request.post('/api/work-items', {
+    headers: origin,
+    data: {
+      projectId: 'sample-project',
+      type: 'Task',
+      fields: {
+        'System.Title': 'Step through the area list',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const { id } = (await response.json()) as { id: number };
+  await page.goto(`/items/${id}`);
+  const area = page.getByLabel('Area', { exact: true });
+  await expect(area).toHaveValue('Sample project\\Web');
+  const sent = writes(page);
+  await area.focus();
+  // Type-ahead on a closed select picks the next match without opening the list.
+  await page.keyboard.press('s');
+  await expect(area).toHaveValue('Sample project\\Web\\Checkout');
+  await page.waitForTimeout(300);
+  expect(sent).toEqual([]);
+  await page.keyboard.press('Enter');
+  await expect.poll(() => sent.length).toBe(1);
+  expect(sent[0].postDataJSON().fields).toEqual({
+    'System.AreaPath': 'Sample project\\Web\\Checkout',
+  });
+});
+
 test('panel and full page edit the same item, and I assigns it to me', async ({ page }) => {
   await openItem(page, 1031, 'Summarize lookup findings');
   await expect(page.getByRole('complementary', { name: 'Work item details' })).toBeFocused();

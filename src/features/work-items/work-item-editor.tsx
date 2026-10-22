@@ -199,7 +199,13 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
     : related.find((r) => r.id === item.parentId);
   const children = item.childIds.map((id) => related.find((r) => r.id === id) ?? id);
 
-  const select = (ref: string, options: string[], label: string) => (
+  // Without options, FieldInput uses the field's allowed values, a checkbox, or a picker.
+  const select = (
+    ref: string,
+    label: string,
+    options?: string[],
+    optionsQuery?: { isLoading: boolean; isError: boolean },
+  ) => (
     <FormField key={ref} label={label} htmlFor={`field-${ref}`} error={fieldError(ref)}>
       <FieldInput
         id={`field-${ref}`}
@@ -208,8 +214,10 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
         me={me}
         value={value(ref)}
         options={options}
+        optionsQuery={optionsQuery}
+        rev={item.rev}
         invalid={!!fieldError(ref)}
-        onChange={(next) => commit({ [ref]: next })}
+        onChange={(next, baseRev) => commit({ [ref]: next }, baseRev)}
       />
     </FormField>
   );
@@ -291,8 +299,9 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
       <div className="properties">
         {select(
           'System.State',
-          (states.data ?? []).map((s) => s.name),
           'State',
+          (states.data ?? []).map((s) => s.name),
+          states,
         )}
         <FormField label="Assignee" error={fieldError('System.AssignedTo')}>
           <AssigneePicker
@@ -302,20 +311,20 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
             onChange={(id) => commit({ 'System.AssignedTo': id })}
           />
         </FormField>
-        {byRef.has(PRIORITY) &&
-          select(PRIORITY, byRef.get(PRIORITY)!.allowedValues.map(String), 'Priority')}
+        {byRef.has(PRIORITY) && select(PRIORITY, 'Priority')}
         {draft('System.Tags', 'Tags')}
-        {select('System.AreaPath', areas.data ?? [], 'Area')}
+        {select('System.AreaPath', 'Area', areas.data ?? [], areas)}
         {select(
           'System.IterationPath',
-          (iterations.data ?? []).map((i) => i.path),
           'Iteration',
+          (iterations.data ?? []).map((i) => i.path),
+          iterations,
         )}
         {estimate && draft(estimate, byRef.get(estimate)!.name, true)}
         {byRef.has(REMAINING) && draft(REMAINING, byRef.get(REMAINING)!.name, true)}
         {extras.map((d) =>
           d.allowedValues.length || d.type === 'boolean' || d.type === 'identity'
-            ? select(d.referenceName, d.allowedValues.map(String), d.name)
+            ? select(d.referenceName, d.name)
             : draft(d.referenceName, d.name, d.type === 'integer' || d.type === 'double'),
         )}
       </div>

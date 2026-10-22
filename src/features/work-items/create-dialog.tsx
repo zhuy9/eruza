@@ -243,6 +243,7 @@ export function CreateDialog({
                         ? (areas.data ?? [])
                         : (iterations.data ?? []).map((i) => i.path)
                     }
+                    optionsQuery={ref === 'System.AreaPath' ? areas : iterations}
                   />
                 </FormField>
               ) : null,

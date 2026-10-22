@@ -30,7 +30,15 @@ import {
 } from '@tanstack/react-table';
 import { defaultRangeExtractor, useVirtualizer, type Range } from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
 import { z } from 'zod';
 import type { Identity, Iteration, WorkItemSummary } from '../../../shared/contracts';
 import { FilterBar } from '../../components/filter-bar';
@@ -54,6 +62,7 @@ import {
 } from '../../lib/saves';
 import { useScope } from '../../lib/scope';
 import { useToast } from '../../lib/toast';
+import { StepSelect } from '../work-items/field-inputs';
 import { AssigneePicker } from '../work-items/pickers';
 import {
   gridRows,
@@ -68,7 +77,6 @@ import {
   type GridRow,
   type GroupKey,
 } from './grouping';
-import { NativeSelect } from '../../components/ui/native-select';
 import { GroupBar } from './group-bar';
 import { WithTooltip } from '../../components/ui/tooltip';
 
@@ -905,50 +913,7 @@ function TicketRow({
   );
 }
 
-/** A change this soon after a key press on a closed select is the keyboard stepping through it. */
-const KEY_STEP_MS = 100;
-
-/**
- * A grid select. A pick from the open list, by pointer or keyboard, saves at once. Stepping
- * through a closed select with arrow keys or type-ahead keeps a draft that saves on Enter or
- * when focus leaves, so each step is not its own save. A draft keeps the revision it started
- * from, so a change made elsewhere in the meantime still conflicts.
- */
-function CellSelect(props: {
-  label: string;
-  value: string;
-  rev: number;
-  onCommit: (value: string, baseRev: number) => void;
-  children: ReactNode;
-}) {
-  const [draft, setDraft] = useState<{ value: string; rev: number } | null>(null);
-  const keyAt = useRef(-Infinity);
-  const commit = (value: string, rev: number) => {
-    setDraft(null);
-    if (value !== props.value) props.onCommit(value, rev);
-  };
-  return (
-    <NativeSelect
-      size="sm"
-      className="cell-select max-w-full"
-      aria-label={props.label}
-      value={draft?.value ?? props.value}
-      onKeyDown={(e) => {
-        keyAt.current = e.timeStamp;
-        if (e.key === 'Enter' && draft) {
-          e.preventDefault();
-          commit(draft.value, draft.rev);
-        }
-        if (e.key === 'Escape') setDraft(null);
-      }}
-      onChange={(e) =>
-        e.timeStamp - keyAt.current < KEY_STEP_MS
-          ? setDraft({ value: e.target.value, rev: draft?.rev ?? props.rev })
-          : commit(e.target.value, draft?.rev ?? props.rev)
-      }
-      onBlur={() => draft && commit(draft.value, draft.rev)}
-    >
-      {props.children}
-    </NativeSelect>
-  );
+/** A grid select. See StepSelect for how keyboard steps become a draft. */
+function CellSelect({ label, ...props }: ComponentProps<typeof StepSelect> & { label: string }) {
+  return <StepSelect size="sm" className="cell-select max-w-full" aria-label={label} {...props} />;
 }
