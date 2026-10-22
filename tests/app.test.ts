@@ -30,6 +30,20 @@ describe('local API boundary', () => {
     expect(response.status).toBe(403);
   });
 
+  it.each([
+    ['cross-site', 403],
+    ['same-site', 403],
+    ['same-origin', 200],
+    ['none', 200],
+    [undefined, 200],
+  ])('answers a read with fetch site %s with %i', async (site, status) => {
+    const app = createApp(config);
+    const response = await app.request(`${url}/api/session`, {
+      headers: site ? { 'sec-fetch-site': site } : {},
+    });
+    expect(response.status).toBe(status);
+  });
+
   it.each([undefined, 'http://outside.invalid', 'null'])(
     'rejects write origin %s',
     async (origin) => {

@@ -61,6 +61,10 @@ export function createApp(
     const host = c.req.header('host') ?? new URL(c.req.url).host;
     if (!hosts.has(host))
       return c.json({ code: 'FORBIDDEN', message: 'Host is not allowed.' }, 403);
+    // Browsers send this header; a missing one (tests, CLI clients) is allowed.
+    const site = c.req.header('sec-fetch-site');
+    if (site && site !== 'same-origin' && site !== 'none')
+      return c.json({ code: 'FORBIDDEN', message: 'Cross-site requests are not allowed.' }, 403);
     c.header('Cache-Control', 'no-store');
     if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
       if (!origins.has(c.req.header('origin') ?? '')) {
