@@ -37,6 +37,7 @@ function RichTextEditor({ label, html, rev, onSave, onChange }: Props) {
   const dirty = useRef(false);
   const shownRev = useRef(rev);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const edited = useRef('');
   // The editor keeps its first callbacks, so it reads the latest props through a ref.
   const latest = useRef({ html, rev, onSave, onChange });
   useLayoutEffect(() => {
@@ -48,9 +49,10 @@ function RichTextEditor({ label, html, rev, onSave, onChange }: Props) {
     editorProps: { attributes: { class: 'rich-text', 'aria-label': label, role: 'textbox' } },
     onUpdate: ({ editor }) => {
       dirty.current = true;
-      latest.current.onChange?.(editor.getHTML());
+      edited.current = editor.getHTML();
+      latest.current.onChange?.(edited.current);
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => flush(editor.getHTML()), SAVE_DELAY_MS);
+      timer.current = setTimeout(() => flush(edited.current), SAVE_DELAY_MS);
     },
     onBlur: ({ editor }) => {
       if (dirty.current) flush(editor.getHTML());
@@ -79,7 +81,8 @@ function RichTextEditor({ label, html, rev, onSave, onChange }: Props) {
     }
   }, [editor, html, rev]);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // TipTap sends no blur when it is destroyed, so send a typed draft now.
+  useEffect(() => () => flush(edited.current), []);
 
   return <EditorContent editor={editor} className="rich-text-field" />;
 }

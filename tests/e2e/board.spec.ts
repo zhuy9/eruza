@@ -126,6 +126,60 @@ test('a rejected drag keeps required-field drafts for Save together', async ({ p
   await expect(column(page, 'Resolved').getByText(item.title)).toBeVisible();
 });
 
+const leaveBlocked = (page: Page) =>
+  page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })));
+// Firefox sends no blur when it removes a focused element. Block the one Chromium sends,
+// so a draft must be saved when its input unmounts. React ignores focusout then anyway.
+const blockBlur = (page: Page) =>
+  page.evaluate(() =>
+    window.addEventListener('blur', (event) => event.stopImmediatePropagation(), true),
+  );
+
+test('a later move replaces a rejected drag, so leaving no longer asks', async ({ page }) => {
+  const item = await createItem(page, 'Replaced drag example', 'Bug');
+  await page.goto('/board?type=Bug');
+  await drag(page, item.title, 'Resolved');
+  await expect(page.getByText(`#${item.id} needs more fields`, { exact: false })).toBeVisible();
+  // The kept draft shows nowhere once a later move saves, so it must not block leaving.
+  await drag(page, item.title, 'Active');
+  await expect(column(page, 'Active').getByText(item.title)).toBeVisible();
+  await expect.poll(() => leaveBlocked(page)).toBe(false);
+});
+
+test('going back right after stepping a select still saves it', async ({ page }) => {
+  const item = await createItem(page, 'Step and leave example');
+  await page.goto('/board?type=Story');
+  await page.getByRole('link', { name: item.title, exact: true }).click();
+  const state = page.getByLabel('State', { exact: true });
+  await state.focus();
+  await state.press('r');
+  await expect(state).toHaveValue('Ready for review');
+  await blockBlur(page);
+  await page.goBack();
+  await expect(state).toBeHidden();
+  await expect
+    .poll(async () => (await (await page.request.get(`/api/work-items/${item.id}`)).json()).item)
+    .toMatchObject({ state: 'Ready for review' });
+});
+
+test('a draft that fails after the panel closes shows a toast', async ({ page }) => {
+  const item = await createItem(page, 'Closed panel conflict example');
+  await page.goto('/board?type=Story');
+  await page.getByRole('link', { name: item.title, exact: true }).click();
+  const title = page.getByLabel('Title', { exact: true });
+  await expect(title).toHaveValue(item.title);
+  const changed = await page.request.patch(`/api/work-items/${item.id}`, {
+    headers: origin,
+    data: { expectedRev: item.rev, fields: { 'System.Tags': 'changed-elsewhere' } },
+  });
+  expect(changed.ok()).toBe(true);
+  await title.fill('Typed just before closing the panel');
+  await blockBlur(page);
+  await page.goBack();
+  await expect(title).toBeHidden();
+  await expect(page.getByText(`#${item.id}: Title not saved. Open it to review.`)).toBeVisible();
+});
+
 test('an older failed move does not discard a newer queued move', async ({ page }) => {
   const item = await createItem(page, 'Queued board move example');
   await page.goto('/board?type=Story');

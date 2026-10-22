@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   FieldDefinition,
   FieldValue,
@@ -29,6 +29,7 @@ import {
   type Pending,
 } from '../../lib/saves';
 import { keepView, useScope, type ViewSearch } from '../../lib/scope';
+import { useToast } from '../../lib/toast';
 import { useCreate } from './create';
 import { DraftInput, FieldInput, FormField } from './field-inputs';
 import { ItemActions } from './item-actions';
@@ -123,7 +124,6 @@ function EditorBody(props: { view: WorkItemView; variant: Variant; refreshFailed
   const { item, related, missingIds } = view;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const save = useSaveFields(item.id);
   const parent = useSetParent(item.id);
   const pending = usePendingFields(item.id);
   const openCreate = useCreate();
@@ -136,6 +136,19 @@ function EditorBody(props: { view: WorkItemView; variant: Variant; refreshFailed
   const areas = useQuery(areasQuery(item.project));
   const byRef = new Map((defs.data ?? []).map((d) => [d.referenceName, d]));
   const me = session.data?.user;
+  const toast = useToast();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  // A draft sent while leaving can fail after this editor is gone, so say so elsewhere.
+  const save = useSaveFields(item.id, (_error, failed) => {
+    const names = Object.keys(failed.fields).map((ref) => byRef.get(ref)?.name ?? ref);
+    if (!mounted.current) toast(`#${item.id}: ${names.join(', ')} not saved. Open it to review.`);
+  });
 
   const commit = (fields: FieldChanges, baseRev = item.rev) => {
     // A new edit replaces older failed drafts of the same fields, so one Discard clears them.

@@ -50,9 +50,49 @@ for (const field of ['Title', 'Description']) {
     }
     if (field === 'Title') await expect(input).toHaveValue(`${draft} again`);
     else await expect(input).toHaveText(`${draft} again`);
+    // A failed save keeps the draft only in memory, so closing the tab asks first.
+    const leaveBlocked = () =>
+      page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })));
+    expect(await leaveBlocked()).toBe(true);
     await problem.getByRole('button', { name: 'Discard my change' }).click();
     if (field === 'Title') await expect(input).toHaveValue('Remote title');
     else await expect(input).toHaveText('Remote description');
+    expect(await leaveBlocked()).toBe(false);
+  });
+
+  test(`going back right after typing in ${field} still saves it`, async ({ page }) => {
+    const response = await page.request.post('/api/work-items', {
+      headers,
+      data: {
+        projectId: 'sample-project',
+        type: 'Task',
+        fields: {
+          'System.Title': 'Leave early example',
+          'System.Description': '<p>Before leaving</p>',
+          'System.AreaPath': 'Sample project\\Web',
+          'System.IterationPath': 'Sample project\\Sprint 3',
+        },
+      },
+    });
+    expect(response.ok()).toBe(true);
+    const { id } = (await response.json()) as { id: number };
+    await page.goto(`/board?item=${id}`);
+    await page.getByRole('link', { name: 'Open full page' }).click();
+    await expect(page).toHaveURL(new RegExp(`/items/${id}`));
+    const typed = 'Typed just before going back to the board';
+    await page.getByRole('textbox', { name: field, exact: true }).fill(typed);
+    // Firefox sends no blur when it removes a focused element. Block the one Chromium sends,
+    // so the draft must be saved when the editor unmounts. React ignores focusout then anyway.
+    await page.evaluate(() =>
+      window.addEventListener('blur', (event) => event.stopImmediatePropagation(), true),
+    );
+    await page.goBack();
+    await expect
+      .poll(async () => {
+        const { item } = await (await page.request.get(`/api/work-items/${id}`)).json();
+        return field === 'Title' ? item.title : item.description;
+      })
+      .toContain(typed);
   });
 }
 

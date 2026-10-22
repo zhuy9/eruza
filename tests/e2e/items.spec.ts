@@ -179,6 +179,8 @@ test('rich text is shown safely and opening the editor sends no write', async ({
   await expect
     .poll(async () => (await getItem(page, 1001)).description)
     .toContain('Ready to ship.');
+  // Leaving before the reply arrives would ask first, and this test dismisses every dialog.
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
   const saved = (await getItem(page, 1001)).description;
   expect(saved).toContain('<table');
   expect(saved).toContain('/images/');

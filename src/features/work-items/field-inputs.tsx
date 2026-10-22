@@ -165,6 +165,12 @@ export function StepSelect({
     setDraft(null);
     if (next !== value) onCommit(next, baseRev);
   };
+  const flush = useRef(() => {});
+  useLayoutEffect(() => {
+    flush.current = () => draft && commit(draft.value, draft.rev);
+  });
+  // Leaving the page unmounts the select without a blur, so send a stepped draft now.
+  useEffect(() => () => flush.current(), []);
   return (
     <NativeSelect
       {...props}
@@ -215,11 +221,7 @@ export function DraftInput({
   const [shown, setShown] = useState({ value, rev });
   const dirty = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const latest = useRef({ value, onCommit });
-  useLayoutEffect(() => {
-    latest.current = { value, onCommit };
-  });
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const latest = useRef({ value, onCommit, flush: () => {} });
 
   // Take newer server or saved values, but never while the user is typing.
   if (!focused && (value !== shown.value || rev !== shown.rev)) {
@@ -234,6 +236,11 @@ export function DraftInput({
     const next = input === '' ? null : numeric ? Number(input) : input;
     if (next !== latest.current.value) latest.current.onCommit(next, shown.rev);
   };
+  useLayoutEffect(() => {
+    latest.current = { value, onCommit, flush: () => commit(draft) };
+  });
+  // Leaving the page unmounts the input without a blur, so send a typed draft now.
+  useEffect(() => () => latest.current.flush(), []);
 
   // A custom class, such as the large title, styles a plain input instead of Input.
   const Field = className ? 'input' : Input;

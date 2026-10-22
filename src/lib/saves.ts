@@ -245,17 +245,31 @@ export function useSetParent(id: number, onFailure?: (error: unknown) => void) {
   });
 }
 
+const saveState = (mutation: Mutation): SaveState => ({
+  save: (mutation.state.variables as Save | undefined) ?? { fields: {}, baseRev: 0 },
+  status: mutation.state.status,
+  error: mutation.state.error,
+  submittedAt: mutation.state.submittedAt,
+  mutation: mutation as Mutation<unknown, unknown, unknown>,
+});
+
 /** Unsaved and failed field values for one item, for every view of it. */
 export function usePendingFields(id: number) {
   const saves = useMutationState({
     filters: { mutationKey: ['save', id] },
-    select: (mutation): SaveState => ({
-      save: (mutation.state.variables as Save | undefined) ?? { fields: {}, baseRev: 0 },
-      status: mutation.state.status,
-      error: mutation.state.error,
-      submittedAt: mutation.state.submittedAt,
-      mutation: mutation as Mutation<unknown, unknown, unknown>,
-    }),
+    select: saveState,
   });
   return pendingOverlay(saves);
+}
+
+/** True when an item still shows a failed save, so its draft lives only in memory. */
+export function hasFailedSave(queryClient: QueryClient) {
+  const cache = queryClient.getMutationCache();
+  const ids = new Set(
+    cache.findAll({ mutationKey: ['save'] }).map((m) => m.options.mutationKey?.[1]),
+  );
+  return [...ids].some((id) => {
+    const overlay = pendingOverlay(cache.findAll({ mutationKey: ['save', id] }).map(saveState));
+    return Object.values(overlay).some((p) => p.status === 'error');
+  });
 }
