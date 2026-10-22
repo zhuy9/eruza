@@ -125,7 +125,11 @@ export function createAdoClient(organization: string, auth: Auth) {
     }
     const retryAfter = Number(response.headers.get('retry-after'));
     if (retryAfter > 0) notBefore = Math.max(notBefore, Date.now() + retryAfter * 1000);
-    const code = CODES[response.status] ?? (response.ok ? null : 'UPSTREAM');
+    // A gateway error can come after ADO saved the write, so a retry could duplicate it.
+    const gateway = init.write && response.status >= 502 && response.status <= 504;
+    const code = gateway
+      ? 'UNKNOWN_OUTCOME'
+      : (CODES[response.status] ?? (response.ok ? null : 'UPSTREAM'));
     if (!code) return response;
     if (code === 'AUTH_REQUIRED') auth.clearToken();
     if (code === 'VALIDATION') throw validationError(await response.json().catch(() => null));

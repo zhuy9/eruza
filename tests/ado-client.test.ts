@@ -144,6 +144,19 @@ describe('ADO client', () => {
     },
   );
 
+  it.each([502, 503, 504])(
+    'reports a gateway HTTP %i after a write as unknown, but keeps it upstream for reads',
+    async (status) => {
+      const fetch = stubFetch(new Response(null, { status }), new Response(null, { status }));
+      const ado = createAdoClient('sample-org', fakeAuth());
+      await expect(ado.json('x', { method: 'POST', write: true })).rejects.toMatchObject({
+        body: { code: 'UNKNOWN_OUTCOME' },
+      });
+      await expect(ado.json('x')).rejects.toMatchObject({ body: { code: 'UPSTREAM' } });
+      expect(fetch).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it('preserves JSON decoding errors for POST reads', async () => {
     const fetch = stubFetch(new Response('{broken'));
     await expect(
