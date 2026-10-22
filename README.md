@@ -156,8 +156,6 @@ Git ignores both `.env` and `public/branding/`.
 - Tags are edited as text, separated by `;`.
 - You can add comments, but not edit or delete them. `@` mention suggestions come from
   the selected team.
-- In the side panel, a dropdown saves on every change. On Windows, this includes moving
-  through the options with the arrow keys.
 - Browser tests run in Chromium on macOS. Other browsers, browsers on Windows, and screen
   readers have not been tested.
 

@@ -212,8 +212,11 @@ type ApiError = {
   Do not detect conflicts only by expecting ADO to return HTTP 409.
 - Use field errors only when the field is known. Preserve a useful form-level
   message for other rule failures.
-- A network error after sending a write may be `UNKNOWN_OUTCOME`.
-  Explain that the user should check before repeating it.
+- A network error, a timeout, or an HTTP 502, 503, or 504 after sending a write is
+  `UNKNOWN_OUTCOME`, because ADO may have saved it. Explain that the user should check
+  before repeating it.
+- Each ADO request times out after 30 seconds, including reading the response body.
+  A timed-out read is `NETWORK`.
 - Return safe messages, not raw headers, CLI output, stack traces, or bodies.
 - Keep authorization failures distinct from expired or missing login.
 

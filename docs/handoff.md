@@ -31,8 +31,9 @@ visibility without new approval.
 - Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
   on GitHub through `bfac186`, which includes the sample seeder, the collapsible
   sidebar, and the shadcn components. M8 custom grouping and later docs are local
-  commits.
-- GitHub was checked as private in the M7 session (`gh repo view`). Keep it private.
+  commits. So are the README rewrite and the 13 lower-severity review fixes below.
+- GitHub was private when last checked. On 2026-10-22 the owner said they will make it
+  public themselves. Check with `gh repo view` before publication work.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
 ## M1 result: complete
@@ -918,6 +919,82 @@ supported formats, and the display values copied into a local build.
 Next step: set either branding value in local configuration if desired. A push
 still needs explicit approval.
 
+## Lower-severity review fixes (2026-10-22)
+
+The handoff listed the lower-severity findings from the whole-codebase review as open,
+without the list. The list was recovered from that review: 17 findings (S1-S17). Each one
+was checked again against the current code before any change. The user asked for one
+`fix:` commit per finding. Each fix has a test that failed before it, a simplicity
+review, `npm run check`, and the full browser suite. A separate correctness and security
+review followed each commit, and the commit was amended when the review found a real
+problem. These are mock and unit checks unless noted.
+
+Read-only live checks in the private test project (no writes): adding a comment created a
+new item revision (comment count 0 to 1). Adding child links did not change the parent's
+revision. No item in the project has an embedded image.
+
+Client fixes:
+
+1. `b92d31a` (S17, which also covers S3): `C`, `I`, and `Cmd/Ctrl+K` are ignored while
+   any dialog is open, even after focus drops to the page when a button disables itself.
+   Dialogs also keep focus inside while their request runs. A pending create can no longer
+   be replaced, losing its result. The old keys unit test was hollow; it is fixed.
+2. `5c37dbb` (S5): the search box keeps a local draft, so typing in the middle of the text
+   no longer moves the caret to the end. Clear filters and Back still update it.
+3. `a6d2d6a` (S2): a State, Area, or Iteration select whose list is empty (loading,
+   failed, or no sprints) is disabled with a short note, instead of a text box that saved
+   each keystroke. Editor and grid selects now share one control: arrow keys or
+   type-ahead on a closed select make a draft that saves on Enter or when you leave the
+   field, and Escape cancels it. Mouse choices still save at once. This removes the old
+   README limitation about arrow keys on Windows.
+4. `70deea8` (S1): after a comment, the item and lists are read again, and the mock adds
+   a revision like ADO. The next edit no longer reports a false conflict. Known gap: a save
+   sent while the comment is still sending can conflict once; the draft is kept.
+5. `3e28573` (S6): a conflict now shows "Azure DevOps now has <field>: <value>" as plain
+   text, cut at 200 characters, after the newer item arrives. Save again no longer
+   overwrites a value the user never saw.
+6. `8256ab6` (S4): a text, rich-text, or stepped-select draft is sent when its editor
+   closes, for example on browser Back. Leaving or reloading the page asks first while a
+   save is running or a failure is still shown. A save that fails after its editor closed
+   shows a toast.
+7. `2fc8049` (S14): if the first read of an item is older than a save this tab already
+   finished, it reads once more. This closes the known gap from follow-up fix 3, so it
+   no longer needs a live check.
+
+Server fixes (built in a separate worktree, then cherry-picked):
+
+8. `eeaa38d` (S9): the Azure CLI token call times out after 30 seconds, so a hung `az`
+   no longer blocks every request, and Retry works. A timeout shows the sign-in message.
+9. `2aa0d73` (S10): each ADO request times out after 30 seconds, including the body.
+   Writes report `UNKNOWN_OUTCOME`, and reads report `NETWORK`. Known limit: a very large
+   image on a slow link can hit the 30-second limit.
+10. `28c0cfd` (S11): a 502, 503, or 504 after a write is `UNKNOWN_OUTCOME`, so the UI
+    asks the user to check instead of inviting a duplicate.
+11. `c4fc5b5` (S7): the local API rejects browser requests marked `cross-site` or
+    `same-site`. The full browser suite confirms the app's own requests still pass.
+12. `2da82aa` (S8): an unknown field makes the server read the org field list once more
+    before it rejects the write, so a field added during the session can be saved. A
+    failed read no longer drops a newer cached read.
+13. `3731dff` (S13): only numbers from 1 to 2,147,483,647 are searched as IDs, so a long
+    number no longer breaks the whole parent search.
+
+Not changed:
+
+- S12 (embedded image and avatar routes drop `fileName` and ask for JSON): still open.
+  It needs a live image, and adding one is a write that needs the owner's approval.
+- S15 (every save reloads the visible lists): accepted. It costs speed only on very
+  large sprints, with no correctness risk.
+- S16 (the mock does not add a parent revision on link changes): not a bug. The live
+  check shows ADO does not either.
+
+Final checks on `main` after all 13 commits: `npm run check` passed (225 unit and
+integration tests, plus the build, with the existing chunk-size warning). The first full
+`npm run test:e2e` run passed 85 of 86. The capped-result test in `limits.spec.ts` timed
+out once; it passed 3 of 3 alone, and the second full run passed 86 of 86 in 2.1 minutes.
+Earlier full runs during the fixes had similar one-off timeouts in other specs, each
+passing alone and on the next full run. No commit has a Co-Authored-By trailer, at the
+owner's request.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -950,6 +1027,6 @@ the dev-server and Ctrl+C checks.
 Stage 1, the audit and review fixes, the sample seeder, the collapsible sidebar, and
 the shadcn components are on GitHub through `bfac186`. M8 custom grouping is complete
 in local commits; pushing them and any publication or visibility change need explicit
-approval. Not yet checked against live ADO: the first-load stale read in follow-up fix 3. The lower-severity findings from the whole-codebase review, including comments not
-refreshing the item revision, are not fixed yet. Keep `refs/t3/` local; never push
-with `--all` or `--mirror`.
+approval. The README rewrite and the lower-severity review fixes are also local commits.
+Open: S12 needs a live image check, which is a write and needs approval. Keep `refs/t3/`
+local; never push with `--all` or `--mirror`.

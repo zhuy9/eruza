@@ -359,4 +359,6 @@ remaining limits. It adds no ADO calls or writes.
 - M0-M7, the audit and review fixes, and later work through the shadcn components
   are on GitHub at `bfac186`. M8 is complete in local commits. Pushing, deploying, or
   changing visibility requires explicit approval.
+- On 2026-10-22 the README was rewritten for a public repo, and 13 lower-severity review
+  findings were fixed in local commits. See the handoff. S12 waits on a live image check.
 - Next step: work the user chooses.

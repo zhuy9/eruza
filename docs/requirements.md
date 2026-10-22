@@ -174,7 +174,8 @@ Editable core fields: title, description, state, assignee, priority, tags,
 area path, iteration, estimate, and remaining work, where the type supports them.
 Show editable required custom fields when needed to complete an operation.
 
-- Save selects immediately.
+- Save a select choice immediately. Arrow keys or type-ahead on a closed select make a
+  draft that saves on Enter or when leaving the field.
 - Save text on blur or after a short debounce, not on every keystroke.
 - Show saving, saved, and failed states. No single large Save button.
 - Keep pending edits visible during background refresh.

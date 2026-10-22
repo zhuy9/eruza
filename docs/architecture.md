@@ -83,6 +83,8 @@ build output. No ADO configuration or credentials are part of branding.
 - Bind both listeners to loopback. Do not use `0.0.0.0`.
 - `PORT` selects the Hono port; Vite proxies to that port.
 - Validate the Host header and require an allowed local origin for writes.
+- Reject browser requests whose `Sec-Fetch-Site` is `cross-site` or `same-site`. Allow a
+  missing header, for tests and command-line clients.
 - Validate JSON inputs and reject unexpected mutation content types.
 - Do not enable broad cross-origin access.
 - Build ADO URLs from configured organization and validated IDs or names.
