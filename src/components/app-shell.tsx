@@ -23,6 +23,8 @@ import { sessionQuery } from '../lib/queries';
 import { inDialog, isShortcut } from '../lib/keys';
 import { keepView, useScope } from '../lib/scope';
 import { ToastContext } from '../lib/toast';
+import { branding } from '../lib/branding';
+import { Brand } from './brand';
 
 const TOAST_MS = 6000;
 const SIDEBAR_KEY = 'eruza-sidebar';
@@ -93,12 +95,7 @@ export function AppShell() {
           </a>
           <aside className="sidebar">
             <Link to="/board" search={keepView} className="brand">
-              <span className="brand-mark" aria-hidden="true">
-                e
-              </span>
-              <span className="brand-name">
-                eruza<span className="brand-dot">.</span>
-              </span>
+              <Brand {...branding} />
             </Link>
             <div className="workspace-label">WORKSPACE</div>
             <ProjectTeamControls />

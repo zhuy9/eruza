@@ -880,6 +880,44 @@ and no external fonts or resources.
 - The existing build chunk-size warning remains. Next step: normal app use; a
   push still needs approval.
 
+## M9 result: complete (mock mode)
+
+The user chose name and logo customization through local configuration.
+`VITE_BRAND_NAME` and `VITE_BRAND_LOGO` in the ignored `.env` file change the
+sidebar and browser tab. The logo must be an image file under the ignored
+`public/branding/` folder. Blank values preserve Eruza's defaults. Broken images
+restore the default mark and favicon. Names render as text and truncate visually
+without losing the accessible link name. The README describes setup, restart,
+supported formats, and the display values copied into a local build.
+
+- M9.1-M9.2: five new unit tests cover blank and independent settings, valid image
+  paths, rejected URLs/traversal, literal text, favicon type, and failed-image
+  fallback. The first run failed because the new modules did not exist. An initial
+  full check caught an environment typing error; explicitly reading the two named
+  settings fixed it. `npm run check` then passed with 207 tests and a build.
+- M9.3: seven existing shell/accessibility browser tests passed using
+  `npm run test:e2e -- --config tmp/branding-check/playwright.config.ts`. Three
+  temporary custom-branding checks passed with `custom.config.ts` in that folder:
+  light/dark, long names, reload, the collapsed rail, local image loading, tab
+  title/favicon, accessible names, no external requests, and broken-image fallback.
+  Branding fit at widths 1440, 800, and 375. Mock screenshots were visually checked.
+- The test harness served Vite and the mock API on loopback port 5174, leaving the
+  existing app on 5173 alone. The full 75-test browser suite was not rerun; the seven
+  applicable existing tests and three custom checks were used. No live ADO calls
+  were made. A broad mobile-page assertion initially failed: the board is 510px wide
+  at a 375px viewport with default branding and with the brand removed. The targeted
+  sidebar fit check passes; the existing board overflow is outside M9.
+- A separate build with synthetic branding confirmed the name, logo path, and
+  image asset were included, while the synthetic private organization value,
+  server setting names, token scope, and credential code were absent. Temporary
+  logos were removed. Browser test configuration clears local branding overrides.
+- Ponytail review and separate correctness/security/privacy reviews found no
+  remaining issues. No dependency or API endpoint was added. Staged scanning and
+  Git whitespace checks passed. The existing build chunk-size warning remains.
+
+Next step: set either branding value in local configuration if desired. A push
+still needs explicit approval.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from

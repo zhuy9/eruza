@@ -261,6 +261,16 @@ comments, and at least 1,000 tickets.
 Automated tests must also cover conflicts, validation errors, and network errors.
 Show a visible Mock mode label.
 
+## Local branding (M9)
+
+Optional local configuration can replace the sidebar name and logo. The same
+values set the browser title and favicon. Blank settings keep Eruza's defaults.
+Custom logos come from an ignored local folder, with no external image requests.
+Names render as plain text; long names fit the sidebar and remain available to
+screen readers. A broken logo falls back to the default mark. The expanded and
+collapsed sidebar must work in both themes. Color customization and an in-app
+branding settings screen are outside this change.
+
 ## Out of scope
 
 Hosting, Entra/MSAL sign-in, multiple local users, a database, persistent ticket

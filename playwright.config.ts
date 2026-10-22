@@ -11,7 +11,14 @@ export default defineConfig({
   webServer: {
     command: 'node --import tsx server/dev.ts',
     url: 'http://127.0.0.1:5173',
-    env: { MOCK: '1', ADO_ORG: '', ADO_DEFAULT_PROJECT: '', PORT: '3001' },
+    env: {
+      MOCK: '1',
+      ADO_ORG: '',
+      ADO_DEFAULT_PROJECT: '',
+      PORT: '3001',
+      VITE_BRAND_NAME: '',
+      VITE_BRAND_LOGO: '',
+    },
     reuseExistingServer: false,
   },
 });

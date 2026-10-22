@@ -72,6 +72,11 @@ The ADO layer calls `getAuthHeader()` to authorize requests.
 Use relative `/api` URLs in the browser. Keep server-only settings and imports
 out of the client bundle. Do not put credentials in `VITE_` variables.
 
+The optional `VITE_BRAND_NAME` and `VITE_BRAND_LOGO` settings are display-only
+exceptions: they are intentionally included in the browser build. Custom logo
+files live in the ignored `public/branding/` folder and are copied into local
+build output. No ADO configuration or credentials are part of branding.
+
 ## Local server and configuration
 
 - `npm run dev` starts Vite and Hono, watches both, and stops both on exit.

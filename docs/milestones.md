@@ -332,6 +332,21 @@ Acceptance:
 M8 passed in mock mode. See [handoff.md](handoff.md) for the evidence. It adds no
 live ADO behavior: the levels use fields the live checks already read.
 
+## M9: Local branding
+
+The user chose custom name and logo through local configuration.
+
+- [x] M9.1: Optional settings change the sidebar name and logo and the browser
+      title and favicon. Blank settings preserve the original Eruza branding.
+- [x] M9.2: Logos use an ignored local folder. Remote URLs and unsafe paths are
+      rejected; a failed image falls back. Names render as text, not HTML.
+- [x] M9.3: Branding remains usable in expanded and collapsed sidebars, both
+      themes, and with long names. Unit and mock browser checks, `npm run check`,
+      ponytail review, and separate correctness/security/privacy reviews pass.
+
+M9 passed in mock mode. See the handoff for the targeted browser checks and
+remaining limits. It adds no ADO calls or writes.
+
 ## Latest handoff
 
 - Stage 1 (M0-M7): complete. No Stage 2 work was added.

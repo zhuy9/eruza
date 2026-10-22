@@ -121,6 +121,30 @@ For mock mode, set `MOCK=1` in `.env` (or skip `.env`; mock is the default) and
 run `npm run dev`. Leave organization settings blank. Mock mode does not need
 Azure CLI. Mock edits stay in memory and reset when the server restarts.
 
+### Custom branding
+
+Set either or both of these optional values in your ignored `.env` file:
+
+```dotenv
+VITE_BRAND_NAME="Sample workspace"
+VITE_BRAND_LOGO=/branding/logo.svg
+```
+
+Create `public/branding/` and put your logo there, for example
+`public/branding/logo.svg`. Use a square image for the sidebar and favicon.
+Supported formats are SVG, PNG, WebP, JPEG, GIF, and ICO. The filename may contain
+letters, numbers, hyphens, and underscores. Remote URLs and other paths are ignored.
+
+Restart `npm run dev` after changing these settings, or rebuild if using build
+output. The name appears in the sidebar and browser tab; the logo replaces the
+sidebar mark and favicon. Blank settings keep Eruza's branding. A missing or broken
+logo falls back to the default mark and favicon. Long names are shortened visually
+to fit the sidebar, with the full name available to screen readers.
+
+Both `.env` and `public/branding/` are ignored by Git. Branding values and logo files
+are included in the local browser build, so use only display information in these
+`VITE_` settings. Keep account settings and credentials on the server.
+
 ### Sample items in Azure DevOps
 
 Mock mode already has sample data. To try Eruza against Azure DevOps, use a test
