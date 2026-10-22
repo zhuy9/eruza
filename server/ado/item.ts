@@ -107,7 +107,9 @@ export async function searchWorkItems(
       },
     },
   );
-  const direct = /^\d+$/.test(text) ? [Number(text)] : [];
+  // ADO rejects the whole batch if one ID is out of its int32 range, so skip those.
+  const id = Number(text);
+  const direct = /^\d+$/.test(text) && id >= 1 && id < 2 ** 31 ? [id] : [];
   const ids = [...direct, ...result.workItems.map((item) => item.id)].slice(0, SEARCH_LIMIT);
   const { items } = await batchGet(ado, projectId, ids);
   return { items, incomplete: result.workItems.length > SEARCH_LIMIT };

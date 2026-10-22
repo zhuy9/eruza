@@ -6,6 +6,7 @@ import {
   deleteWorkItem,
   getImage,
   getWorkItem,
+  searchWorkItems,
   setParent,
   updateWorkItem,
   webUrl,
@@ -476,6 +477,30 @@ describe('comments', () => {
     expect(calls.map((c) => c.path)).toEqual([
       `/sample-org/_apis/wit/attachments/${GUID.toUpperCase()}`,
     ]);
+  });
+});
+
+describe('search', () => {
+  const searchAdo = () =>
+    fakeAdo({
+      'POST /wiql': () => ({ workItems: [{ id: 5 }, { id: 6 }] }),
+      'POST /workitemsbatch': () => ({ value: [] }),
+    });
+  const batchIds = (calls: Call[]) =>
+    (calls.find((c) => c.path.endsWith('/workitemsbatch'))?.body as { ids: number[] }).ids;
+
+  it('sends only numbers in the valid ID range as direct IDs', async () => {
+    for (const text of ['99999999999', '2147483648', '0', '000']) {
+      const { ado, calls } = searchAdo();
+      await searchWorkItems(ado, 'project-1', text);
+      expect(batchIds(calls)).toEqual([5, 6]);
+    }
+  });
+
+  it('puts a valid ID first, before title matches', async () => {
+    const { ado, calls } = searchAdo();
+    await searchWorkItems(ado, 'project-1', '42');
+    expect(batchIds(calls)).toEqual([42, 5, 6]);
   });
 });
 
