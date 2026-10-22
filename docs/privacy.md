@@ -1,8 +1,7 @@
 # Public repository rules
 
-The repo is private during preparation, but it is intended to become public.
-Treat source, docs, examples, fixtures, assets, and Git history as public now.
-Private repository visibility is not a place to store private data.
+Treat this repo as public, including source, docs, examples, fixtures, assets, and Git
+history.
 
 ## Allowed content
 

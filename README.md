@@ -2,201 +2,217 @@
 
 **Eruza: Azure DevOps Boards, reimagined.**
 
-Eruza is a local web app in development for Azure DevOps (ADO) Boards. It provides
-a state-based board, a grid for sprint meetings, and work item editing.
-Azure DevOps remains the source of truth.
+Eruza is a web app that runs on your own computer. It gives you a faster way to work
+with Azure DevOps Boards: a board, a grid for sprint meetings, and a work item editor.
+Your work items stay in Azure DevOps. Eruza does not keep its own copy.
 
-![The state board with sample items in columns by state](docs/images/board.png)
+![The board, with sample items in To Do, Doing, and Done columns](docs/images/board.png)
 
-![The sprint update grid grouped by person and story](docs/images/sprint-update.png)
+![The Sprint update grid, grouped by person and then by story](docs/images/sprint-update.png)
 
-## Current status
+## Features
 
-Stage 1 (M0-M7) is complete. Local automated checks and live checks against a
-private test project cover Azure CLI sign-in, metadata and sprint reads, item
-creation and editing, parent actions, state changes, comments, mentions, and
-recoverable deletion.
+- **Board.** Pick a work item type, and its states become the columns. Drag a card to
+  change its state, or use a column's **+** button to create an item in that state.
+- **Sprint picker.** Each view opens on the team's current sprint. You can also pick an
+  earlier sprint.
+- **Sprint meeting grid.** Lists every work item in the sprint, of any type. The grid
+  calls each one a ticket.
+  - _Sprint update_ groups by Person > Story > Ticket.
+  - _Sprint retro_ groups by Story > Person > Ticket.
+  - A **Group by** bar lets you add, remove, or reorder the group levels: Person, Story,
+    and Type.
+  - Each group shows its ticket count and remaining work. Columns can be sorted and
+    resized.
+  - Edit cells in place. When the grid is grouped by Story, drag a ticket onto a story to
+    make that story its parent.
+  - Stays fast with more than 1,000 tickets in mock-mode tests.
+- **Work item editor.** Open an item in a side panel or a full page. Edit fields and the
+  description, change the parent, and add comments with `@` mentions.
+- **Quick actions.** Press `C` to create an item, or `Cmd/Ctrl+K` to open the command
+  palette. Press `I` to assign the open item to yourself. Copy an item's ID or link, open
+  it in Azure DevOps (not in mock mode), or move it to the Azure DevOps Recycle Bin after
+  you confirm.
+- **Filters** for assignee, area, tags, and ID or title. They stay set when you switch
+  views.
+- **Mock mode** with made-up data, so you can try Eruza without an Azure DevOps account.
 
-You can pick a project, team, and sprint, open items in a side panel
-or full page, edit fields and descriptions, create items, and change parents.
-The board has metadata-driven state columns, drag moves, and column creation.
-Shared filters and the `C` and Cmd/Ctrl+K creation shortcuts work across views.
-The meeting grid groups the sprint by person and story in either order, with counts,
-remaining work, sortable and resizable columns, inline edits, and drag-to-parent.
-It stays responsive with more than 1,000 tickets. Items show a paged comment thread
-with rich-text comments and `@` mentions of team members. Items can be copied by ID or
-link, opened in Azure DevOps (real mode only), and moved to the ADO Recycle Bin after a
-confirmation.
+## How it works
 
-Start with the [current handoff](docs/handoff.md), then read
-[milestones and acceptance checks](docs/milestones.md).
+- Eruza runs only on your computer, for one person. Nothing is hosted online, and there
+  is no database or sign-in page.
+- The browser talks only to a small local server. That server calls Azure DevOps with
+  your Azure CLI sign-in, so your token never reaches the browser.
+- You can switch between projects and teams in one organization.
 
-## Known limitations
+## Get started
 
-- Only Azure DevOps Services at `dev.azure.com` is supported.
-- A sprint view loads at most 5,000 items. A larger result is labeled incomplete.
-- The board uses work item states as columns. It does not copy ADO board columns,
-  swimlanes, or manual card order.
-- Only the Description field is edited as rich text. Other HTML fields, such as a
-  bug's repro steps, are not editable. Text with colors, fonts, highlights, or mentions
-  stays read-only in Eruza; edit it in Azure DevOps. Attachments cannot be uploaded.
-- Tags are edited as text separated by `;`.
-- Comments can be added but not edited or deleted. Mention suggestions come from the
-  selected team.
-- Select fields in the detail panel save on every change, including arrow-key changes
-  on Windows.
-- Automated checks run in headless Chromium. Screen readers and other browsers have not
-  been checked.
-- The first download is about 225 KB gzipped, plus about 160 KB for the editor when an
-  item first opens.
+Install Node.js `24.14.1` (see `.node-version`). Then run:
 
-## Stage 1
+```sh
+npm ci
+npm run dev
+```
 
-- One user, running on localhost.
-- One command starts the web client and local server.
-- Azure CLI provides the signed-in user's token to the server.
-- The browser calls the local server, never the Azure DevOps API directly.
-- No hosting, database, app registration, or separate ticket store.
-- Multiple projects and teams within one organization.
-- Mock mode works without Azure CLI or organization settings.
+Open <http://127.0.0.1:5173>. Without a `.env` file, Eruza starts in mock mode with
+made-up data. Mock changes are kept in memory and reset when you restart. Press Ctrl+C to
+stop.
 
-The grid includes all work item types, with no type filter:
+### Connect to Azure DevOps
 
-| Meeting view  | Grouping                |
-| ------------- | ----------------------- |
-| Sprint update | Person > Story > Ticket |
-| Sprint retro  | Story > Person > Ticket |
-
-Both views default to the current sprint and allow selecting previous sprints.
-A "Group by" bar can reorder those levels or add Type, as a custom grouping.
-The board has a separate work item type selector because its columns use that
-type's states.
-
-## Stack
-
-- React, TypeScript, and Vite.
-- TanStack Query, Router, Table, and Virtual.
-- Tailwind CSS and shadcn/ui with Radix.
-- dnd-kit, TipTap, and cmdk.
-- Node.js with Hono and native `fetch`.
-- `@azure/identity` with `AzureCliCredential`.
-- Vitest and Playwright, with ESLint and Prettier.
-
-One npm package and one lockfile. Node and dependency versions are pinned.
-
-## Local setup
-
-Mock and real ADO startup have been verified from a clean checkout on macOS.
-Mock mode does not need Azure CLI or account settings.
-
-1. Install Node.js `24.14.1` (see `.node-version`) and Azure CLI.
-2. Run `npm ci`.
-3. Copy `.env.example` to `.env`.
-4. Set `MOCK=0` for real ADO access. Set `ADO_ORG` to the organization name,
-   not a URL.
-5. Optionally set `ADO_DEFAULT_PROJECT`. `PORT` is the local API port.
-6. Sign in:
+1. Install the Azure CLI and sign in:
 
    ```sh
    az login --allow-no-subscriptions
    ```
 
-   If a specific tenant is needed:
+   To sign in to a specific tenant, add `--tenant <domain>`.
 
-   ```sh
-   az login --allow-no-subscriptions --tenant <domain>
-   ```
-
-7. Check that a token can be acquired without printing it:
+2. Check that you can get a token for Azure DevOps. The long ID is the fixed Azure DevOps
+   resource ID. The command prints only the token's expiry time, not the token:
 
    ```sh
    az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query expiresOn --output tsv
    ```
 
-8. Run `npm run dev` and open <http://127.0.0.1:5173>.
-   The local API listens on `127.0.0.1` at `PORT` (default `3001`).
-   Press Ctrl+C to stop both servers.
+3. Copy `.env.example` to `.env` and set:
+   - `MOCK=0` to turn off mock mode.
+   - `ADO_ORG` to your organization name, not a URL. For
+     `https://dev.azure.com/contoso`, use `contoso`.
+   - `ADO_DEFAULT_PROJECT` (optional) to the exact name of the project to open first.
+   - `PORT` (optional) for the local API server. The default is `3001`. You still open the
+     app at port `5173`.
 
-Azure CLI must remain installed. The credential uses it to acquire tokens.
-Eruza will not run `az boards` commands. Access still depends on the signed-in
-user's Azure DevOps permissions.
+4. Run `npm run dev` and open <http://127.0.0.1:5173>.
 
-For mock mode, set `MOCK=1` in `.env` (or skip `.env`; mock is the default) and
-run `npm run dev`. Leave organization settings blank. Mock mode does not need
-Azure CLI. Mock edits stay in memory and reset when the server restarts.
+If a setting is wrong, `npm run dev` stops with "Check MOCK, PORT, and ADO_ORG in local
+settings." `MOCK` must be `0` or `1`, and `PORT` must be between 1024 and 65535. When
+`MOCK=0`, `ADO_ORG` must be set and use only letters, numbers, and `-`.
 
-### Custom branding
+`.env` holds settings only. Never put tokens or passwords in it. Keep the Azure CLI
+installed, because Eruza uses it to get tokens. Eruza can only do what your Azure DevOps
+account is allowed to do.
 
-Set either or both of these optional values in your ignored `.env` file:
+### Add sample items (optional)
+
+To try Eruza on a test project, set that project as `ADO_DEFAULT_PROJECT`, set `MOCK=0`,
+and run:
+
+```sh
+npm run seed
+```
+
+- It shows the project, team, and sprint, then waits for you to type `yes`. To skip the
+  question, run `npm run seed -- --yes`. In a script or CI job, where it cannot ask,
+  `--yes` is required.
+- It creates 17 made-up items in the default team's current sprint: 5 stories with 12
+  child tasks. The story type comes from your process, such as User Story or Issue. If
+  the team has a future sprint, one story goes there.
+- Two of the tasks are created as bugs. They are created as tasks instead if your process
+  has no Bug type, your team tracks bugs with stories, or a bug needs a field the script
+  cannot fill.
+- It stops before creating anything if a story or task needs a field it cannot fill.
+- Every sample has the `eruza-sample` tag. Some are assigned to you; the rest are
+  unassigned, so nobody else gets a notice.
+- `npm run seed -- --remove` moves the samples to the Recycle Bin. It only removes items
+  that still have the tag. The sample IDs and organization are saved in
+  `tmp/sample-ids.json`, which Git ignores. Keep the same `ADO_ORG` until you remove them.
+- Running `npm run seed` again stops until the earlier samples are removed.
+
+### Custom name and logo (optional)
+
+Add one or both of these to `.env`:
 
 ```dotenv
 VITE_BRAND_NAME="Sample workspace"
 VITE_BRAND_LOGO=/branding/logo.svg
 ```
 
-Create `public/branding/` and put your logo there, for example
-`public/branding/logo.svg`. Use a square image for the sidebar and favicon.
-Supported formats are SVG, PNG, WebP, JPEG, GIF, and ICO. The filename may contain
-letters, numbers, hyphens, and underscores. Remote URLs and other paths are ignored.
+- Put the logo directly in `public/branding/`. In `.env`, leave out `public/`, as shown
+  above. A logo in a subfolder or at a web address is ignored, and Eruza's own logo is
+  shown.
+- Use a square SVG, PNG, WebP, JPEG, GIF, or ICO file. The file name may use only
+  letters, numbers, `-`, and `_`.
+- Restart `npm run dev` after a change.
+- The name appears in the sidebar and the browser tab. The logo replaces the Eruza logo in
+  the sidebar and the favicon. If the logo fails to load, Eruza's own logo is shown.
+- These values are built into the browser page, so use display text only. Never put
+  secrets in `VITE_` settings.
 
-Restart `npm run dev` after changing these settings, or rebuild if using build
-output. The name appears in the sidebar and browser tab; the logo replaces the
-sidebar mark and favicon. Blank settings keep Eruza's branding. A missing or broken
-logo falls back to the default mark and favicon. Long names are shortened visually
-to fit the sidebar, with the full name available to screen readers.
+Git ignores both `.env` and `public/branding/`.
 
-Both `.env` and `public/branding/` are ignored by Git. Branding values and logo files
-are included in the local browser build, so use only display information in these
-`VITE_` settings. Keep account settings and credentials on the server.
+## Limitations
 
-### Sample items in Azure DevOps
+- Works only with Azure DevOps Services at `dev.azure.com`, not Azure DevOps Server.
+- A sprint view loads up to 5,000 items. A larger result is marked as incomplete.
+- Board columns are work item states. Eruza does not copy your Azure DevOps board
+  columns, swimlanes, or card order.
+- Only the Description field is shown as rich text. Other HTML fields, such as a bug's
+  repro steps, are not shown. A required custom HTML field appears as a plain text box
+  with raw HTML.
+- A description with colors, fonts, highlights, or mentions is read-only in Eruza. Edit
+  it in Azure DevOps.
+- You cannot upload attachments.
+- Tags are edited as text, separated by `;`.
+- You can add comments, but not edit or delete them. `@` mention suggestions come from
+  the selected team.
+- In the side panel, a dropdown saves on every change. On Windows, this includes moving
+  through the options with the arrow keys.
+- Browser tests run in Chromium on macOS. Other browsers, browsers on Windows, and screen
+  readers have not been tested.
 
-Mock mode already has sample data. To try Eruza against Azure DevOps, use a test
-project, set it as `ADO_DEFAULT_PROJECT`, and run `npm run seed` with `MOCK=0`. It
-creates 17 made-up stories, tasks, and bugs: 16 in the current sprint of the project's
-default team and one story in the next sprint. It shows the project, team, and sprint
-and waits for you to type `yes`. `npm run seed -- --yes` skips that step.
+## Status
 
-- It stops before creating anything if those types need fields it cannot fill.
-- Every sample has the `eruza-sample` tag.
-- Some samples are assigned to you and the rest are unassigned, so nobody else gets an
-  assignment notice.
-- `npm run seed -- --remove` moves the samples to the ADO recycle bin. It only removes
-  items that still have the tag. Their IDs and organization are kept in the ignored
-  `tmp/sample-ids.json`.
-- A second `npm run seed` stops until the earlier samples are removed.
+Stage 1, a personal app on your own computer, is complete. Besides the automated tests,
+it was checked against a real Azure DevOps test project: sign-in, sprints, creating and
+editing items, parent and state changes, comments, mentions, and moving items to the
+Recycle Bin. Custom grouping and the custom name and logo came later and were tested
+with mock data only.
 
-## Checks
+For test results and next steps, see [docs/handoff.md](docs/handoff.md) and
+[docs/milestones.md](docs/milestones.md).
 
-| Command            | What it does                                                  |
-| ------------------ | ------------------------------------------------------------- |
-| `npm run check`    | Lint, format check, type check, unit/integration tests, build |
-| `npm run test:e2e` | Browser tests against mock mode                               |
-| `npm run format`   | Format all files with Prettier                                |
+## Development
 
-Before the first browser test, run `npx playwright install chromium`.
+| Command            | What it does                                          |
+| ------------------ | ----------------------------------------------------- |
+| `npm run dev`      | Start the app and the local server                    |
+| `npm run check`    | Lint, format check, type check, unit tests, and build |
+| `npm run test:e2e` | Browser tests in mock mode                            |
+| `npm run format`   | Format all files with Prettier                        |
 
-Do not put tokens, passwords, or private keys in `.env`. The file is ignored
-because even organization and project names can be private.
+Before you run the browser tests for the first time, run
+`npx playwright install chromium`. Stop `npm run dev` before you run them, because they
+start their own server on the same ports.
 
-## Repo guide
+Built with React, TypeScript, Vite, TanStack (Query, Router, Table, Virtual), Tailwind
+CSS, shadcn/ui with Radix, dnd-kit, TipTap, cmdk, DOMPurify, Hono, Zod, and
+`@azure/identity`. Tests use Vitest and Playwright. All versions are pinned in
+`package-lock.json`.
 
-| Path                                         | Purpose                                    |
-| -------------------------------------------- | ------------------------------------------ |
-| [AGENTS.md](AGENTS.md)                       | Project rules and how to resume work       |
-| [CLAUDE.md](CLAUDE.md)                       | Relative symlink to `AGENTS.md`            |
-| [docs/requirements.md](docs/requirements.md) | Stage 1 behavior and scope                 |
-| [docs/architecture.md](docs/architecture.md) | Folder layout and data flow                |
-| [docs/api.md](docs/api.md)                   | API contracts and ADO operations           |
-| [docs/milestones.md](docs/milestones.md)     | Work order, acceptance checks, and handoff |
-| [docs/privacy.md](docs/privacy.md)           | Rules for a repo intended to be public     |
+## Project docs
 
-## Repository visibility
+| File                                         | What it covers                                    |
+| -------------------------------------------- | ------------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                       | Rules for contributors (`CLAUDE.md` links to it)  |
+| [docs/requirements.md](docs/requirements.md) | What Stage 1 does and does not do                 |
+| [docs/architecture.md](docs/architecture.md) | Folder layout and data flow                       |
+| [docs/api.md](docs/api.md)                   | The local server's API and its Azure DevOps calls |
+| [docs/milestones.md](docs/milestones.md)     | Milestones and acceptance checks                  |
+| [docs/handoff.md](docs/handoff.md)           | Current checkpoint, test evidence, and next steps |
+| [docs/privacy.md](docs/privacy.md)           | What must never be committed                      |
 
-The repository is private during preparation and is intended to become public.
-Treat every tracked file as public now. Changing visibility or pushing changes
-requires explicit approval. Read the [publication checklist](docs/privacy.md)
-before making the repository public.
+## Privacy
+
+This repository is public. Never commit tokens, real organization or project names, real
+work items, or personal details. Read [docs/privacy.md](docs/privacy.md) before you
+contribute. The screenshots above come from the owner's test project. They show sample
+items from `npm run seed` and the owner's name, which the owner approved.
+
+## Trademarks
+
+Eruza is not affiliated with or endorsed by Microsoft. Microsoft, Azure, and Azure DevOps
+are trademarks of the Microsoft group of companies.
 
 ## License
 
