@@ -115,7 +115,9 @@ export async function searchWorkItems(
 
 /** Builds field operations. Only writable known fields are accepted; people are sent by unique name. */
 async function fieldOps(ado: Ado, fields: Record<string, FieldValue>): Promise<PatchOp[]> {
-  const known = await getOrgFields(ado);
+  let known = await getOrgFields(ado);
+  // Fields added to the org after the first read need one fresh read.
+  if (Object.keys(fields).some((ref) => !known.has(ref))) known = await getOrgFields(ado, true);
   return Object.entries(fields).map(([ref, value]) => {
     const field = known.get(ref);
     if (!field || field.readOnly || BLOCKED_FIELDS.has(ref)) {

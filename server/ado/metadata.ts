@@ -45,9 +45,9 @@ export async function getCurrentUser(ado: Ado): Promise<Identity> {
 type OrgFields = Map<string, { readOnly: boolean; isIdentity: boolean }>;
 const orgFieldCache = new WeakMap<Ado, Promise<OrgFields>>();
 
-/** Org field definitions, read once per client. A failed read is not cached. */
-export function getOrgFields(ado: Ado): Promise<OrgFields> {
-  let fields = orgFieldCache.get(ado);
+/** Org field definitions, read once per client or again when `fresh`. A failed read is not cached. */
+export function getOrgFields(ado: Ado, fresh = false): Promise<OrgFields> {
+  let fields = fresh ? undefined : orgFieldCache.get(ado);
   if (!fields) {
     fields = ado
       .json<List<{ referenceName: string; readOnly: boolean; isIdentity?: boolean }>>(
@@ -62,8 +62,10 @@ export function getOrgFields(ado: Ado): Promise<OrgFields> {
             ]),
           ),
       );
-    fields.catch(() => orgFieldCache.delete(ado));
-    orgFieldCache.set(ado, fields);
+    const read = fields;
+    // A failed read must not drop a newer read that replaced it.
+    read.catch(() => orgFieldCache.get(ado) === read && orgFieldCache.delete(ado));
+    orgFieldCache.set(ado, read);
   }
   return fields;
 }

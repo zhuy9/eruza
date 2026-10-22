@@ -159,6 +159,29 @@ describe('update', () => {
     ]);
   });
 
+  it('re-reads the field list once before rejecting an unknown field', async () => {
+    const fields = [...fieldsList.value];
+    const { ado, calls } = fakeAdo({
+      'GET /_apis/wit/fields': () => ({ value: fields }),
+      'PATCH /workitems/9': () => rawItem(9, 5),
+    });
+    const reads = () => calls.filter((c) => c.path.endsWith('/_apis/wit/fields')).length;
+    await updateWorkItem(ado, 9, { expectedRev: 4, fields: { 'System.Title': 'x' } });
+    fields.push({ referenceName: 'Custom.Added', readOnly: false });
+    await updateWorkItem(ado, 9, { expectedRev: 5, fields: { 'Custom.Added': 'Yes' } });
+    expect(calls.at(-1)!.body).toEqual([
+      { op: 'test', path: '/rev', value: 5 },
+      { op: 'add', path: '/fields/Custom.Added', value: 'Yes' },
+    ]);
+    const before = reads();
+    await expect(
+      updateWorkItem(ado, 9, { expectedRev: 5, fields: { 'Custom.Missing': 'x' } }),
+    ).rejects.toMatchObject({
+      body: { code: 'VALIDATION', fieldErrors: { 'Custom.Missing': expect.any(String) } },
+    });
+    expect(reads() - before).toBe(1);
+  });
+
   it('turns ADO rule errors into field errors', async () => {
     const { ado } = fakeAdo({
       'GET /_apis/wit/fields': () => fieldsList,
