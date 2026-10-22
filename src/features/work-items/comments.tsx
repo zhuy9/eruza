@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { apiError, sendJson } from '../../lib/api';
 import { commentsQuery, membersQuery } from '../../lib/queries';
 import { AdoMention, extensions, sanitizeHtml } from '../../lib/rich-text';
+import { refreshItem } from '../../lib/saves';
 import { useScope } from '../../lib/scope';
 
 const MAX_SUGGESTIONS = 8;
@@ -169,19 +170,23 @@ function CommentBox({ id, projectId }: { id: number; projectId: string }) {
     };
   }, [editor, suggestions, listId]);
 
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ['comments', id] });
+    // Each comment adds an item revision in ADO. Refetch, or the next edit sends an old one.
+    // ponytail: a save sent while the comment posts can still conflict once; it keeps its draft.
+    refreshItem(queryClient, id);
+  };
   const add = useMutation({
     mutationFn: (html: string) =>
       sendJson('POST', `/work-items/${id}/comments`, { projectId, html }, commentSchema),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['comments', id] });
+      refresh();
       // This runs even after the user opened another item and this editor was destroyed.
       if (editor && !editor.isDestroyed) editor.commands.clearContent(true);
     },
     onError: (error) => {
       // The comment may exist, so show the latest thread for the user to check.
-      if (apiError(error).code === 'UNKNOWN_OUTCOME') {
-        void queryClient.invalidateQueries({ queryKey: ['comments', id] });
-      }
+      if (apiError(error).code === 'UNKNOWN_OUTCOME') refresh();
     },
   });
   // No typing while a comment sends, so clearing after success never drops new text.

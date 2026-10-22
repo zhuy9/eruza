@@ -274,6 +274,8 @@ export function createMockApi(): BoardsApi {
         text: html,
       };
       comments.set(id, [raw, ...(comments.get(id) ?? [])]);
+      // Like ADO, a comment adds a revision to the item.
+      get(id).rev++;
       return toComment(raw, identities, '', id);
     },
 

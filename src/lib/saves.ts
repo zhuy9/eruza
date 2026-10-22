@@ -107,13 +107,16 @@ async function writeAtRev(id: number, baseRev: number, method: string, path: str
   return item;
 }
 
+/** Refetches the item and lists, so later edits start from its current revision. */
+export function refreshItem(queryClient: QueryClient, id: number) {
+  void queryClient.invalidateQueries({ queryKey: workItemQuery(id).queryKey });
+  void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+}
+
 /** Refetches the item and lists when the outcome is a conflict or unknown, keeping the draft. */
 function recheck(queryClient: QueryClient, id: number, error: unknown) {
   const { code } = apiError(error);
-  if (code === 'CONFLICT' || code === 'UNKNOWN_OUTCOME') {
-    void queryClient.invalidateQueries({ queryKey: workItemQuery(id).queryKey });
-    void queryClient.invalidateQueries({ queryKey: ['work-items'] });
-  }
+  if (code === 'CONFLICT' || code === 'UNKNOWN_OUTCOME') refreshItem(queryClient, id);
 }
 
 /** Forgets a save, so its value stops showing over server data (a rollback). */

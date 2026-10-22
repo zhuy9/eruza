@@ -138,6 +138,22 @@ test('a comment with a mention is sent once per click, and failures keep the dra
   ).toHaveLength(1);
 });
 
+test('a field edit right after a comment saves without a false conflict', async ({ page }) => {
+  await openItem(page, 1011);
+  await page.getByRole('textbox', { name: 'New comment' }).fill('A note before the title edit.');
+  // A comment adds an item revision in ADO, so the item must be read again.
+  const reread = page.waitForResponse(
+    (r) => r.request().method() === 'GET' && new URL(r.url()).pathname === '/api/work-items/1011',
+  );
+  await page.getByRole('button', { name: 'Add comment' }).click();
+  await reread;
+  const title = page.getByLabel('Title', { exact: true });
+  await title.fill('Add the order history list after a note');
+  await title.press('Tab');
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test('copy actions use the clipboard and report failures', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await openItem(page, 1012);

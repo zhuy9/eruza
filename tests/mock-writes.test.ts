@@ -224,6 +224,16 @@ describe('mock comments', () => {
       expect((await call('POST', '/work-items/1001/comments', bad)).status).toBe(400);
     }
   });
+
+  it('adds a revision to the item, as ADO does', async () => {
+    const rev = async () => (await call('GET', '/work-items/1001')).body.item.rev;
+    const before = await rev();
+    await call('POST', '/work-items/1001/comments', {
+      projectId: 'sample-project',
+      html: '<p>Revision note</p>',
+    });
+    expect(await rev()).toBe(before + 1);
+  });
 });
 
 describe('mock deletion', () => {
