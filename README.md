@@ -157,7 +157,8 @@ Git ignores both `.env` and `public/branding/`.
 - You can add comments, but not edit or delete them. `@` mention suggestions come from
   the selected team.
 - Browser tests run in Chromium on macOS. Other browsers, browsers on Windows, and screen
-  readers have not been tested.
+  readers have not been tested. Phone and tablet layouts were checked with Chromium's
+  device emulation, not on real devices.
 
 ## Status
 

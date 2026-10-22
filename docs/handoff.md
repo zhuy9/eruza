@@ -31,7 +31,8 @@ visibility without new approval.
 - Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
   on GitHub through `bfac186`, which includes the sample seeder, the collapsible
   sidebar, and the shadcn components. M8 custom grouping and later docs are local
-  commits. So are the README rewrite and the 13 lower-severity review fixes below.
+  commits. So are the README rewrite, the 13 lower-severity review fixes, and the grid
+  width and phone and tablet layout work below.
 - GitHub was private when last checked. On 2026-10-22 the owner said they will make it
   public themselves. Check with `gh repo view` before publication work.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
@@ -995,6 +996,70 @@ Earlier full runs during the fixes had similar one-off timeouts in other specs, 
 passing alone and on the next full run. No commit has a Co-Authored-By trailer, at the
 owner's request.
 
+## Grid width and phone and tablet layouts (2026-10-22)
+
+The owner asked for a grid that is not a fixed width, then for phone and tablet support.
+
+What changed:
+
+- Grid width: the table fills its scroll area. The owner chose to put the free width
+  in an empty last column (an `aria-hidden` cell per row) over giving it to Title, so
+  every column keeps its set width and every resize handle follows the pointer. The
+  first attempt gave Title the free width. Review found a click on Title's handle saved
+  the filled width, its `aria-valuenow` showed the stored size, and columns right of
+  Title grew to the left. Default widths: ID 90 to 110 (four-digit IDs were cut off),
+  Title 280 to 260, so the default total stays 1140px.
+- Phones (600px or less): a compact stacked sidebar (Project and Team side by side,
+  nav on one row), the theme button in the brand row, and a bar with the Sprint picker,
+  New, and the mode badge. These were hidden before. One-column forms and item fields,
+  a full-width filter bar, and a grid as tall as the screen.
+- Board: `.board` is positioned, so the hidden assignee names in cards no longer widen
+  the page. That had pushed the detail panel and create dialog off-screen. Drag uses
+  `MouseSensor` and `TouchSensor` (press and hold for 250 ms) with
+  `touch-action: manipulation`, so a swipe on a card scrolls. A touch hold that ends in
+  place no longer reloads the page: dnd-kit stops that click before the router sees it,
+  so the board cancels it for 50 ms after a touch drag. On touch screens, a tap anywhere
+  on a card opens it, and cards show the assignee's name.
+- Grid: the ID column and group names stay in view while the grid scrolls sideways.
+  Keyboard focus that lands under the sticky ID cell scrolls into view; mouse and touch
+  focus does not, so a tap near that edge is not lost. The title link fills its cell.
+- Touch screens (`pointer: coarse`): 16px fields (iOS zooms on smaller ones), larger
+  group-by buttons, sort buttons, resize handles, drag handles, and dialog X. Without
+  hover, editable cells and the title show their border.
+- All widths: the topbar wraps; long unbroken words wrap in cards, notices, links,
+  and dialogs; rich-text tables scroll inside the text; popovers fit the available
+  height; toasts use the screen width; the detail panel's close bar sticks on narrow or
+  touch screens.
+
+Checks:
+
+- An audit at 360-1440px with touch found 47 issues. Two later review rounds (phone,
+  tablet, desktop comparison with the last commit, correctness, and simplicity, with each
+  finding checked by a separate agent) found 37 more, mostly in the new code. All
+  confirmed findings were fixed except the ones under "Not done".
+- `tests/e2e/mobile.spec.ts` (4 tests, 375x740 with touch): no page-level horizontal
+  overflow on five views; sprint, New, and theme controls in view; a card tap opens the
+  panel on screen and its close button works after scrolling; a swipe on a card scrolls
+  the columns with no write, a hold that ends in place keeps the page, and press, hold,
+  and move saves a state; the grid keeps IDs, group indents, and opaque group names,
+  moves keyboard focus out from under the ID column, and still opens a ticket tapped
+  just past it. All four failed on the last commit, and each later fix's check failed
+  with that fix removed. `grid.spec.ts` now checks that the grid fills its view.
+- `npm run check` passed (225 tests). `npm run test:e2e` passed 90 of 90. The owner's dev
+  server held port 5173, so the browser tests ran in an ignored copy of the repo with the
+  ports changed to 5175 and 3003. The existing grid drop test depends on auto-scroll
+  timing: it also failed on the last commit under `--repeat-each`, and passed in the full
+  runs.
+- Chromium device emulation only. No real phone or tablet, no WebKit or Firefox. The iOS
+  focus-zoom fix is inferred from computed sizes. No live ADO calls.
+
+Not done: the item title is still a one-line input, so long titles are cut off on phones
+(a multi-line field touches the save code). Opening the assignee picker on a phone still
+opens the on-screen keyboard. Tooltips do not open on touch, by design (controls keep
+their accessible names). During a drag on a phone, a group row's "Drop here" hint can be
+off-screen; the row highlight and the drag preview text still show the target. The 404
+page is unstyled. The mobile browser bar color does not follow dark mode.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -1027,6 +1092,8 @@ the dev-server and Ctrl+C checks.
 Stage 1, the audit and review fixes, the sample seeder, the collapsible sidebar, and
 the shadcn components are on GitHub through `bfac186`. M8 custom grouping is complete
 in local commits; pushing them and any publication or visibility change need explicit
-approval. The README rewrite and the lower-severity review fixes are also local commits.
+approval. The README rewrite, the lower-severity review fixes, and the grid width and
+phone and tablet layout work are also local commits. Check the phone layouts on a real
+phone, iOS Safari in particular.
 Open: S12 needs a live image check, which is a write and needs approval. Keep `refs/t3/`
 local; never push with `--all` or `--mirror`.
