@@ -18,11 +18,18 @@ describe('single-letter shortcuts', () => {
 
   it('do not fire while typing, with modifiers, or inside a dialog', () => {
     document.body.innerHTML =
-      '<input><textarea></textarea><div contenteditable="true"></div><button id="b"></button><dialog open><button id="d"></button></dialog>';
+      '<input><textarea></textarea><div contenteditable="true"></div><button id="b"></button><dialog><button id="d"></button></dialog>';
     for (const selector of ['input', 'textarea']) {
       expect(press(document.querySelector(selector)!, 'i')).toBe(false);
     }
     expect(press(document.querySelector('#b')!, 'i', { ctrlKey: true })).toBe(false);
     expect(press(document.querySelector('#d')!, 'i')).toBe(false);
+  });
+
+  it('do not fire while a dialog is open, even when focus fell to the page body', () => {
+    document.body.innerHTML = '<div role="dialog" data-state="closed"></div>';
+    expect(press(document.body, 'i')).toBe(true);
+    document.body.innerHTML = '<div role="dialog" data-state="open"></div>';
+    expect(press(document.body, 'i')).toBe(false);
   });
 });

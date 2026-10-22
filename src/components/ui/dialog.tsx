@@ -16,6 +16,15 @@ export function DialogContent({
   // Eruza opens dialogs from shortcuts and buttons, not a Radix Trigger, so closing
   // returns focus to whatever had it before, as a native <dialog> does.
   const [opener] = React.useState(() => document.activeElement);
+  const content = React.useRef<HTMLDivElement>(null);
+  // A button that disables itself while its request runs drops focus to the page body, where
+  // Tab reaches the controls behind the dialog. Move focus to the dialog itself instead.
+  React.useLayoutEffect(() => {
+    const active = document.activeElement;
+    if (closeDisabled && (active === document.body || active?.matches(':disabled'))) {
+      content.current?.focus();
+    }
+  }, [closeDisabled]);
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
@@ -25,6 +34,7 @@ export function DialogContent({
         onMouseDown={(event) => event.preventDefault()}
       />
       <DialogPrimitive.Content
+        ref={content}
         data-slot="dialog-content"
         className={cn(
           'fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border border-border bg-background p-6 text-foreground shadow-lg outline-none sm:max-w-lg',

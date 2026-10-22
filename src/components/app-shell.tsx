@@ -49,7 +49,7 @@ export function AppShell() {
     setTimeout(() => setToasts((current) => current.filter((t) => t.id !== id)), TOAST_MS);
   }, []);
 
-  // C opens the create form; Ctrl/Cmd+K opens the palette. Neither fires inside a dialog.
+  // C opens the create form; Ctrl/Cmd+K opens the palette. Neither fires while a dialog is open.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (

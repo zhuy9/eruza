@@ -230,6 +230,14 @@ test('the new item dialog keeps its draft on outside clicks and stays open while
   await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();
+  // Focus stays in the dialog, so C cannot replace it and Tab cannot leave it.
+  await page.keyboard.press('c');
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(title).toHaveValue('Dialog draft example');
+  for (const key of ['Tab', 'Shift+Tab']) {
+    await page.keyboard.press(key);
+    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+  }
   release();
   await expect(dialog).toBeHidden();
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Dialog draft example');

@@ -229,6 +229,11 @@ test('delete asks first, cancel sends nothing, and confirming uses the recycle b
   await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();
+  // The disabled buttons must not let Tab reach the page behind the dialog.
+  for (const key of ['Tab', 'Shift+Tab']) {
+    await page.keyboard.press(key);
+    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+  }
   answer();
   await expect(dialog.getByRole('alert')).toHaveText(
     'You do not have permission for this resource.',
