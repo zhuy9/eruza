@@ -22,19 +22,17 @@ signed-in user. Those live checks passed on 2026-10-20. Stage 1 is complete.
 The milestone sections below retain the earlier mock-only evidence; the final
 live verification section records what was checked afterward.
 
-Each push needs explicit approval. `main` is on GitHub through `bfac186` (the shadcn
-steps and their docs). Do not push later commits, deploy, or change repository
-visibility without new approval.
+Each push needs explicit approval. On 2026-10-22 the owner approved pushing `main`
+through the phone and tablet open-items follow-up below. Do not push later commits,
+deploy, or change repository visibility without new approval.
 
 ## Git checkpoint
 
-- Branch: `main`. M0-M7, the ten audit fixes, and the four follow-up review fixes are
-  on GitHub through `bfac186`, which includes the sample seeder, the collapsible
-  sidebar, and the shadcn components. M8 custom grouping and later docs are local
-  commits. So are the README rewrite, the 13 lower-severity review fixes, and the grid
-  width and phone and tablet layout work below.
-- GitHub was private when last checked. On 2026-10-22 the owner said they will make it
-  public themselves. Check with `gh repo view` before publication work.
+- Branch: `main`. Everything below, through the phone and tablet open-items follow-up,
+  is on GitHub: M0-M9, the audit and review fixes, the README rewrite, the
+  lower-severity review fixes, and the grid width and phone and tablet layout work.
+- The repository is public (checked with `gh repo view` on 2026-10-22). Every commit is
+  public, so keep following `docs/privacy.md`.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
 
 ## M1 result: complete
@@ -1053,12 +1051,46 @@ Checks:
 - Chromium device emulation only. No real phone or tablet, no WebKit or Firefox. The iOS
   focus-zoom fix is inferred from computed sizes. No live ADO calls.
 
-Not done: the item title is still a one-line input, so long titles are cut off on phones
-(a multi-line field touches the save code). Opening the assignee picker on a phone still
-opens the on-screen keyboard. Tooltips do not open on touch, by design (controls keep
-their accessible names). During a drag on a phone, a group row's "Drop here" hint can be
-off-screen; the row highlight and the drag preview text still show the target. The 404
-page is unstyled. The mobile browser bar color does not follow dark mode.
+### Follow-up: the open items
+
+The owner asked to close the items left open above. What changed:
+
+- Title: the large item title is a `<textarea rows={1}>` with `field-sizing: content`
+  (Chrome 123, Safari 26.2, Firefox 152), so a long title wraps and the box grows. Titles
+  are one line in Azure DevOps, so a pasted line break becomes a space, with the cursor
+  kept where the paste ended. Enter still saves, except an Enter that picks an IME word
+  (`isComposing` or key code 229), which the old input also got wrong. Desktop height is
+  unchanged (43px). On macOS, Home and End in the title now scroll, as in any multi-line
+  box; Cmd+arrow keys move the cursor. `items.spec.ts` now places the cursor directly.
+- Assignee picker: a tap opens the list without focusing the search, so the on-screen
+  keyboard stays closed. A keyboard open still focuses the search. The parent picker
+  keeps its search focus, because typing is how it finds items.
+- Drop hint: it floats to the right end of the group row and sticks at the grid's edge,
+  so it stays in view and clear of the group name at any sideways scroll. Its line
+  height matches the group name button, so the two line up.
+- The 404 page shows a notice inside the app. `src/lib/theme.ts` applies the theme and
+  sets `<meta name="theme-color">` to the sidebar color. The colors are fixed in code,
+  because WebKit can run the script before the stylesheet loads.
+- The grid drop test aimed at a heading the page had since auto-scrolled away from. It
+  now aims again after the move: 5 of 5 alone, where it had passed 1 of 5 with the
+  sticky hint and failed now and then before this work.
+
+Checks:
+
+- WebKit (Playwright's WebKit 27.2, installed for this): at 375x667, 390x844, and
+  844x390, no page-level horizontal overflow on six views, and the sprint, New, theme,
+  and panel controls are in view. The wrapping title, the picker, the 404 notice, and the
+  bar color behave the same as in Chromium.
+- A separate correctness and simplicity review found five problems, all fixed: the
+  cursor jump after a pasted line break, the IME Enter, the drop hint going off-screen or
+  covering the group name after a sideways scroll, the picker skipping focus for a
+  hardware keyboard on a touch screen, and the WebKit stylesheet race for the bar color.
+  Each new check in `mobile.spec.ts` and `shell.spec.ts` failed with its fix removed.
+
+Still open: no check on a real iPhone or in the iOS Simulator. No Simulator runtime is
+installed, and one is a download of several GB. The app listens on `127.0.0.1` only, so
+a phone on the network cannot reach it by design; the Simulator can. Tooltips do not
+open on touch, by design (controls keep their accessible names).
 
 ## Machine notes
 
@@ -1089,11 +1121,8 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1, the audit and review fixes, the sample seeder, the collapsible sidebar, and
-the shadcn components are on GitHub through `bfac186`. M8 custom grouping is complete
-in local commits; pushing them and any publication or visibility change need explicit
-approval. The README rewrite, the lower-severity review fixes, and the grid width and
-phone and tablet layout work are also local commits. Check the phone layouts on a real
-phone, iOS Safari in particular.
+Stage 1, M8, M9, the review fixes, and the grid width and phone and tablet work are on
+GitHub. Check the phone layouts on a real iPhone or in the iOS Simulator, which needs an
+iOS runtime download of several GB.
 Open: S12 needs a live image check, which is a write and needs approval. Keep `refs/t3/`
 local; never push with `--all` or `--mirror`.
