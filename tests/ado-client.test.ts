@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAdoClient, segment } from '../server/ado/client';
+import { getImage } from '../server/ado/item';
+import { getAvatar, getProjects } from '../server/ado/metadata';
 
 const fakeAuth = () => ({
   getAuthHeader: vi.fn(async () => ({ Authorization: 'Bearer test-token' })),
@@ -66,6 +68,39 @@ describe('ADO client', () => {
     expect(error).toMatchObject({ body: { code: 'NETWORK' } });
     expect(JSON.stringify(error)).not.toContain('ECONNREFUSED');
   });
+
+  it.each(['headers', 'body'])(
+    'times out a request stalled on its %s: unknown for writes, network for reads',
+    async (phase) => {
+      const timer = new AbortController();
+      const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
+      const fetch = vi.fn(async (_url: URL, init?: RequestInit) => {
+        const aborted = new Promise<never>((_, reject) =>
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason)),
+        );
+        if (phase === 'headers') return aborted;
+        return new Response(
+          new ReadableStream({ start: (c) => void aborted.catch((e: unknown) => c.error(e)) }),
+        );
+      });
+      vi.stubGlobal('fetch', fetch);
+      const ado = createAdoClient('sample-org', fakeAuth());
+      const write = ado.json('x', { method: 'POST', write: true }).catch((e: unknown) => e);
+      const guid = '00000000-0000-0000-0000-000000000001';
+      ado.commentImages.add(`1/${guid}`);
+      const reads = [
+        ado.json('x'),
+        getProjects(ado, ''),
+        getAvatar(ado, 'sample-id'),
+        getImage(ado, 1, guid),
+      ].map((p) => p.catch((e: unknown) => e));
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(5));
+      expect(timeout).toHaveBeenCalledWith(30_000);
+      timer.abort(new DOMException('synthetic timeout', 'TimeoutError'));
+      expect(await write).toMatchObject({ body: { code: 'UNKNOWN_OUTCOME' } });
+      for (const read of reads) expect(await read).toMatchObject({ body: { code: 'NETWORK' } });
+    },
+  );
 
   it('reports a malformed successful write response as unknown without retrying', async () => {
     const fetch = stubFetch(new Response('{broken', { status: 201 }));

@@ -47,6 +47,8 @@ type Init = {
   write?: boolean;
 };
 const MAX_WAIT_MS = 5000;
+/** Undici would wait about 5 minutes on a stalled connection, holding an item's save queue. */
+const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_MESSAGE = 300;
 
 type AdoErrorBody = {
@@ -80,6 +82,14 @@ export function validationError(body: AdoErrorBody | null) {
   });
 }
 
+/** Reads an ADO response body. Every body read must use this, since the request timeout covers it. */
+export const readBody = <T>(body: Promise<T>, write?: boolean): Promise<T> =>
+  body.catch((error: unknown) => {
+    if (write) throw adoError('UNKNOWN_OUTCOME');
+    // A body that stopped or timed out is a network failure. Bad JSON stays an upstream error.
+    throw error instanceof SyntaxError ? error : adoError('NETWORK');
+  });
+
 /** Calls ADO for one organization. Paths are relative to the organization URL. */
 export function createAdoClient(organization: string, auth: Auth) {
   let notBefore = 0;
@@ -107,6 +117,8 @@ export function createAdoClient(organization: string, auth: Auth) {
         headers,
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
         redirect: 'manual',
+        // Made here, after the auth and rate-limit waits, so they do not count. Covers the body read too.
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
     } catch {
       throw adoError(init.write ? 'UNKNOWN_OUTCOME' : 'NETWORK');
@@ -128,14 +140,7 @@ export function createAdoClient(organization: string, auth: Auth) {
     identities,
     commentImages,
     request,
-    json: async <T>(path: string, init?: Init): Promise<T> => {
-      const response = await request(path, init);
-      try {
-        return (await response.json()) as T;
-      } catch (error) {
-        if (init?.write) throw adoError('UNKNOWN_OUTCOME');
-        throw error;
-      }
-    },
+    json: async <T>(path: string, init?: Init): Promise<T> =>
+      readBody<T>((await request(path, init)).json(), init?.write),
   };
 }

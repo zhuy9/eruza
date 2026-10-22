@@ -10,7 +10,7 @@ import type {
   TeamSettings,
   WorkItemType,
 } from '../../shared/contracts';
-import { segment, type Ado } from './client';
+import { readBody, segment, type Ado } from './client';
 
 const e = segment;
 const PAGE = 100;
@@ -72,7 +72,7 @@ export function getOrgFields(ado: Ado): Promise<OrgFields> {
 export async function getAvatar(ado: Ado, identityId: string) {
   const response = await ado.request(`_api/_common/identityImage?id=${e(identityId)}`);
   return {
-    bytes: await response.arrayBuffer(),
+    bytes: await readBody(response.arrayBuffer()),
     contentType: response.headers.get('content-type') ?? '',
   };
 }
@@ -83,7 +83,7 @@ export async function getProjects(ado: Ado, defaultName: string): Promise<Projec
   do {
     const query = token ? `&continuationToken=${e(token)}` : '';
     const response = await ado.request(`_apis/projects?api-version=7.1&$top=${PAGE}${query}`);
-    const page = (await response.json()) as List<{ id: string; name: string }>;
+    const page = await readBody<List<{ id: string; name: string }>>(response.json());
     projects.push(
       ...page.value.map(({ id, name }) => ({ id, name, isDefault: name === defaultName })),
     );

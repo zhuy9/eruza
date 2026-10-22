@@ -8,7 +8,7 @@ import type {
   WorkItemView,
 } from '../../shared/contracts';
 import { AppError } from '../errors';
-import { adoError, segment as e, type Ado } from './client';
+import { adoError, readBody, segment as e, type Ado } from './client';
 import { toAdoImages, toLocalImages } from './images';
 import { getOrgFields } from './metadata';
 import { batchGet, identityRef, toSummary, wiqlString } from './work-items';
@@ -243,7 +243,7 @@ export async function getImage(ado: Ado, id: number, resourceId: string) {
   }
   const response = await ado.request(`_apis/wit/attachments/${resourceId}?api-version=7.1`);
   return {
-    bytes: await response.arrayBuffer(),
+    bytes: await readBody(response.arrayBuffer()),
     contentType: response.headers.get('content-type') ?? '',
   };
 }
