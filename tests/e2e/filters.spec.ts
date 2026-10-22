@@ -124,6 +124,16 @@ test('search stays in sync after clearing filters and browser Back', async ({ pa
   await expect(page).not.toHaveURL(/text=/);
 });
 
+test('typing in the middle of the search keeps the caret in place', async ({ page }) => {
+  await page.goto('/board?type=Bug');
+  const search = page.getByRole('searchbox');
+  await search.fill('1004');
+  await search.press('Home');
+  await search.pressSequentially('ab');
+  await expect(search).toHaveValue('ab1004');
+  await expect(page).toHaveURL(/text=ab1004/);
+});
+
 test('area subpaths and every selected tag filter the current sprint', async ({ page }) => {
   await page.goto('/grid?grouping=person');
   await page.route('**/api/work-items?*', async (route) => {

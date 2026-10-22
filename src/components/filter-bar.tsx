@@ -1,4 +1,5 @@
 import * as Popover from '@radix-ui/react-popover';
+import { useState } from 'react';
 import { UNASSIGNED, useFilters } from '../lib/filters';
 import { useSetSearch } from '../lib/scope';
 import { Button } from './ui/button';
@@ -12,6 +13,16 @@ export function FilterBar({ tags }: { tags: string[] }) {
   const selectedTags = values.tags ?? [];
   const allTags = [...new Set([...tags, ...selectedTags])].sort((a, b) => a.localeCompare(b));
   const active = values.assignee || values.area || selectedTags.length || values.text;
+  // The router updates the URL after this render, so the box keeps its own draft.
+  // It takes the URL value only when that value changes (Clear filters, browser Back).
+  // ponytail: assumes the URL catches up before the next keystroke; track the last sent value if it lags.
+  const urlText = values.text ?? '';
+  const [draft, setDraft] = useState(urlText);
+  const [seenText, setSeenText] = useState(urlText);
+  if (urlText !== seenText) {
+    setSeenText(urlText);
+    setDraft(urlText);
+  }
 
   const toggleTag = (tag: string) => {
     const next = selectedTags.includes(tag)
@@ -83,8 +94,11 @@ export function FilterBar({ tags }: { tags: string[] }) {
           className="filter-search"
           aria-label="Search by ID or title"
           placeholder="Search by ID or title"
-          value={values.text ?? ''}
-          onChange={(e) => setSearch({ text: e.target.value || undefined }, true)}
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setSearch({ text: e.target.value || undefined }, true);
+          }}
         />
         {active && (
           <Button
