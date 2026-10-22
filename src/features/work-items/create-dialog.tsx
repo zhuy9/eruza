@@ -148,7 +148,7 @@ export function CreateDialog({
     // Stays open while creating, so a late result reaches this dialog and not a newer one.
     <Dialog open onOpenChange={(open) => !open && !create.isPending && onClose()}>
       <DialogContent
-        className="sm:max-w-[640px]"
+        className="sm:max-w-[min(640px,calc(100%-2rem))]"
         aria-describedby={undefined}
         closeDisabled={create.isPending}
         // A stray click outside must not discard the draft. Escape, Cancel, and X close it.

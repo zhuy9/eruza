@@ -1,7 +1,8 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDndMonitor,
   useDraggable,
   useDroppable,
@@ -52,7 +53,15 @@ export function BoardView() {
   );
   const pending = usePendingChanges();
   const [dragging, setDragging] = useState<WorkItemSummary | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const endDrag = ({ activatorEvent }: { activatorEvent: Event | null }) => {
+    setDragging(null);
+    if (activatorEvent?.type === 'touchstart') cancelNextClick();
+  };
+  // A finger must press and hold before it drags, so a swipe on a card still scrolls.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  );
 
   const all = list.data?.items ?? [];
   const items = all
@@ -91,13 +100,14 @@ export function BoardView() {
         </p>
       )}
       <p className="muted-text board-hint">
-        Drag a card to change its state, or open it and choose a state.
+        Drag a card to change its state (on a touch screen, press and hold first), or open it and
+        choose a state.
       </p>
       <DndContext
         sensors={sensors}
         onDragStart={({ active }) => setDragging(items.find((i) => i.id === active.id) ?? null)}
-        onDragEnd={() => setDragging(null)}
-        onDragCancel={() => setDragging(null)}
+        onDragEnd={endDrag}
+        onDragCancel={endDrag}
       >
         <div className="board">
           {states.data?.map((state) => (
@@ -125,6 +135,18 @@ export function BoardView() {
       </DndContext>
     </section>
   );
+}
+
+/**
+ * A touch drag that ends where it started is followed by a click on the card's link. dnd-kit
+ * stops that click before the app's router sees it, so the browser would reload the page.
+ * Cancel it instead. This starts after dnd-kit's own 50 ms window, so it ends after it too.
+ */
+function cancelNextClick() {
+  document.addEventListener('click', (event) => event.preventDefault(), {
+    capture: true,
+    signal: AbortSignal.timeout(50),
+  });
 }
 
 function Column(props: { state: State; type: string; color: string; items: WorkItemSummary[] }) {

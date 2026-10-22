@@ -262,8 +262,14 @@ test('groups collapse, and column choices survive the view toggle and reload', a
   await page.keyboard.press('Escape');
   await expect(page.getByRole('columnheader', { name: 'Type' })).toHaveCount(0);
 
+  // The grid fills its view. Columns keep their set widths; the free width comes last.
   const title = page.getByRole('columnheader', { name: 'Title' });
+  const grid = page.locator('.grid-scroll');
+  expect(
+    await grid.evaluate((view) => view.clientWidth - view.querySelector('table')!.offsetWidth),
+  ).toBe(0);
   const before = (await title.boundingBox())!.width;
+  expect(before).toBe(260);
   const handle = (await title.locator('.column-resizer').boundingBox())!;
   await page.mouse.move(handle.x + 2, handle.y + 10);
   await page.mouse.down();

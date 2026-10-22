@@ -108,8 +108,8 @@ const columns = helper.columns([
   // Grouping keys only. They are hidden, so a custom grouping without them shows no empty column.
   helper.accessor('person', { header: 'Person', enableHiding: false, enableSorting: false }),
   helper.accessor('story', { header: 'Story', enableHiding: false, enableSorting: false }),
-  helper.accessor('id', { header: 'ID', size: 90, enableHiding: false }),
-  helper.accessor('title', { header: 'Title', size: 280, sortFn: byText, enableHiding: false }),
+  helper.accessor('id', { header: 'ID', size: 110, enableHiding: false }),
+  helper.accessor('title', { header: 'Title', size: 260, sortFn: byText, enableHiding: false }),
   helper.accessor('type', { header: 'Type', size: 80, sortFn: byText }),
   helper.accessor('state', { header: 'State', size: 140, sortFn: byText }),
   helper.accessor((row) => row.assignee?.displayName, {
@@ -433,12 +433,14 @@ function GridBody(props: {
   const [target, setTarget] = useState<WorkItemSummary | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const headers = table.getHeaderGroups()[0]?.headers ?? [];
+  // One more than the columns: an empty last cell takes the free width.
+  const span = headers.length + 1;
   const items = virtualizer.getVirtualItems();
   const after = virtualizer.getTotalSize() - (items.at(-1)?.end ?? 0);
   const spacer = (height: number) =>
     height > 0 && (
       <tr aria-hidden="true">
-        <td colSpan={headers.length} style={{ height, padding: 0, border: 0 }} />
+        <td colSpan={span} style={{ height, padding: 0, border: 0 }} />
       </tr>
     );
   const stop = () => {
@@ -503,16 +505,24 @@ function GridBody(props: {
       <div
         ref={scroller}
         className="grid-scroll"
-        onFocusCapture={(event) =>
-          setFocusedRow(event.target.closest('tr[data-id]')?.getAttribute('data-id') ?? null)
-        }
+        onFocusCapture={(event) => {
+          setFocusedRow(event.target.closest('tr[data-id]')?.getAttribute('data-id') ?? null);
+          // The sticky ID column can cover a cell reached by keyboard. Scroll it back into view.
+          // Not for a click or tap, which would move the control away mid-click.
+          if (!keyboard.current) return;
+          const cell = event.target.closest('td, th');
+          const sticky = cell?.parentElement?.firstElementChild;
+          if (!cell || !sticky || cell === sticky) return;
+          const hidden = sticky.getBoundingClientRect().right - cell.getBoundingClientRect().left;
+          if (hidden > 0) event.currentTarget.scrollLeft -= hidden;
+        }}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setFocusedRow(null);
         }}
       >
         <table
           className="meeting-grid"
-          style={{ width: table.getTotalSize() }}
+          style={{ minWidth: table.getTotalSize() }}
           aria-rowcount={rows.length + 1}
         >
           <colgroup>
@@ -573,6 +583,7 @@ function GridBody(props: {
                   </th>
                 );
               })}
+              <th aria-hidden="true" />
             </tr>
           </thead>
           <tbody>
@@ -589,7 +600,7 @@ function GridBody(props: {
                     <GroupRow
                       row={row}
                       measure={measure}
-                      span={headers.length}
+                      span={span}
                       byId={props.byId}
                       expanded={!props.collapsed.has(row.id)}
                       onToggle={() => props.onToggle(row.id)}
@@ -717,6 +728,8 @@ function GroupRow(props: {
         <button
           type="button"
           className="group-toggle"
+          // Keeps the level's indent while the name sticks during a sideways scroll.
+          style={{ left: row.depth * 22 }}
           aria-expanded={props.expanded}
           onClick={props.onToggle}
         >
@@ -909,6 +922,7 @@ function TicketRow({
           {cell(c.column.id)}
         </td>
       ))}
+      <td aria-hidden="true" />
     </tr>
   );
 }

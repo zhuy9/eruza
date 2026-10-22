@@ -178,12 +178,14 @@ input:focus-visible {
   margin-top: 3px;
 }
 .topbar {
-  height: 66px;
+  min-height: 66px;
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  padding: 0 34px;
+  gap: 8px 16px;
+  padding: 8px 34px;
   font-size: 12px;
   color: var(--muted-foreground);
 }
@@ -193,6 +195,7 @@ input:focus-visible {
 }
 .mode-badge {
   display: inline-flex;
+  white-space: nowrap;
   align-items: center;
   gap: 7px;
   background: var(--muted);
@@ -317,6 +320,7 @@ h1 {
 }
 .topbar-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
 }
@@ -345,6 +349,13 @@ h1 {
   background: var(--muted);
   padding: 2px 6px;
   border-radius: 4px;
+}
+.card-title,
+.linked-item,
+.notice,
+.save-problem,
+[data-slot='dialog-content'] {
+  overflow-wrap: anywhere;
 }
 .notice {
   margin: 14px 0 0;
@@ -508,7 +519,7 @@ h1 {
   outline: none;
 }
 .command-list {
-  max-height: 260px;
+  max-height: min(260px, calc(var(--radix-popover-content-available-height, 308px) - 48px));
   overflow-y: auto;
   padding: 4px;
   font-size: 12px;
@@ -570,6 +581,9 @@ h1 {
 .linked-item:hover {
   background: var(--muted);
 }
+.linked-item .item-number {
+  flex: none;
+}
 .linked-item .muted-text {
   margin-left: auto;
 }
@@ -594,6 +608,12 @@ h1 {
 }
 .rich-text-readonly {
   background: var(--muted);
+}
+:is(.rich-text, .comment-body) {
+  overflow-x: auto;
+}
+:is(.rich-text, .comment-body) a:focus-visible {
+  outline-offset: -2px;
 }
 :is(.rich-text, .comment-body) table {
   border-collapse: collapse;
@@ -812,7 +832,7 @@ h1 {
 .tag-popover {
   width: 220px;
   padding: 6px;
-  max-height: 280px;
+  max-height: min(280px, var(--radix-popover-content-available-height, 280px));
   overflow-y: auto;
 }
 .check-row {
@@ -830,6 +850,7 @@ h1 {
   margin: 12px 0 0;
 }
 .board {
+  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(250px, 1fr);
@@ -889,7 +910,7 @@ h1 {
   background: var(--background);
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
   cursor: grab;
-  touch-action: none;
+  touch-action: manipulation;
 }
 .board-card:hover {
   box-shadow: 0 3px 10px rgb(15 23 42 / 0.08);
@@ -944,6 +965,8 @@ h1 {
   left: 50%;
   z-index: 60;
   display: grid;
+  width: max-content;
+  max-width: calc(100vw - 32px);
   gap: 8px;
   transform: translateX(-50%);
 }
@@ -1020,42 +1043,26 @@ h1 {
     padding: 28px 20px;
   }
   .topbar {
-    padding: 0 20px;
+    padding: 8px 20px;
+  }
+  .scope-controls {
+    margin-inline: 0;
+  }
+  .list-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
-@media (max-width: 600px) {
-  .app-layout {
-    display: block;
-  }
-  .sidebar {
-    padding: 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .brand {
-    margin-bottom: 16px;
-  }
-  .sidebar nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .workspace-label,
-  .project-name,
-  .nav-section,
-  .sidebar-footer,
-  .sidebar-toggle,
-  .topbar {
-    display: none;
-  }
-  .nav-link {
-    padding: 8px;
+@media (max-width: 600px), (max-height: 500px) {
+  .page-heading {
+    margin-bottom: 12px;
   }
 }
 .grid-actions {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .grid-actions .picker-trigger {
   min-height: 30px;
@@ -1070,6 +1077,7 @@ h1 {
   scroll-padding-top: 36px;
 }
 .meeting-grid {
+  width: 100%;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -1134,8 +1142,21 @@ h1 {
 .meeting-grid td {
   padding: 0 8px;
   border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+/* While the grid scrolls sideways, rows keep their ID and groups keep their name. */
+.meeting-grid thead th:first-child,
+.meeting-grid .ticket-row td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.meeting-grid thead th:first-child {
+  z-index: 3;
 }
 .group-row th {
+  /* Clip, not hidden, so the sticky name inside follows the grid's scroll. */
+  overflow: clip;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--muted) 70%, var(--background));
   font-weight: 600;
@@ -1157,6 +1178,8 @@ h1 {
   outline-offset: -2px;
 }
 .group-toggle {
+  position: sticky;
+  background: inherit;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1164,7 +1187,6 @@ h1 {
   overflow: hidden;
   padding: 4px;
   border: 0;
-  background: none;
   color: inherit;
   font: inherit;
   text-overflow: ellipsis;
@@ -1187,6 +1209,16 @@ h1 {
   vertical-align: middle;
   cursor: grab;
   touch-action: none;
+}
+/* The whole cell opens the ticket, which matters on touch screens. */
+.meeting-grid .cell-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 39px;
+}
+.meeting-grid .cell-link:focus-visible {
+  outline-offset: -2px;
 }
 .cell-link:hover {
   text-decoration: underline;
@@ -1221,11 +1253,199 @@ h1 {
 .drag-preview {
   display: grid;
   gap: 4px;
-  max-width: 420px;
+  max-width: min(420px, 80vw);
   padding: 10px 12px;
   border: 1px solid var(--primary);
   border-radius: 8px;
   background: var(--background);
   box-shadow: 0 12px 32px rgb(15 23 42 / 0.16);
   font-size: 12px;
+}
+/* A long panel keeps its close button in reach without an Escape key. */
+@media (max-width: 900px), (pointer: coarse) {
+  .panel-bar {
+    position: sticky;
+    top: -8px;
+    z-index: 1;
+    background: var(--background);
+  }
+  .detail-panel {
+    scroll-padding-top: 44px;
+  }
+}
+/* No hover on touch screens, so editable cells and the title always show a border. */
+@media (hover: none) {
+  .ticket-row .picker-trigger,
+  .cell-select [data-slot='native-select'],
+  .title-input {
+    border-color: var(--border);
+  }
+}
+@media (pointer: coarse) {
+  /* iOS zooms into a focused field under 16px. */
+  [data-slot='input'],
+  [data-slot='native-select'],
+  .cell-select [data-slot='native-select'],
+  .command-input,
+  .rich-text {
+    font-size: 16px;
+  }
+  [data-slot='native-select'] {
+    line-height: 20px;
+  }
+  .group-chip button {
+    width: 32px;
+    height: 32px;
+  }
+  .group-add {
+    min-height: 32px;
+  }
+  .group-toggle {
+    min-height: 36px;
+  }
+  .column-sort {
+    min-width: 32px;
+    min-height: 36px;
+  }
+  .column-resizer {
+    width: 16px;
+  }
+  .drag-handle {
+    padding: 5px;
+    margin: -5px -1px -5px -5px;
+  }
+  /* A tap anywhere on a card opens it; a long press drags it without a text or link menu. */
+  .board-card {
+    position: relative;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  .card-title::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  /* The assignee's name, which a mouse sees in a tooltip. */
+  .card-bottom {
+    min-width: 0;
+  }
+  .card-bottom > :last-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .card-bottom .sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip-path: none;
+    text-overflow: ellipsis;
+  }
+}
+/* Phones: a compact stacked sidebar, with the sprint and New in the bar below it. Last, so
+   these rules win over the base rules above. */
+@media (max-width: 600px) {
+  .app-layout {
+    display: block;
+  }
+  .sidebar {
+    position: relative;
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    margin-bottom: 16px;
+    /* Room for the theme button. */
+    padding-right: 48px;
+  }
+  .scope-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    grid-auto-flow: column;
+    column-gap: 8px;
+    margin: 0 0 12px;
+  }
+  .sidebar nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .workspace-label,
+  .project-name,
+  .nav-section,
+  .sidebar-toggle,
+  .sidebar-footer :is(.user-avatar, .user-label),
+  .topbar > span:first-child {
+    display: none;
+  }
+  .nav-link {
+    flex: none;
+    margin-bottom: 0;
+    padding: 8px;
+  }
+  /* Inset, so the scrolling nav does not clip it. */
+  .nav-link:focus-visible {
+    outline-offset: -2px;
+  }
+  /* Only the theme button stays, at the right of the brand row. */
+  .sidebar-footer {
+    position: absolute;
+    top: 18px;
+    right: 16px;
+    padding: 0;
+    border: 0;
+  }
+  .topbar {
+    padding: 10px 16px;
+  }
+  .topbar-actions {
+    flex: 1;
+    gap: 8px;
+  }
+  /* Room for a sprint name; the badge wraps below when it does not fit. */
+  .sprint-control {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+  .sprint-control [data-slot='native-select-wrapper'],
+  .filter-bar .inline-control [data-slot='native-select-wrapper'] {
+    flex: 1;
+    min-width: 0;
+  }
+  .workspace-view {
+    padding: 20px 16px;
+  }
+  .login-banner {
+    flex-direction: column;
+    margin: 16px 16px 0;
+  }
+  .filter-bar {
+    gap: 8px;
+  }
+  .filter-bar .inline-control {
+    flex: 1 1 100%;
+  }
+  .filter-search {
+    flex: 1;
+  }
+  .form-grid,
+  .properties {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .detail-panel {
+    padding: 8px 16px 32px;
+  }
+  .item-editor-meta {
+    flex-wrap: wrap;
+  }
+  .item-editor-meta .text-link {
+    padding: 7px 0;
+  }
+  /* Content above the grid scrolls away; the grid then fills the screen. */
+  .grid-scroll {
+    height: calc(100dvh - 40px);
+  }
 }

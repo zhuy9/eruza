@@ -55,7 +55,7 @@ export function DialogContent({
         <DialogPrimitive.Close
           data-slot="dialog-close"
           disabled={closeDisabled}
-          className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+          className="absolute top-4 right-4 rounded-xs opacity-70 pointer-coarse:top-2 pointer-coarse:right-2 pointer-coarse:p-2 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
         >
           <XIcon />
           <span className="sr-only">Close</span>
