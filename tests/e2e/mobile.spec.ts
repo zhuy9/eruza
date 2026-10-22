@@ -143,3 +143,94 @@ test('the grid keeps row IDs and group names in view while it scrolls sideways',
   await page.touchscreen.tap(edge.x + edge.width + 3, edge.y + edge.height / 2);
   await expect(panel(page)).toBeVisible();
 });
+
+test('a long title wraps on a phone and saves as one line', async ({ page }) => {
+  const created = await page.request.post('/api/work-items', {
+    headers: { origin: 'http://127.0.0.1:5173' },
+    data: {
+      projectId: 'sample-project',
+      type: 'Story',
+      fields: {
+        'System.Title':
+          'Keep the selected delivery option when shoppers return to checkout from the summary',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    },
+  });
+  const { id } = (await created.json()) as { id: number };
+  const saves: unknown[] = [];
+  page.on('request', (r) => {
+    if (r.method() === 'PATCH') saves.push(r.postDataJSON());
+  });
+  await page.goto(`/items/${id}`);
+  const title = page.getByLabel('Title', { exact: true });
+  const size = await title.evaluate((el) => ({
+    height: el.clientHeight,
+    hidden: el.scrollWidth - el.clientWidth,
+    font: parseFloat(getComputedStyle(el).fontSize),
+  }));
+  expect(size.hidden).toBe(0);
+  expect(size.height).toBeGreaterThan(size.font * 3);
+
+  // A pasted line break becomes a space, and Enter saves instead of adding a line.
+  await title.fill('Show the order total\nbefore payment');
+  await title.press('Enter');
+  await expect(title).toHaveValue('Show the order total before payment');
+  await expect
+    .poll(() => saves)
+    .toContainEqual(
+      expect.objectContaining({
+        fields: { 'System.Title': 'Show the order total before payment' },
+      }),
+    );
+
+  // A line break pasted mid-title keeps the cursor where the paste ended.
+  await title.focus();
+  await title.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(9, 9));
+  await page.keyboard.insertText('full\n');
+  await page.keyboard.type('X');
+  await expect(title).toHaveValue('Show the full Xorder total before payment');
+
+  // An Enter that picks an IME word does not end the edit.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: 'にほん', selectionStart: 3, selectionEnd: 3 });
+  await page.keyboard.press('Enter');
+  await expect(title).toBeFocused();
+});
+
+test('the assignee picker opens its list without the on-screen keyboard', async ({ page }) => {
+  await page.goto('/items/1001');
+  const trigger = page.getByRole('button', { name: /^Assignee/ });
+  await trigger.tap();
+  await expect(page.getByRole('option', { name: 'Assign to me' })).toBeVisible();
+  await expect(page.getByPlaceholder('Search people')).not.toBeFocused();
+
+  // A hardware keyboard still opens it with focus in the search.
+  await page.keyboard.press('Escape');
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByPlaceholder('Search people')).toBeFocused();
+});
+
+test('drop hints stay on a phone screen during a drag', async ({ page }) => {
+  await page.goto('/grid?grouping=story');
+  const handle = page.locator('.ticket-row .drag-handle').first();
+  await handle.scrollIntoViewIfNeeded();
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + 7, box.y + 7);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 20, box.y + 30, { steps: 5 });
+  const hint = page.locator('.drop-hint').first();
+  const label = page.locator('.group-row .group-toggle').first();
+  // In view and clear of the story name, wherever the grid is scrolled.
+  for (const left of [0, 300, 10000]) {
+    await page.locator('.grid-scroll').evaluate((el, x) => el.scrollTo({ left: x }), left);
+    await expect(hint).toBeInViewport({ ratio: 1 });
+    const name = (await label.boundingBox())!;
+    expect((await hint.boundingBox())!.x, `scrolled to ${left}`).toBeGreaterThan(
+      name.x + name.width,
+    );
+  }
+  await page.mouse.up();
+});

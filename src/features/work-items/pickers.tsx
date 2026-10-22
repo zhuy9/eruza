@@ -1,7 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Identity, WorkItemSummary } from '../../../shared/contracts';
 import { Avatar } from '../../components/ui/avatar';
 import { searchQuery } from '../../lib/queries';
@@ -15,11 +15,17 @@ function Picker(props: {
   trigger: ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The list works before typing, so a tap opens it without the on-screen keyboard. */
+  browseFirst?: boolean;
   children: ReactNode;
 }) {
+  // A hardware keyboard on a touch screen still opens the list with focus in the search.
+  const tapped = useRef(false);
   return (
     <Popover.Root open={props.open} onOpenChange={props.onOpenChange}>
       <Popover.Trigger
+        onPointerDown={(e) => (tapped.current = e.pointerType === 'touch')}
+        onKeyDown={() => (tapped.current = false)}
         id={props.id}
         className="picker-trigger"
         aria-label={props.label}
@@ -28,7 +34,14 @@ function Picker(props: {
         {props.trigger}
       </Popover.Trigger>
       {/* No portal, so the menu stays inside an open dialog's focus trap. */}
-      <Popover.Content className="popover" align="start" sideOffset={4}>
+      <Popover.Content
+        className="popover"
+        align="start"
+        sideOffset={4}
+        onOpenAutoFocus={(event) => {
+          if (props.browseFirst && tapped.current) event.preventDefault();
+        }}
+      >
         {props.children}
       </Popover.Content>
     </Popover.Root>
@@ -65,6 +78,7 @@ export function AssigneePicker(props: {
       label={props.label ?? `Assignee: ${props.assignee?.displayName ?? 'Unassigned'}`}
       open={open}
       onOpenChange={setOpen}
+      browseFirst
       trigger={
         <>
           <Avatar identity={props.assignee} />

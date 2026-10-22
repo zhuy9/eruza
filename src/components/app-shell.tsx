@@ -22,6 +22,7 @@ import { DetailPanel } from '../features/work-items/detail-panel';
 import { sessionQuery } from '../lib/queries';
 import { inDialog, isShortcut } from '../lib/keys';
 import { keepView, useScope } from '../lib/scope';
+import { applyTheme } from '../lib/theme';
 import { ToastContext } from '../lib/toast';
 import { branding } from '../lib/branding';
 import { Brand } from './brand';
@@ -71,7 +72,7 @@ export function AppShell() {
   function toggleTheme() {
     const next = !dark;
     setDark(next);
-    document.documentElement.classList.toggle('dark', next);
+    applyTheme(next);
     localStorage.setItem('eruza-theme', next ? 'dark' : 'light');
   }
   const [collapsed, setCollapsed] = useState(

@@ -3,7 +3,10 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type ComponentProps,
+  type FocusEvent,
+  type KeyboardEvent,
   type ReactNode,
 } from 'react';
 import type { FieldDefinition, FieldValue, Identity } from '../../../shared/contracts';
@@ -205,6 +208,8 @@ type DraftProps = {
   onCommit: (value: FieldValue, baseRev: number) => void;
 };
 
+const LINE_BREAK = /\s*\n\s*/g;
+
 /** Text or number input that keeps a local draft and saves on blur or after a pause. */
 export function DraftInput({
   id,
@@ -242,32 +247,44 @@ export function DraftInput({
   // Leaving the page unmounts the input without a blur, so send a typed draft now.
   useEffect(() => () => latest.current.flush(), []);
 
-  // A custom class, such as the large title, styles a plain input instead of Input.
-  const Field = className ? 'input' : Input;
-  return (
-    <Field
-      id={id}
-      aria-label={label}
-      aria-invalid={invalid}
-      className={className}
-      type={numeric ? 'number' : 'text'}
-      value={draft}
-      onFocus={() => setFocused(true)}
-      onChange={(e) => {
-        const input = e.target.value;
-        dirty.current = true;
-        setDraft(input);
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => commit(input), SAVE_DELAY_MS);
-      }}
-      onBlur={(e) => {
-        setFocused(false);
-        commit(e.target.value);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur();
-      }}
-    />
+  const props = {
+    id,
+    'aria-label': label,
+    'aria-invalid': invalid,
+    className,
+    value: draft,
+    onFocus: () => setFocused(true),
+    onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      // Values are one line, so a pasted line break becomes a space. Set it here, with the
+      // cursor where it was, so React does not rewrite the value and move the cursor to the end.
+      const field = e.target;
+      if (field.value.includes('\n')) {
+        const before = field.value.slice(0, field.selectionStart ?? 0).replace(LINE_BREAK, ' ');
+        field.value = field.value.replace(LINE_BREAK, ' ');
+        field.setSelectionRange(before.length, before.length);
+      }
+      const input = field.value;
+      dirty.current = true;
+      setDraft(input);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => commit(input), SAVE_DELAY_MS);
+    },
+    onBlur: (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFocused(false);
+      commit(e.target.value);
+    },
+    onKeyDown: (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      // An Enter that picks a Japanese, Chinese, or Korean word is not the end of the edit.
+      if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      e.currentTarget.blur();
+    },
+  };
+  // A custom class, such as the large title, styles a plain textarea, so long text wraps.
+  return className ? (
+    <textarea rows={1} {...props} />
+  ) : (
+    <Input type={numeric ? 'number' : 'text'} {...props} />
   );
 }
 

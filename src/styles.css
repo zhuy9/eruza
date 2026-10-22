@@ -445,7 +445,11 @@ h1 {
   color: #5263b8;
 }
 .title-input {
+  display: block;
   width: 100%;
+  /* Grows to fit a long title. */
+  field-sizing: content;
+  resize: none;
   margin: 14px 0 4px;
   padding: 4px 6px;
   margin-left: -6px;
@@ -1193,6 +1197,14 @@ h1 {
   vertical-align: middle;
 }
 .drop-hint {
+  /* At the row's right end, and held at the grid's edge while the row is wider than it. */
+  float: right;
+  position: sticky;
+  right: 0;
+  padding: 0 8px 0 6px;
+  /* The group name button's height, so the floated hint lines up with it. */
+  line-height: 26px;
+  background: inherit;
   color: var(--primary);
   font-size: 11px;
 }
@@ -1302,6 +1314,9 @@ h1 {
   }
   .group-toggle {
     min-height: 36px;
+  }
+  .drop-hint {
+    line-height: 36px;
   }
   .column-sort {
     min-width: 32px;

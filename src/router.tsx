@@ -69,6 +69,13 @@ const itemRoute = createRoute({
 });
 export const router = createRouter({
   routeTree: rootRoute.addChildren([indexRoute, boardRoute, gridRoute, itemRoute]),
+  defaultNotFoundComponent: () => (
+    <section className="workspace-view">
+      <p role="alert" className="notice">
+        This page does not exist. Choose a view from the menu.
+      </p>
+    </section>
+  ),
 });
 declare module '@tanstack/react-router' {
   interface Register {

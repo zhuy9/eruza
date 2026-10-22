@@ -6,10 +6,11 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { ApiRequestError } from './lib/api';
 import { sessionQuery } from './lib/queries';
 import { hasFailedSave } from './lib/saves';
+import { applyTheme } from './lib/theme';
 import { router } from './router';
 import './styles.css';
 
-document.documentElement.classList.toggle('dark', localStorage.getItem('eruza-theme') === 'dark');
+applyTheme(localStorage.getItem('eruza-theme') === 'dark');
 const queryClient = new QueryClient({
   // A sign-in failure on any read refreshes the session, which shows the login banner.
   queryCache: new QueryCache({

@@ -67,6 +67,9 @@ async function dragTo(page: Page, id: number, target: string) {
   await page.mouse.down();
   await page.mouse.move(from!.x + 15, from!.y + 15, { steps: 3 });
   await page.mouse.move(to!.x + 200, to!.y + to!.height / 2, { steps: 12 });
+  // A drag near the window's edge scrolls the page, so aim again at the heading's new place.
+  const settled = (await heading(page, target).boundingBox())!;
+  await page.mouse.move(settled.x + 200, settled.y + settled.height / 2, { steps: 3 });
 }
 
 const person = (id: string, name: string) => ({ id, displayName: name });

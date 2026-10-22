@@ -15,12 +15,21 @@ test('mock shell supports navigation, reload, theme, and keyboard focus', async 
   await expect(page.getByRole('heading', { name: 'Sprint update', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Sprint retro', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sprint retro', exact: true })).toBeVisible();
+  // The mobile browser bar follows the theme.
+  const barColor = page.locator('meta[name="theme-color"]');
+  await expect(barColor).toHaveAttribute('content', '#f8f9fc');
   await page.getByRole('button', { name: 'Toggle dark mode' }).click();
   await expect(page.locator('html')).toHaveClass(/dark/);
+  await expect(barColor).toHaveAttribute('content', '#191f2b');
   await page.reload();
   await expect(page.locator('html')).toHaveClass(/dark/);
+  await expect(barColor).toHaveAttribute('content', '#191f2b');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await page.goto('/no-such-page');
+  await expect(page.getByRole('alert')).toHaveText(
+    'This page does not exist. Choose a view from the menu.',
+  );
   expect(external).toEqual([]);
 });
 

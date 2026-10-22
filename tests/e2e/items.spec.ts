@@ -299,7 +299,10 @@ test('panel and full page edit the same item, and I assigns it to me', async ({ 
   await expect(page.getByRole('button', { name: 'Assignee: Person D' })).toBeVisible();
   const title = page.getByLabel('Title', { exact: true });
   await title.focus();
-  await title.press('End');
+  // The title is a textarea, where End on macOS scrolls instead of moving the cursor.
+  await title.evaluate((el: HTMLTextAreaElement) =>
+    el.setSelectionRange(el.value.length, el.value.length),
+  );
   // Typing "i" in a field must not trigger the shortcut.
   await page.keyboard.type(' in review');
   await title.press('Enter');
