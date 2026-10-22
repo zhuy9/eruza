@@ -11,6 +11,8 @@ Private repository visibility is not a place to store private data.
 - Made-up test data and generic placeholders.
 - The copyright holder in `LICENSE`.
 - The configured approved Git author identity in commit metadata.
+- The README screenshots in `docs/images/`. The owner approved them. They show the
+  owner's test project with `npm run seed` sample items and the owner's name.
 
 Do not copy personal identity details into repo docs or source.
 

@@ -6,6 +6,10 @@ Eruza is a local web app in development for Azure DevOps (ADO) Boards. It provid
 a state-based board, a grid for sprint meetings, and work item editing.
 Azure DevOps remains the source of truth.
 
+![The state board with sample items in columns by state](docs/images/board.png)
+
+![The sprint update grid grouped by person and story](docs/images/sprint-update.png)
+
 ## Current status
 
 Stage 1 (M0-M7) is complete. Local automated checks and live checks against a
