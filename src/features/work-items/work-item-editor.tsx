@@ -21,6 +21,7 @@ import {
   workItemQuery,
 } from '../../lib/queries';
 import {
+  expectedRev,
   usePendingFields,
   useSaveFields,
   useSetParent,
@@ -79,7 +80,12 @@ export function WorkItemEditor({ id, variant }: { id: number; variant: Variant }
           Could not refresh this item. Showing the last loaded version. {view.error.message}
         </p>
       )}
-      <EditorBody key={view.data.item.id} view={view.data} variant={variant} />
+      <EditorBody
+        key={view.data.item.id}
+        view={view.data}
+        variant={variant}
+        refreshFailed={view.isError}
+      />
     </>
   );
 }
@@ -112,7 +118,8 @@ function ItemLink(props: { item: WorkItemSummary; variant: Variant; context: Ite
   );
 }
 
-function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant }) {
+function EditorBody(props: { view: WorkItemView; variant: Variant; refreshFailed: boolean }) {
+  const { view, variant } = props;
   const { item, related, missingIds } = view;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -141,12 +148,16 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
     save.mutate({ fields, baseRev });
   };
 
+  /** The loaded Azure DevOps value. People are identities. */
+  const saved = (ref: string): FieldValue | Identity => {
+    if (ref === 'System.Description') return item.description;
+    if (ref === 'System.AssignedTo') return item.assignee;
+    return item.fields[ref] ?? null;
+  };
   const value = (ref: string): FieldValue => {
     if (ref in pending) return pending[ref].value;
-    if (ref === 'System.Description') return item.description;
-    if (ref === 'System.AssignedTo') return item.assignee?.id ?? null;
-    const saved = item.fields[ref] ?? null;
-    return saved !== null && typeof saved === 'object' ? saved.id : saved;
+    const current = saved(ref);
+    return current !== null && typeof current === 'object' ? current.id : current;
   };
   const fieldError = (ref: string) => {
     if (pending[ref]?.status !== 'error') return undefined;
@@ -286,6 +297,9 @@ function EditorBody({ view, variant }: { view: WorkItemView; variant: Variant })
           defs={byRef}
           people={people}
           me={me}
+          // A conflict means ADO is past the sent revision, so only a later load has its value.
+          saved={item.rev > expectedRev(item.id, failure.save.baseRev) ? saved : undefined}
+          refreshFailed={props.refreshFailed}
           onRetry={(fields) => {
             if (failure.mutation) queryClient.getMutationCache().remove(failure.mutation);
             save.mutate({ fields, baseRev: item.rev });
@@ -431,12 +445,37 @@ const PROBLEMS: Partial<Record<string, string>> = {
     'Eruza lost contact while saving. The change may already be saved. Check the item before saving again.',
 };
 
+/** HTML as plain text, with a space for each line break and block. */
+function htmlText(html: string) {
+  const body = new DOMParser().parseFromString(html, 'text/html').body;
+  body
+    .querySelectorAll('br,p,div,li,tr,td,th,h1,h2,h3,h4,h5,h6,blockquote,pre')
+    .forEach((el) => el.after(' '));
+  return body.textContent;
+}
+
+/** A loaded value as short plain text. Description HTML is parsed inert, never rendered. */
+function shownValue(ref: string, value: FieldValue | Identity) {
+  const text =
+    value !== null && typeof value === 'object'
+      ? value.displayName
+      : ref === 'System.Description'
+        ? htmlText(String(value))
+        : String(value ?? '');
+  const plain = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (!plain) return '(empty)';
+  return plain.length > 200 ? `${plain.slice(0, 200)}…` : plain;
+}
+
 /** A failed save with its draft kept, plus any fields ADO needs to accept it. */
 function SaveProblem(props: {
   failure: Pending;
   defs: Map<string, FieldDefinition>;
   people: Identity[];
   me?: Identity;
+  /** The loaded Azure DevOps value, once the item has reloaded since the conflict. */
+  saved?: (ref: string) => FieldValue | Identity;
+  refreshFailed: boolean;
   onRetry: (fields: FieldChanges) => void;
   onDiscard: () => void;
 }) {
@@ -445,14 +484,30 @@ function SaveProblem(props: {
     (ref) => !(ref in props.failure.save.fields) && props.defs.has(ref),
   );
   const [extra, setExtra] = useState<FieldChanges>({});
-  const changed = Object.keys(props.failure.save.fields)
-    .map((ref) => props.defs.get(ref)?.name ?? ref)
-    .join(', ');
+  const { saved } = props;
+  const failed = Object.keys(props.failure.save.fields);
+  const name = (ref: string) => props.defs.get(ref)?.name ?? ref;
   return (
     <div role="alert" className="save-problem">
       <p>
-        <strong>Not saved: {changed}.</strong> {PROBLEMS[error.code] ?? error.message}
+        <strong>Not saved: {failed.map(name).join(', ')}.</strong>{' '}
+        {PROBLEMS[error.code] ?? error.message}
       </p>
+      {/* The loaded revision is the one Save again replaces, so show what it would overwrite. */}
+      {error.code === 'CONFLICT' &&
+        (saved ? (
+          failed.map((ref) => (
+            <p key={ref}>
+              Azure DevOps now has {name(ref)}: {shownValue(ref, saved(ref))}
+            </p>
+          ))
+        ) : (
+          <p>
+            {props.refreshFailed
+              ? 'Could not load the current Azure DevOps value.'
+              : 'Loading the current Azure DevOps value…'}
+          </p>
+        ))}
       {needed.map((ref) => (
         <div key={ref} className="form-field">
           <label htmlFor={`needed-${ref}`}>{props.defs.get(ref)!.name}</label>

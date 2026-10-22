@@ -44,6 +44,9 @@ for (const field of ['Title', 'Description']) {
       await input.fill(text);
       await input.press('Tab');
       await expect(problem).toBeVisible();
+      await expect(problem).toContainText(
+        `Azure DevOps now has ${field}: Remote ${field.toLowerCase()}`,
+      );
     }
     if (field === 'Title') await expect(input).toHaveValue(`${draft} again`);
     else await expect(input).toHaveText(`${draft} again`);
@@ -52,6 +55,59 @@ for (const field of ['Title', 'Description']) {
     else await expect(input).toHaveText('Remote description');
   });
 }
+
+test('a conflict shows the Azure DevOps value only after the item reloads', async ({ page }) => {
+  const response = await page.request.post('/api/work-items', {
+    headers,
+    data: {
+      projectId: 'sample-project',
+      type: 'Task',
+      fields: {
+        'System.Title': 'Conflict value example',
+        'System.Description': '<p>Original description</p>',
+        'System.AreaPath': 'Sample project\\Web',
+        'System.IterationPath': 'Sample project\\Sprint 3',
+      },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const item = (await response.json()) as { id: number; rev: number };
+  await page.clock.install();
+  await page.goto(`/items/${item.id}`);
+  const input = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(input).toBeVisible();
+  // The remote change lands before the next poll, so the editor still shows the old revision.
+  const changed = await page.request.patch(`/api/work-items/${item.id}`, {
+    headers,
+    data: {
+      expectedRev: item.rev,
+      fields: {
+        'System.Description':
+          '<div>Steps to reproduce</div><div>Open the app<br>Click save</div><ul><li>One</li><li>Two</li></ul>',
+      },
+    },
+  });
+  expect(changed.ok()).toBe(true);
+  let failing = true;
+  await page.route(`**/api/work-items/${item.id}`, (route) =>
+    failing && route.request().method() === 'GET'
+      ? route.fulfill({ status: 502, json: { code: 'UPSTREAM', message: 'Refresh failed.' } })
+      : route.fallback(),
+  );
+  await input.fill('My description');
+  await input.press('Tab');
+  const problem = page.getByRole('alert').filter({ hasText: 'changed in Azure DevOps' });
+  await expect(problem).toContainText('Loading the current Azure DevOps value…');
+  await page.clock.runFor(2_000);
+  await expect(problem).toContainText('Could not load the current Azure DevOps value.');
+  await expect(problem).not.toContainText('Original description');
+  failing = false;
+  await page.clock.runFor(45_000);
+  await expect(problem).toContainText(
+    'Azure DevOps now has Description: Steps to reproduce Open the app Click save One Two',
+  );
+  await expect(input).toHaveText('My description');
+});
 
 test('leaving an untouched description adopts refreshed text without saving', async ({ page }) => {
   await page.clock.install();
