@@ -372,6 +372,8 @@ test('a refresh that started during a save cannot bring back the old value', asy
   await expect.poll(() => saving).toBe(true);
   await page.clock.runFor(45_000);
   await expect.poll(() => staleReads).toBeGreaterThan(0);
+  // Reads after this see the save, such as the second read a stale one triggers.
+  saving = false;
   saveDone();
   await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
   readDone();

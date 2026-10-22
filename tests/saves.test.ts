@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { QueryClient } from '@tanstack/react-query';
+import { describe, expect, it, vi } from 'vitest';
+import type { WorkItemView } from '../shared/contracts';
+import { workItemQuery } from '../src/lib/queries';
 import { expectedRev, pendingOverlay, recordSave, type Save } from '../src/lib/saves';
 
 const state = (
@@ -32,6 +35,56 @@ describe('expected revision', () => {
     // ADO returns the same revision for a write that changes nothing, such as the same title.
     recordSave(502, 6, 6);
     expect(expectedRev(502, 6)).toBe(6);
+  });
+});
+
+describe('item read', () => {
+  const view = (rev: number): WorkItemView => ({
+    item: {
+      id: 503,
+      rev,
+      type: 'Task',
+      title: 'Sample task',
+      state: 'Active',
+      assignee: null,
+      tags: [],
+      areaPath: 'Sample',
+      iterationPath: 'Sample',
+      parentId: null,
+      priority: null,
+      remainingWork: null,
+      estimate: null,
+      project: 'Sample',
+      description: '',
+      fields: {},
+      childIds: [],
+    },
+    related: [],
+    missingIds: [],
+    webUrl: null,
+  });
+
+  it('reads again when the first read predates a save this tab finished', async () => {
+    recordSave(503, 1, 2);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json(view(1)))
+      .mockResolvedValueOnce(Response.json(view(2)));
+    vi.stubGlobal('fetch', fetch);
+    const result = await new QueryClient().fetchQuery(workItemQuery(503));
+    expect(result.item.rev).toBe(2);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads once when the read is current', async () => {
+    recordSave(504, 1, 2);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ ...view(2), item: { ...view(2).item, id: 504 } }));
+    vi.stubGlobal('fetch', fetch);
+    const result = await new QueryClient().fetchQuery(workItemQuery(504));
+    expect(result.item.rev).toBe(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 

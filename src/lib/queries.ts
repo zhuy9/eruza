@@ -24,6 +24,7 @@ import {
   type WorkItemView,
 } from '../../shared/contracts';
 import { getJson } from './api';
+import { expectedRev } from './saves';
 
 const e = encodeURIComponent;
 const METADATA_STALE_MS = 300_000;
@@ -116,7 +117,13 @@ export const workItemsQuery = (query?: WorkItemQuery) =>
 export const workItemQuery = (id: number) =>
   queryOptions({
     queryKey: ['work-item', id],
-    queryFn: () => getJson(`/work-items/${id}`, workItemViewSchema),
+    queryFn: async () => {
+      const read = () => getJson(`/work-items/${id}`, workItemViewSchema);
+      const view = await read();
+      // Older than a save this tab already finished, and maybe no newer view cached to keep.
+      // ponytail: one more read; the 45 s refresh covers anything rarer.
+      return expectedRev(id, view.item.rev) > view.item.rev ? read() : view;
+    },
     refetchInterval: REFRESH_MS,
     // A read that started before a save can finish after it. Never go back to an older revision.
     structuralSharing: (old: unknown, next: unknown) =>
