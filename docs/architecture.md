@@ -103,6 +103,10 @@ Use `AzureCliCredential` from `@azure/identity` with scope:
 499b84ac-1321-427f-aa17-267ca6975798/.default
 ```
 
+`package.json` overrides `@azure/msal-node` to 7.1.1. `@azure/identity` 4.14.0
+allows only 6.x, which has advisory GHSA-xcx6-jx8p-x3h5. Remove the override
+when `@azure/identity` allows 7.1.0 or later.
+
 `getAuthHeader()` returns a Bearer authorization header. Cache the token only in
 server memory. Refresh on the next request when fewer than 60 seconds remain
 before `expiresOnTimestamp`. Share an in-flight refresh across callers.
