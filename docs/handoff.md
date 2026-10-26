@@ -22,15 +22,15 @@ signed-in user. Those live checks passed on 2026-10-20. Stage 1 is complete.
 The milestone sections below retain the earlier mock-only evidence; the final
 live verification section records what was checked afterward.
 
-Each push needs explicit approval. On 2026-10-22 the owner approved pushing `main`
-through the phone and tablet open-items follow-up below. Do not push later commits,
-deploy, or change repository visibility without new approval.
+Each push needs explicit approval. On 2026-10-26 the owner approved pushing `main`
+through the Node 24.22.1 update below. Do not push later commits, deploy, or change
+repository visibility without new approval.
 
 ## Git checkpoint
 
-- Branch: `main`. Everything below, through the phone and tablet open-items follow-up,
-  is on GitHub: M0-M9, the audit and review fixes, the README rewrite, the
-  lower-severity review fixes, and the grid width and phone and tablet layout work.
+- Branch: `main`. Everything below, through the Node 24.22.1 update, is on GitHub:
+  M0-M9, the audit and review fixes, the README rewrite, the lower-severity review
+  fixes, the grid width and phone and tablet layout work, and the Node 24.22.1 update.
 - The repository is public (checked with `gh repo view` on 2026-10-22). Every commit is
   public, so keep following `docs/privacy.md`.
 - `CLAUDE.md` is a relative symlink to `AGENTS.md`, with Git mode `120000`.
@@ -1092,6 +1092,51 @@ installed, and one is a download of several GB. The app listens on `127.0.0.1` o
 a phone on the network cannot reach it by design; the Simulator can. Tooltips do not
 open on touch, by design (controls keep their accessible names).
 
+## Node 24.22.1 security update (2026-10-26)
+
+The owner reported CVE-2026-111497, a high-severity bug in the Brotli decoder bundled with
+Node.js. Node 24.22.1, the October 21, 2026 security release, fixes it, and every older
+24.x has it. It was the newest 24.x on 2026-10-26. Eruza pinned 24.14.1. The risk was low:
+the decoder runs when the local server's `fetch` reads a Brotli response (Node asks HTTPS
+servers for `br`), and the server fetches only from `dev.azure.com`, with redirects off.
+
+What changed:
+
+- The pin moved from `24.14.1` to `24.22.1` in `.node-version`, `engines` in
+  `package.json`, the root package's `engines` in `package-lock.json`, and the Get
+  started step in `README.md`. M1.1 needs one exact Node version, so the pin stays exact.
+- No dependency changed. The earlier `24.14.1` mentions in this file, including Machine
+  notes, are kept, because they record the Node version those checks ran on.
+
+Checks (mock mode, macOS, Node `24.22.1`, npm `11.19.1`, no live calls):
+
+- `node -v` in a new login shell printed `v24.22.1`, the nvm default.
+- `npm run check` passed: lint, format, typecheck, 225 unit and integration tests, and the
+  build, with the existing chunk-size warning.
+- In a scratch copy of the tracked files outside the repo, `npm ci` passed with no engine
+  warning, and `npm run check` passed. The owner's dev server held ports 5173 and 3001,
+  so the browser tests ran there with the ports changed to 5175 and 3003: 93 of 93 passed
+  in 2.0 minutes. A first `npm run check` with the changed ports failed 15 unit tests,
+  because they send origin 5173. It passed after the files were restored.
+- `npm run dev` in that copy, on the same ports: the page and `/api/session` through the
+  proxy returned 200, a wrong `Host` returned 403, and nothing restarted in 12 idle
+  seconds. SIGINT to its process group, as Ctrl+C sends, stopped all three processes and
+  both listeners.
+- `npm ci` reported 2 high-severity advisories in `@azure/msal-node`, which comes through
+  `@azure/identity` (GHSA-xcx6-jx8p-x3h5, about the authorization code flow). Eruza uses
+  only `AzureCliCredential`. No dependency changed here, so this is still open.
+- A review checked the release, the CVE, and every tracked file for other Node version
+  references, and found nothing else to change.
+- Not run: Windows and live ADO calls.
+
+npm 11.19.1 comes with Node 24.22.1. A later `npm install` adds 66 lines to the lockfile
+for bundled packages of `@tailwindcss/oxide-wasm32-wasi`. That comes from the newer npm,
+not from this change.
+
+Next step: restart any dev server that started before this change, so it runs on
+24.22.1. Decide how to handle the `@azure/msal-node` advisory above. The owner approved
+pushing this update, and it is on GitHub.
+
 ## Machine notes
 
 - The M5 session ran on macOS with plenty of disk space. Node `24.14.1` came from
@@ -1121,8 +1166,9 @@ the dev-server and Ctrl+C checks.
 
 ## Next steps
 
-Stage 1, M8, M9, the review fixes, and the grid width and phone and tablet work are on
-GitHub. Check the phone layouts on a real iPhone or in the iOS Simulator, which needs an
-iOS runtime download of several GB.
+Stage 1, M8, M9, the review fixes, the grid width and phone and tablet work, and the
+Node 24.22.1 update are on GitHub. Check the phone layouts on a real iPhone or in the iOS
+Simulator, which needs an iOS runtime download of several GB. Decide how to handle the
+`@azure/msal-node` advisory in the Node 24.22.1 update.
 Open: S12 needs a live image check, which is a write and needs approval. Keep `refs/t3/`
 local; never push with `--all` or `--mirror`.
