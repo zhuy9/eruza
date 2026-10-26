@@ -1129,13 +1129,58 @@ Checks (mock mode, macOS, Node `24.22.1`, npm `11.19.1`, no live calls):
   references, and found nothing else to change.
 - Not run: Windows and live ADO calls.
 
-npm 11.19.1 comes with Node 24.22.1. A later `npm install` adds 66 lines to the lockfile
-for bundled packages of `@tailwindcss/oxide-wasm32-wasi`. That comes from the newer npm,
-not from this change.
+npm 11.19.1 comes with Node 24.22.1. `npm install --package-lock-only` adds 66 lines to
+the lockfile for bundled packages of `@tailwindcss/oxide-wasm32-wasi`; a full
+`npm install` does not. That comes from the newer npm, not from this change.
 
 Next step: restart any dev server that started before this change, so it runs on
 24.22.1. Decide how to handle the `@azure/msal-node` advisory above. The owner approved
 pushing this update, and it is on GitHub.
+
+## `@azure/msal-node` advisory fix (2026-10-26)
+
+The owner asked to fix the advisory found during the Node update: GHSA-xcx6-jx8p-x3h5
+(CVE-2026-109461, high) in the `@azure/msal-node` authorization code flow, fixed in 7.1.0.
+Eruza never uses that flow. It uses only `AzureCliCredential`, which runs `az`. The newest
+stable `@azure/identity`, 4.14.0, allows only `@azure/msal-node` 6.x, and the newest 6.x
+(6.0.1) has the bug. The 4.15.0 beta also allows only 6.x.
+
+What changed:
+
+- `package.json` overrides `@azure/msal-node` to 7.1.1. The lockfile changes only
+  `@azure/msal-node` (6.0.1 to 7.1.1) and its own `@azure/msal-common` (16.14.1 to
+  16.14.3). Both integrity values match the registry.
+- `docs/architecture.md` notes the override and when to remove it.
+- Not chosen: `npm audit fix --force` would downgrade `@azure/identity` to 4.13.0, whose
+  `AzureCliCredential` runs `az` through a shell string; 4.13.1 to 4.13.3 have the bug.
+  Calling `az` directly would go against `docs/architecture.md` and would need its own
+  Windows `az.cmd`, timeout, and error handling.
+- No test was added, because app behavior does not change. `tests/app.test.ts` and
+  `tests/mock-writes.test.ts` load the real `@azure/identity`, so they would fail if it
+  could not load with msal-node 7.
+
+Checks (mock mode, macOS, Node `24.22.1`, npm `11.19.1`, no live calls):
+
+- msal-node 7.0.0's only breaking change removes `responseMode` from interactive
+  requests. `@azure/identity` 4.14.0 does not use it, and its ESM and CommonJS builds
+  both load with 7.1.1. 7.1.1 is the newest 7.x and has no other advisory.
+- In a scratch copy of the tracked files: `npm ci` and `npm audit` found 0
+  vulnerabilities, and `npm ls` shows `@azure/msal-node@7.1.1 overridden`. `npm run check`
+  passed (225 tests and the build, with the existing chunk-size warning). The browser
+  tests passed 93 of 93 on ports 5175 and 3003, because the owner's dev server held 5173
+  and 3001.
+- The real `createAuth()` credential, with a fake `az` first on `PATH`, loaded msal-node
+  7.1.1 and returned the fake token. `az` got the expected arguments.
+- A review found `npm ci` works with the override on npm 9, 10, 11.11, and 11.19, and a
+  full `npm install` on npm 11 leaves the lockfile unchanged.
+- The repo's own `node_modules` still has 6.0.1. The owner's dev server was running from
+  it on the removed Node 24.16.0 binary, and `node --watch` restarts when a loaded file
+  changes.
+- Not run: Windows, live ADO calls, and a real `az` sign-in.
+
+Next step: stop the dev server, run `npm ci`, and start it again on Node 24.22.1. Remove
+the override when `@azure/identity` allows 7.1.0 or later; Azure/azure-sdk-for-js issue
+40441 tracks the move to msal-node 7. A push needs explicit approval.
 
 ## Machine notes
 
@@ -1168,7 +1213,7 @@ the dev-server and Ctrl+C checks.
 
 Stage 1, M8, M9, the review fixes, the grid width and phone and tablet work, and the
 Node 24.22.1 update are on GitHub. Check the phone layouts on a real iPhone or in the iOS
-Simulator, which needs an iOS runtime download of several GB. Decide how to handle the
-`@azure/msal-node` advisory in the Node 24.22.1 update.
+Simulator, which needs an iOS runtime download of several GB. The `@azure/msal-node` fix
+is local only. Remove its override when `@azure/identity` allows 7.1.0 or later.
 Open: S12 needs a live image check, which is a write and needs approval. Keep `refs/t3/`
 local; never push with `--all` or `--mirror`.
