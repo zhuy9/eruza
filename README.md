@@ -47,7 +47,7 @@ Your work items stay in Azure DevOps. Eruza does not keep its own copy.
 
 ## Get started
 
-Install Node.js `24.14.1` (see `.node-version`). Then run:
+Install Node.js `24.22.1` (see `.node-version`). Then run:
 
 ```sh
 npm ci
